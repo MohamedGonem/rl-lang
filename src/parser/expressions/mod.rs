@@ -73,7 +73,7 @@ impl Parser {
     }
 
     pub fn parse_unary(&mut self) -> Expression {
-        while self.match_type(&[TokenType::Bang, TokenType::Minus]) {
+        if self.match_type(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let operand = self.parse_unary();
             return Expression::Unary {
@@ -87,6 +87,13 @@ impl Parser {
     pub fn parse_primary(&mut self) -> Expression {
         // println!("current index: {:?}", self.current);
         // println!("current token: {:?}", self.peek());
+
+        // is it identifier
+        if self.match_type(&[TokenType::Identifier(String::new())]) {
+            if let TokenType::Identifier(name) = self.previous() {
+                return Expression::Identifier(name);
+            }
+        }
 
         // is it integer?
         if self.match_type(&[TokenType::NumberLiteral(0)]) {

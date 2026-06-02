@@ -17,4 +17,9 @@ pub enum Expression {
     Bool(bool),
     Float(f64),
     Character(char),
+    Identifier(String),
+    Assign {
+        name: String,
+        value: Box<Expression>,
+    },
 }

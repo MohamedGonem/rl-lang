@@ -1,7 +1,4 @@
-use crate::{
-    lexer::tokentypes::{self, TokenType},
-    parser::parser::Parser,
-};
+use crate::{lexer::tokentypes::TokenType, parser::parser::Parser};
 
 impl Parser {
     pub fn is_at_end(&self) -> bool {
@@ -29,6 +26,7 @@ impl Parser {
             (TokenType::StringLiteral(_), TokenType::StringLiteral(_)) => true,
             (TokenType::FloatLiteral(_), TokenType::FloatLiteral(_)) => true,
             (TokenType::BoolLiteral(_), TokenType::BoolLiteral(_)) => true,
+            (TokenType::CharacterLiteral(_), TokenType::CharacterLiteral(_)) => true,
             _ => token_type == &current,
         }
     }

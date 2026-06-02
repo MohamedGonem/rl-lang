@@ -1,11 +1,15 @@
-use crate::{ast::statements::Statement, lexer::tokentypes::TokenType, parser::parser::Parser};
+use crate::{
+    ast::{nodes::Expression, statements::Statement},
+    lexer::tokentypes::TokenType,
+    parser::parser::Parser,
+};
 
 impl Parser {
-    pub fn parse_variable_declartion(&mut self) -> Statement {
+    pub fn parse_stdlib_call(&mut self) -> Statement {
         // println!("{:?}", self.peek());
         // println!("parsing type");
         let var_type = match self.peek() {
-            TokenType::Int
+            TokenType::Identifier(_)
             | TokenType::Float
             | TokenType::Bool
             | TokenType::String
