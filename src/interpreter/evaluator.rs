@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
-use crate::{ast::nodes::Expression, interpreter::values::Value, utils::errors::Error};
+use crate::{
+    ast::nodes::Expression,
+    interpreter::{stdlib, values::Value},
+    utils::errors::Error,
+};
 
 pub struct Evaluator {
-    enviroment: HashMap<String, Value>,
+    environment: HashMap<String, Value>,
 }
 
 impl Evaluator {
@@ -45,13 +49,13 @@ impl Evaluator {
 
     pub fn new() -> Self {
         Self {
-            enviroment: HashMap::new(),
+            environment: HashMap::new(),
         }
     }
 
     pub fn get_value(&self, value_name: String) -> Value {
         // println!("target: {}", value_name.clone());
-        match self.enviroment.get(&value_name) {
+        match self.environment.get(&value_name) {
             Some(val) => val.clone(),
             _ => {
                 Error::init(format!("undefined variable {}", &value_name), None, None)
@@ -62,23 +66,20 @@ impl Evaluator {
     }
 
     pub fn insert_value(&mut self, value_name: String, value: Value) {
-        self.enviroment.insert(value_name.clone(), value.clone());
+        self.environment.insert(value_name.clone(), value.clone());
         // println!("{}, {:?}", value_name.clone(), value.clone());
     }
 
     pub fn call_function(&mut self, name: &str, args: Vec<Value>) -> Value {
-        match name {
-            "print" => {
-                for arg in args {
-                    print!("{:?}", arg);
-                }
-                Value::Null
-            }
-
-            _ => {
-                Error::init(format!("undefined function {}", name), None, None).print_error();
-                unreachable!();
-            }
+        if stdlib::display::is_in_display(&name) {
+            stdlib::display::match_std_display(name, args)
+        } else if stdlib::math::is_in_math(&name) {
+            stdlib::math::match_std_math(name, args)
+        } else if stdlib::io::is_in_io(&name) {
+            stdlib::io::match_std_io(name, args)
+        } else {
+            Error::init(format!("undefined function {}", name), None, None).print_error();
+            unreachable!();
         }
     }
 }

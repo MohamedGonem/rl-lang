@@ -12,9 +12,8 @@ impl Evaluator {
                 // should add type check here but for now assume the user input correctly
                 self.insert_value(name.clone(), val);
             }
-            _ => {
-                Error::init("some error".to_string(), None, None).print_error();
-                unreachable!();
+            Statement::Expression(expr) => {
+                self.evaluate(expr);
             }
         }
     }

@@ -7,4 +7,5 @@ pub enum Statement {
         type_annotation: TokenType,
         value: Expression,
     },
+    Expression(Expression),
 }

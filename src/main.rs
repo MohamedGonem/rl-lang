@@ -34,7 +34,7 @@ fn main() {
     // debug prints the selected file
     // println!("{}", source_file);
 
-    let lexer = lexer::tokenizer::Tokenizer::lex(&source_file);
+    let tokens = lexer::tokenizer::Tokenizer::lex(&source_file);
 
     // let mut current_debug_line: usize = 0;
     // for token in lexer.iter() {
@@ -50,5 +50,10 @@ fn main() {
     //    print!("[{}] ", token.lexeme);
     // }
 
-    let parser = Parser::parse(lexer);
+    let statements = Parser::parse(tokens);
+
+    let mut evaluator = Evaluator::new();
+    for statement in statements {
+        evaluator.evaluate_statement(&statement);
+    }
 }

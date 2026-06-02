@@ -1,8 +1,4 @@
-use crate::{
-    ast::nodes::Expression,
-    interpreter::evaluator::{self, Evaluator},
-    lexer::tokentypes::{Token, TokenType},
-};
+use crate::{ast::statements::Statement, lexer::tokentypes::Token};
 
 pub struct Parser {
     pub tokens: Vec<Token>,
@@ -10,12 +6,14 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(tokens: Vec<Token>) {
+    pub fn parse(tokens: Vec<Token>) -> Vec<Statement> {
         let mut parser = Parser { tokens, current: 0 };
-        let mut evaluator = Evaluator::new();
+        let mut statements = Vec::new();
 
         while !parser.is_at_end() {
-            parser.parse_statement(&mut evaluator);
+            statements.push(parser.parse_statement_to_ast());
         }
+
+        statements
     }
 }

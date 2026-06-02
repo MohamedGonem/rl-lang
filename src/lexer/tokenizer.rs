@@ -31,7 +31,7 @@ impl Tokenizer {
             .tokens
             .push(Token::new(TokenType::Eof, String::new(), lexer.line));
 
-        println!("Recoginzed {} token(s)", lexer.tokens.len());
+        println!("Recognized {} token(s)", lexer.tokens.len());
         lexer.tokens
     }
 }
@@ -256,9 +256,24 @@ impl Tokenizer {
 
     fn character_literal(&mut self) {
         self.advance();
+
+        if self.is_at_end() {
+            crate::utils::errors::Error::init(
+                "unterminated character literal".to_string(),
+                Some(self.line),
+                Some(crate::utils::errors::ErrorReason::init(
+                    crate::utils::errors::Reason::Lexer,
+                    None,
+                )),
+            )
+            .print_error();
+            return;
+        }
+        let value: char = self.source[self.current];
+
         if self.peek() != '\'' {
             crate::utils::errors::Error::init(
-                "Unterminated character literal".to_string(),
+                "unterminated character literal".to_string(),
                 Some(self.line),
                 Some(crate::utils::errors::ErrorReason::init(
                     crate::utils::errors::Reason::Lexer,
@@ -271,7 +286,6 @@ impl Tokenizer {
 
         self.advance();
 
-        let value: char = self.source[self.start + 1];
         self.add_token(TokenType::CharacterLiteral(value));
     }
 }
