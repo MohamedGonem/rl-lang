@@ -2,8 +2,8 @@ use crate::{ast::statements::Statement, lexer::tokentypes::TokenType, parser::pa
 
 impl Parser {
     pub fn parse_variable_declartion(&mut self) -> Statement {
-        println!("{:?}", self.peek());
-        println!("parsing type");
+        log::debug!("{:?}", self.peek());
+        log::debug!("parsing type");
         if self.match_type(&[TokenType::Array]) {
             if self.peek() == TokenType::LeftBracket {
                 self.advance();

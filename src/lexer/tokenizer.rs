@@ -31,7 +31,7 @@ impl Tokenizer {
             .tokens
             .push(Token::new(TokenType::Eof, String::new(), lexer.line));
 
-        println!("Recognized {} token(s)", lexer.tokens.len());
+        log::debug!("Recognized {} token(s)", lexer.tokens.len());
         lexer.tokens
     }
 }

@@ -123,14 +123,16 @@ impl Parser {
     }
 
     pub fn parse_primary(&mut self) -> Expression {
-        println!("current index: {:?}", self.current);
-        println!("current token: {:?}", self.peek());
+        log::debug!("current index: {:?}", self.current);
+        log::debug!("current token: {:?}", self.peek());
 
         // is it identifier
         if self.match_type(&[TokenType::Identifier(String::new())]) {
+            log::debug!("found identifier");
             if let TokenType::Identifier(name) = self.previous() {
                 // is it function call?
                 if self.match_type(&[TokenType::LeftParen]) {
+                    log::debug!("found function call");
                     let mut args = Vec::new();
                     // need to extract this as helper function that returns bool tho
                     if !(std::mem::discriminant(&self.peek())
@@ -149,6 +151,7 @@ impl Parser {
 
                 // is it assignment?
                 if self.match_type(&[TokenType::Assign]) {
+                    log::debug!("found variable assignment");
                     let value = self.parse_expression();
                     return Expression::Assign {
                         name,
@@ -161,6 +164,7 @@ impl Parser {
 
                     // is it index-assign? arr[i] = val
                     if self.match_type(&[TokenType::Assign]) {
+                        log::debug!("found array item assignment");
                         let value = self.parse_expression();
                         return Expression::IndexAssign {
                             target: name,
@@ -180,7 +184,7 @@ impl Parser {
 
         // is it integer?
         if self.match_type(&[TokenType::NumberLiteral(0)]) {
-            // println!("found number");
+            log::debug!("found number");
             if let TokenType::NumberLiteral(n) = self.previous() {
                 return Expression::Integer(n);
             }
@@ -188,7 +192,7 @@ impl Parser {
 
         // is it String?
         if self.match_type(&[TokenType::StringLiteral(String::new())]) {
-            // println!("found string");
+            log::debug!("found string");
             if let TokenType::StringLiteral(s) = self.previous() {
                 return Expression::String(s);
             }
@@ -200,7 +204,7 @@ impl Parser {
             TokenType::CharacterLiteral(_)
         ) {
             self.advance();
-            // println!("found characher");
+            log::debug!("found characher");
             if let TokenType::CharacterLiteral(c) = self.previous() {
                 return Expression::Character(c);
             }
@@ -208,7 +212,7 @@ impl Parser {
 
         // is it bool?
         if self.match_type(&[TokenType::BoolLiteral(false)]) {
-            // println!("found bool");
+            // log::debug!("found bool");
             if let TokenType::BoolLiteral(b) = self.previous() {
                 return Expression::Bool(b);
             }
@@ -216,7 +220,7 @@ impl Parser {
 
         // is it float??
         if self.match_type(&[TokenType::FloatLiteral(0.0)]) {
-            // println!("oh no found float");
+            log::debug!("oh no found float");
             if let TokenType::FloatLiteral(f) = self.previous() {
                 return Expression::Float(f);
             }
@@ -224,7 +228,7 @@ impl Parser {
 
         // is it (Expression)?
         if self.match_type(&[TokenType::LeftParen]) {
-            // println!("found group start");
+            log::debug!("found group start");
             let inner = self.parse_expression();
             self.match_type(&[TokenType::RightParen]);
             return Expression::Grouping(Box::new(inner));
