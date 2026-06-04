@@ -3,6 +3,11 @@ name = "rl-lang"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+description = "A simple interpreted programming language"
+repository = "https://github.com/MohamedGonem/rl-lang"
+readme = "README.md"
+keywords = ["language", "interpreter", "cli"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 log = { version = "0.4", features = ["release_max_level_off"] }
