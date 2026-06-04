@@ -1,4 +1,4 @@
-# RL - statically typed programming language
+# RL - programming language
 
 ## statically typed interpreter language built in rust
 
@@ -22,7 +22,7 @@ println(x)   // 900
 
 ```bash
 git clone https://github.com/mohamedgonem/rl-lang
-cd rp-lang
+cd rl-lang
 cargo run run test.rl
 ```
 
@@ -32,7 +32,7 @@ cargo run run test.rl
 
 or after compiling
 
-`rlp run <sourcefile.rl>`
+`rl run <sourcefile.rl>`
 
 ## status
 
@@ -92,12 +92,36 @@ works on `float` and `int`
 
 `tan(arg)` one argument only returns a `float` type of tan the argument given
 
-##### io
+#### io
 
 `input()` captures terminal input 
 
 `input(arg)` accepts prompt argument that shows before accepting inputs
 
+### loops
+
+`if` , `else` , and `else if` 
+
+```rl
+if (condition) {
+  body
+} else if (condition) {
+  body
+} else {
+  body
+}
+```
+
+can use `if` alone or `if` and `else if`
+
+`while` 
+
+```rl
+while (condition) {
+body
+}
+```
+
 ## License
 
-Licensed under either of [MIT](LICENSE_MIT) or [Apache 2.0](LICENSE_APACHE) at your option.
+Licensed under either of [MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE) at your option.
