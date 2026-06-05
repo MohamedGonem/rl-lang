@@ -48,6 +48,14 @@ pub enum Statement {
         elseif_branch: Option<Vec<Statement>>,
         else_branch: Option<Box<Statement>>,
     },
+
+    /// the start of awesomeness
+    Import {
+        /// list of the functions name
+        names: Vec<String>,
+        /// list of paths to functions
+        path: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone)]
