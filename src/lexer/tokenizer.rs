@@ -17,7 +17,7 @@ pub struct Tokenizer {
 }
 
 impl Tokenizer {
-    /// lexes a source string into Vec<Token>
+    /// lexes a source string into [`Vec<Token>`]
     ///
     /// appends and TokenType::Eof so parser work with clean list of tokens
     pub fn lex(source: &str) -> Vec<super::tokentypes::Token> {

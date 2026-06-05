@@ -37,7 +37,7 @@ impl Parser {
         self.tokens[self.current - 1].token.clone()
     }
 
-    /// checks given [`TokenType`] aginst the current token via [`self.peek()`]
+    /// checks given [`TokenType`] aginst the current token via `self.peek()`
     ///
     /// if matches returns true else false
     /// doesn't consume the token

@@ -15,27 +15,29 @@ impl Parser {
         match self.peek() {
             TokenType::Newline => {
                 self.advance();
-                log::info!("found newline while parser... skipping");
+                log::info!("found newline while parsing... skipping");
                 Statement::Expression(Expression::Integer(0))
             }
             TokenType::Dec => {
                 self.advance();
+                log::info!("found `declaration` while parsing");
                 self.parse_variable_declartion()
                 // println!("{:?}", stmt);
             }
             TokenType::While => {
                 self.advance();
+                log::info!("found `while` while parsing");
                 self.parse_while()
             }
             TokenType::If => {
                 self.advance();
+                log::info!("found `if` while parsing");
                 self.parse_if()
             }
             _ => {
+                log::info!("parsing the current tokens as expression");
                 let expr = self.parse_expression();
                 Statement::Expression(expr)
-                // println!("{:?}", expr);
-                // println!("{:?}", evaluator.evaluate(&expr));
             }
         }
     }
@@ -47,6 +49,7 @@ impl Parser {
         }
         let mut statements = Vec::new();
 
+        log::info!("parsing body into statements");
         while !self.match_type(&[TokenType::RightBrace, TokenType::Eof]) {
             if matches!(self.peek(), TokenType::Newline) {
                 self.advance();

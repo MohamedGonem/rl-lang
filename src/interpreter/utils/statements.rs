@@ -1,7 +1,6 @@
 use crate::{
     ast::statements::Statement,
     interpreter::{evaluator::Evaluator, values::Value},
-    utils::errors::Error,
 };
 
 impl Evaluator {
@@ -9,7 +8,7 @@ impl Evaluator {
         match statement {
             Statement::VariableDeclaration {
                 name,
-                type_annotation,
+                type_annotation: _,
                 value,
             } => {
                 let val = self.evaluate(value);
@@ -19,7 +18,7 @@ impl Evaluator {
 
             Statement::Array {
                 name,
-                type_annotation,
+                type_annotation: _,
                 value,
             } => {
                 let mut items: Vec<Value> = Vec::new();

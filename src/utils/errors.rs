@@ -42,6 +42,7 @@ impl Error {
     /// Error::init("unexpected error".to_string(), Some(10), None);
     /// ```
     pub fn init(message: String, line: Option<usize>, reason: Option<ErrorReason>) -> Self {
+        log::debug!("Error: {}", message);
         Self {
             message,
             line,

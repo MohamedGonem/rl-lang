@@ -1,9 +1,16 @@
 use crate::{ast::statements::Statement, lexer::tokentypes::TokenType, parser::parser::Parser};
 
 impl Parser {
+    /// caled after hitting [`TokenType::If`] returing [`Statement::Conditional`]
+    ///
+    /// will parse the condition and returns [`crate::ast::nodes::Expression`]
+    /// then it will parse the body after checking for [`TokenType::LeftBrace`] and
+    /// returns [`Vec<Statement>`] if there is any else or else if branches it will
+    /// detect them and return them as [`Statement::ConditionalBranch`]
     pub fn parse_if(&mut self) -> Statement {
         let if_condition = self.parse_expression();
         let if_body = self.parse_block();
+        log::debug!("parsed if branch");
         let if_branch = Statement::ConditionalBranch {
             condition: Some(if_condition),
             body: if_body,
@@ -23,6 +30,7 @@ impl Parser {
                     condition: Some(branch_condition),
                     body: branch_body,
                 };
+                log::debug!("parsed else if branch");
                 elseif_branch.push(branch);
                 while matches!(self.peek(), TokenType::Newline) {
                     self.advance();
@@ -35,6 +43,7 @@ impl Parser {
         let else_branch = if else_body.is_empty() {
             None
         } else {
+            log::debug!("parsed else branch");
             Some(Box::new(Statement::ConditionalBranch {
                 condition: None,
                 body: else_body,

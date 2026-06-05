@@ -1,6 +1,6 @@
 use crate::{ast::statements::Statement, lexer::tokentypes::Token};
 
-/// parses list of tokens and produce Vec<Statement>
+/// parses list of tokens and produce [`Vec<Statement>`]
 pub struct Parser {
     /// the full tokens list from the lexer
     pub tokens: Vec<Token>,
@@ -9,7 +9,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// consumes tokens to return a list of statements
+    /// consumes tokens to return a list of [`Statement`]s
     pub fn parse(tokens: Vec<Token>) -> Vec<Statement> {
         let mut parser = Parser { tokens, current: 0 };
         log::info!("parser initialized");
