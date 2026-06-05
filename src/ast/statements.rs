@@ -1,6 +1,6 @@
 use crate::ast::nodes::Expression;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     VariableDeclaration {
         name: String,
@@ -58,7 +58,7 @@ pub enum Statement {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeAnnotation {
     Int,
     Float,
