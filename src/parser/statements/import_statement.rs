@@ -7,7 +7,6 @@ use crate::{
 
 impl Parser {
     pub fn parse_import(&mut self, start: crate::utils::span::Span) -> Result<Statement, Error> {
-    pub fn parse_import(&mut self) -> Statement {
         // target would be
         // use println, print from std::display
         // which means use will be consumed when found by parser
