@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     ast::statements::{Statement, StatementKind},
     interpreter::{evaluator::Evaluator, values::Value},
@@ -79,8 +81,27 @@ impl Evaluator {
                 }
                 self.pop_scope();
             }
-            StatementKind::Import { .. } => {
+            StatementKind::Import { names, path } => {
                 // imports are resolved at parse time; nothing to evaluate
+                // or thats what i though
+                // forgot that the file is removed after pr ;-;
+                let mut module = &self.root_module;
+                for seg in path {
+                    module = module.submodules.get(seg).expect("import: unknown module");
+                }
+                let fns: Vec<_> = names
+                    .iter()
+                    .map(|name| {
+                        let f = module
+                            .functions
+                            .get(name)
+                            .unwrap_or_else(|| panic!("import: unknown function '{}'", name));
+                        (name.clone(), Arc::clone(f))
+                    })
+                    .collect();
+                for (name, f) in fns {
+                    self.root_module.functions.insert(name, f);
+                }
             }
             StatementKind::ForRange { .. } => {
                 return Ok(()); // for now

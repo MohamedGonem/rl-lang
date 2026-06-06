@@ -19,7 +19,7 @@ use crate::{
 pub struct Evaluator {
     pub environment: Vec<HashMap<String, (Value, bool)>>,
     pub source_file: Option<SourceFile>,
-    root_module: Module,
+    pub root_module: Module,
 }
 
 impl Default for Evaluator {
