@@ -1,5 +1,5 @@
 use crate::{
-    ast::statements::{Statement, StatementKind},
+    ast::statements::{Param, Statement, StatementKind, TypeAnnotation},
     lexer::tokentypes::TokenType,
     parser::parser_logic::Parser,
     utils::{errors::Error, span::Span},
@@ -28,50 +28,89 @@ impl Parser {
         self.match_type(&[TokenType::LeftParen]);
 
         // parameters
-        let mut params = Vec::new();
+        let mut params: Vec<Param> = Vec::new();
         while !self.match_type(&[TokenType::RightParen]) {
-            fn nested_array(env: &mut Parser) -> Result<(), Error> {
+            fn nested_array(env: &mut Parser) -> Result<Box<TypeAnnotation>, Error> {
                 if !env.match_type(&[TokenType::LeftBracket]) {
                     return Err(env.err("expected '[' after arr", env.peek_span()));
                 }
 
-                if matches!(env.peek(), TokenType::Array) {
+                let param_type = if matches!(env.peek(), TokenType::Array) {
                     env.advance();
-                    nested_array(env)?;
-                } else if !env.match_type(&[
-                    TokenType::Int,
-                    TokenType::Float,
-                    TokenType::Bool,
-                    TokenType::Char,
-                    TokenType::String,
-                ]) {
-                    return Err(env.err("expected parameter type", env.peek_span()));
-                }
+                    Box::new(TypeAnnotation::Array(nested_array(env)?))
+                } else {
+                    match env.peek() {
+                        TokenType::Int => {
+                            env.advance();
+                            Box::new(TypeAnnotation::Int)
+                        }
+                        TokenType::Float => {
+                            env.advance();
+                            Box::new(TypeAnnotation::Float)
+                        }
+                        TokenType::Bool => {
+                            env.advance();
+                            Box::new(TypeAnnotation::Bool)
+                        }
+                        TokenType::String => {
+                            env.advance();
+                            Box::new(TypeAnnotation::String)
+                        }
+                        TokenType::Char => {
+                            env.advance();
+                            Box::new(TypeAnnotation::Char)
+                        }
+                        _ => {
+                            return Err(env.err("expected parameter type", env.peek_span()));
+                        }
+                    }
+                };
 
                 if !env.match_type(&[TokenType::RightBracket]) {
                     return Err(env.err("expected ']' after type", env.peek_span()));
                 }
 
-                Ok(())
+                Ok(param_type)
             }
 
-            if matches!(self.peek(), TokenType::Array) {
+            let param_type = if matches!(self.peek(), TokenType::Array) {
                 self.advance();
-                nested_array(self)?;
-            } else if !self.match_type(&[
-                TokenType::Int,
-                TokenType::Float,
-                TokenType::Bool,
-                TokenType::Char,
-                TokenType::String,
-            ]) {
-                return Err(self.err("expected parameter type", self.peek_span()));
-            }
+                TypeAnnotation::Array(nested_array(self)?)
+            } else {
+                match self.peek() {
+                    TokenType::Int => {
+                        self.advance();
+                        TypeAnnotation::Int
+                    }
+                    TokenType::Float => {
+                        self.advance();
+                        TypeAnnotation::Float
+                    }
+                    TokenType::Bool => {
+                        self.advance();
+                        TypeAnnotation::Bool
+                    }
+                    TokenType::String => {
+                        self.advance();
+                        TypeAnnotation::String
+                    }
+                    TokenType::Char => {
+                        self.advance();
+                        TypeAnnotation::Char
+                    }
+                    _ => {
+                        return Err(self.err("expected parameter type", self.peek_span()));
+                    }
+                }
+            };
 
             match self.peek() {
                 TokenType::Identifier(p) => {
                     self.advance();
-                    params.push(p);
+                    params.push(Param {
+                        param_name: p,
+                        param_type: param_type,
+                    });
                 }
                 _ => return Err(self.err("expected parameter name", self.peek_span())),
             }

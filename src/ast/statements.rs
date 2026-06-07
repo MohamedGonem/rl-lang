@@ -65,7 +65,7 @@ pub enum StatementKind {
 
     FunctionDeclaration {
         name: String,
-        params: Vec<String>,
+        params: Vec<Param>,
         body: Vec<Statement>,
     },
     Return(Option<Expression>),
@@ -93,4 +93,10 @@ pub enum TypeAnnotation {
     CString,
     CChar,
     CArray(Box<TypeAnnotation>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Param {
+    pub param_name: String,
+    pub param_type: TypeAnnotation,
 }

@@ -197,7 +197,7 @@ impl Evaluator {
                 self.environment = vec![HashMap::new()];
 
                 for (param, arg) in params.iter().zip(args) {
-                    self.insert_value(param.clone(), arg, span)?;
+                    self.insert_value(param.param_name.clone(), arg, span)?;
                 }
                 self.evaluate_block(&body)?;
 
