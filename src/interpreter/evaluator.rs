@@ -20,6 +20,7 @@ pub struct Evaluator {
     pub environment: Vec<HashMap<String, (Value, bool)>>,
     pub source_file: Option<SourceFile>,
     pub root_module: Module,
+    pub return_value: Option<Value>,
 }
 
 impl Default for Evaluator {
@@ -34,6 +35,7 @@ impl Evaluator {
             environment: vec![HashMap::new()],
             source_file: None,
             root_module: Module::new(""),
+            return_value: None,
         }
     }
 
@@ -173,6 +175,40 @@ impl Evaluator {
             let f = Arc::clone(f);
             return Ok(f(self, args));
         }
+
+        // detect user defined functions
+        if path.len() == 1 {
+            let func = self.get_value(&path[0], span)?;
+
+            if let Value::Function { params, body } = func {
+                if params.len() != args.len() {
+                    return Err(self.err(
+                        format!(
+                            "function '{}' expects {} argument(s), got {}",
+                            path[0],
+                            params.len(),
+                            args.len()
+                        ),
+                        span,
+                    ));
+                }
+
+                let saved_env = std::mem::take(&mut self.environment);
+                self.environment = vec![HashMap::new()];
+
+                for (param, arg) in params.iter().zip(args) {
+                    self.insert_value(param.clone(), arg, span)?;
+                }
+                self.evaluate_block(&body)?;
+
+                let result = self.return_value.take().unwrap_or(Value::Null);
+
+                self.environment = saved_env;
+
+                return Ok(result);
+            }
+        }
+
         let mut err = self.err(format!("undefined function {}", path.join("::")), span);
         // suggest a stdlib leaf name if the last segment is a close typo
         if let Some(last) = path.last() {

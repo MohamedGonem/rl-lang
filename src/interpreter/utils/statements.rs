@@ -148,6 +148,23 @@ impl Evaluator {
                     }
                 }
             }
+
+            StatementKind::FunctionDeclaration { name, params, body } => {
+                let func = Value::Function {
+                    params: params.clone(),
+                    body: body.clone(),
+                };
+                self.insert_value(name.clone(), func.clone(), statement.span)?;
+            }
+
+            StatementKind::Return(expr) => {
+                let value = match expr {
+                    Some(e) => self.evaluate(e)?,
+                    None => Value::Null,
+                };
+
+                self.return_value = Some(value);
+            }
         }
         Ok(())
     }
@@ -181,9 +198,14 @@ impl Evaluator {
     }
 
     pub fn evaluate_block(&mut self, statements: &[Statement]) -> Result<(), Error> {
+        self.push_scope();
         for statement in statements {
             self.evaluate_statement(statement)?;
+            if self.return_value.is_some() {
+                break;
+            }
         }
+        self.pop_scope();
         Ok(())
     }
 }
