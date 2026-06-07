@@ -30,6 +30,44 @@ impl Parser {
         // parameters
         let mut params = Vec::new();
         while !self.match_type(&[TokenType::RightParen]) {
+            fn nested_array(env: &mut Parser) -> Result<(), Error> {
+                if !env.match_type(&[TokenType::LeftBracket]) {
+                    return Err(env.err("expected '[' after arr", env.peek_span()));
+                }
+
+                if matches!(env.peek(), TokenType::Array) {
+                    env.advance();
+                    nested_array(env)?;
+                } else if !env.match_type(&[
+                    TokenType::Int,
+                    TokenType::Float,
+                    TokenType::Bool,
+                    TokenType::Char,
+                    TokenType::String,
+                ]) {
+                    return Err(env.err("expected parameter type", env.peek_span()));
+                }
+
+                if !env.match_type(&[TokenType::RightBracket]) {
+                    return Err(env.err("expected ']' after type", env.peek_span()));
+                }
+
+                Ok(())
+            }
+
+            if matches!(self.peek(), TokenType::Array) {
+                self.advance();
+                nested_array(self)?;
+            } else if !self.match_type(&[
+                TokenType::Int,
+                TokenType::Float,
+                TokenType::Bool,
+                TokenType::Char,
+                TokenType::String,
+            ]) {
+                return Err(self.err("expected parameter type", self.peek_span()));
+            }
+
             match self.peek() {
                 TokenType::Identifier(p) => {
                     self.advance();
