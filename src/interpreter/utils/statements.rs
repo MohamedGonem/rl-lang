@@ -141,8 +141,31 @@ impl Evaluator {
                 }
             }
 
-            StatementKind::ForRange { .. } => {
-                return Ok(()); // for now
+            StatementKind::ForRange {
+                variable,
+                range,
+                body,
+            } => {
+                let items = match &range.kind {
+                    StatementKind::Range(items) => items.clone(),
+                    _ => {
+                        return Err(
+                            self.err("for-range: expected a range statement", statement.span)
+                        );
+                    }
+                };
+
+                for item in items {
+                    self.push_scope();
+                    self.insert_value(
+                        variable.clone(),
+                        Value::Integer(item),
+                        crate::ast::statements::TypeAnnotation::Int,
+                        statement.span,
+                    )?;
+                    self.evaluate_block(body)?;
+                    self.pop_scope();
+                }
             }
 
             StatementKind::ConditionalBranch { condition, body } => match condition {
