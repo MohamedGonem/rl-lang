@@ -180,6 +180,46 @@ impl Evaluator {
                 }
             }
 
+            StatementKind::ForEach {
+                variable,
+                iterable,
+                body,
+            } => {
+                let arr = self.evaluate(iterable)?;
+                let items = match arr {
+                    Value::Values(items) => items,
+                    other => {
+                        return Err(self
+                            .err("for-each: expected an array", statement.span)
+                            .with_label(
+                                iterable.span,
+                                format!("this is {}, expected array", other.type_name()),
+                            ));
+                    }
+                };
+                for item in items {
+                    let item_type = Evaluator::infer_type(&item);
+                    self.push_scope();
+                    self.insert_value(variable.clone(), item, item_type, statement.span)?;
+
+                    self.evaluate_block(body)?;
+                    self.pop_scope();
+
+                    if self.is_breaking {
+                        self.is_breaking = false;
+                        break;
+                    }
+
+                    if self.is_continuing {
+                        self.is_continuing = false;
+                    }
+
+                    if self.return_value.is_some() {
+                        break;
+                    }
+                }
+            }
+
             StatementKind::ConditionalBranch { condition, body } => match condition {
                 Some(condition) => {
                     let v = self.evaluate(condition)?;
