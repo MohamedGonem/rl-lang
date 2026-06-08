@@ -58,4 +58,8 @@ pub enum ExpressionKind {
         return_type: Option<TypeAnnotation>,
         body: Vec<Statement>,
     },
+    CallExpr {
+        callee: Box<Expression>,
+        args: Vec<Expression>,
+    },
 }
