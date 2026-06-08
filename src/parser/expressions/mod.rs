@@ -252,6 +252,28 @@ impl Parser {
                         );
                     }
 
+                    // is it a call on the result of an index, e.g. fns[0](arg)?
+                    if self.match_type(&[TokenType::LeftParen]) {
+                        let mut args = Vec::new();
+                        if self.peek() != TokenType::RightParen {
+                            loop {
+                                args.push(self.parse_expression()?);
+                                if !self.match_type(&[TokenType::Comma]) {
+                                    break;
+                                }
+                            }
+                        }
+                        self.match_type(&[TokenType::RightParen]);
+                        let span = start.join(self.previous_span());
+                        return Ok(Expression::new(
+                            ExpressionKind::CallExpr {
+                                callee: Box::new(expr),
+                                args,
+                            },
+                            span,
+                        ));
+                    }
+
                     // is it index-assign?
                     if self.match_type(&[TokenType::Assign]) {
                         log::debug!("found array item assignment");
