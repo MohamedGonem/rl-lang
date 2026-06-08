@@ -165,6 +165,18 @@ impl Evaluator {
                     )?;
                     self.evaluate_block(body)?;
                     self.pop_scope();
+
+                    if self.is_breaking {
+                        self.is_breaking = false;
+                    }
+
+                    if self.is_continuing {
+                        self.is_continuing = false;
+                    }
+
+                    if self.return_value.is_some() {
+                        break;
+                    }
                 }
             }
 
