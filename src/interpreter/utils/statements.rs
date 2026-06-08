@@ -11,7 +11,7 @@ impl Evaluator {
         match &statement.kind {
             StatementKind::VariableDeclaration { name, value, .. } => {
                 let val = self.evaluate(value)?;
-                self.insert_value(name.clone(), val, statement.span)?;
+                self.insert_value(name.clone(), val, None, statement.span)?;
             }
 
             StatementKind::Array { name, value, .. } => {
@@ -19,12 +19,12 @@ impl Evaluator {
                 for item in value {
                     items.push(self.evaluate(item)?);
                 }
-                self.insert_value(name.clone(), Value::Values(items), statement.span)?;
+                self.insert_value(name.clone(), Value::Values(items), None, statement.span)?;
             }
 
             StatementKind::ConstantDeclaration { name, value, .. } => {
                 let val = self.evaluate(value)?;
-                self.insert_const(name.clone(), val, statement.span)?;
+                self.insert_const(name.clone(), val, None, statement.span)?;
             }
 
             StatementKind::ConstantArray { name, value, .. } => {
@@ -32,7 +32,7 @@ impl Evaluator {
                 for item in value {
                     items.push(self.evaluate(item)?);
                 }
-                self.insert_const(name.clone(), Value::Values(items), statement.span)?;
+                self.insert_const(name.clone(), Value::Values(items), None, statement.span)?;
             }
 
             StatementKind::Expression(expr) => {
@@ -154,7 +154,7 @@ impl Evaluator {
                     params: params.clone(),
                     body: body.clone(),
                 };
-                self.insert_value(name.clone(), func.clone(), statement.span)?;
+                self.insert_value(name.clone(), func.clone(), None, statement.span)?;
             }
 
             StatementKind::Return(expr) => {

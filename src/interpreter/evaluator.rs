@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::{
-    ast::nodes::{Expression, ExpressionKind},
+    ast::{
+        nodes::{Expression, ExpressionKind},
+        statements::TypeAnnotation,
+    },
     interpreter::{
         native::{IntoNativeFn, Module},
         stdlib,
@@ -16,8 +19,18 @@ use crate::{
     },
 };
 
+pub struct PItem {
+    pub value: Value,
+    pub type_annotation: Option<TypeAnnotation>,
+    pub is_const: bool,
+}
+
+pub enum EnvironmentItem {
+    PItem(PItem),
+}
+
 pub struct Evaluator {
-    pub environment: Vec<HashMap<String, (Value, bool)>>,
+    pub environment: Vec<HashMap<String, EnvironmentItem>>,
     pub source_file: Option<SourceFile>,
     pub root_module: Module,
     pub return_value: Option<Value>,
@@ -151,7 +164,7 @@ impl Evaluator {
             ExpressionKind::Identifier(name) => self.get_value(name, expression.span)?,
             ExpressionKind::Assign { name, value } => {
                 let val = self.evaluate(value)?;
-                self.insert_value(name.clone(), val.clone(), expression.span)?;
+                self.insert_value(name.clone(), val.clone(), None, expression.span)?;
                 val
             }
             ExpressionKind::Call { path, args } => {
@@ -197,7 +210,7 @@ impl Evaluator {
                 self.environment = vec![HashMap::new()];
 
                 for (param, arg) in params.iter().zip(args) {
-                    self.insert_value(param.param_name.clone(), arg, span)?;
+                    self.insert_value(param.param_name.clone(), arg, None, span)?;
                 }
                 self.evaluate_block(&body)?;
 
