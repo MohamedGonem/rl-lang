@@ -2,7 +2,7 @@ use crate::{
     ast::nodes::{Expression, ExpressionKind},
     lexer::tokentypes::TokenType,
     parser::parser_logic::Parser,
-    utils::errors::Error,
+    utils::{errors::Error, span::Span},
 };
 
 impl Parser {
@@ -437,5 +437,52 @@ impl Parser {
         }
 
         Err(self.err("expected expression", self.peek_span()))
+    }
+
+    pub fn parse_postfix(
+        &mut self,
+        mut expr: Expression,
+        start: Span,
+    ) -> Result<Expression, Error> {
+        loop {
+            if self.match_type(&[TokenType::Dot]) {
+                // expect method name
+                if !self.match_type(&[TokenType::Identifier(String::new())]) {
+                    return Err(self.err("expected method name after '.'", self.peek_span()));
+                }
+                let method = if let TokenType::Identifier(name) = self.previous() {
+                    name
+                } else {
+                    unreachable!()
+                };
+
+                // expect (args)
+                if !self.match_type(&[TokenType::LeftParen]) {
+                    return Err(self.err("expected '(' after method name", self.peek_span()));
+                }
+                let mut args = Vec::new();
+                if self.peek() != TokenType::RightParen {
+                    loop {
+                        args.push(self.parse_expression()?);
+                        if !self.match_type(&[TokenType::Comma]) {
+                            break;
+                        }
+                    }
+                }
+                self.match_type(&[TokenType::RightParen]);
+                let span = start.join(self.previous_span());
+                expr = Expression::new(
+                    ExpressionKind::MethodCall {
+                        caller: Box::new(expr),
+                        method,
+                        args,
+                    },
+                    span,
+                );
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
     }
 }
