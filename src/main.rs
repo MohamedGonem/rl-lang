@@ -9,10 +9,10 @@ use rl_lang::utils::{
 };
 
 #[cfg(feature = "repl_tui")]
-use rl_lang::repl::start_repl;
+use rl_lang::repl;
 
 #[cfg(feature = "repl_terminal")]
-use rl_lang::repl_terminal::repl;
+use rl_lang::repl_terminal;
 
 /// entry point for `rl` interpreter
 ///
@@ -53,12 +53,13 @@ fn main() {
         if cfg!(feature = "repl_tui") {
             #[cfg(feature = "debug")]
             log::info!("starting repl TUI");
-            start_repl();
+            repl::start_repl();
         } else if cfg!(feature = "repl_terminal") {
             #[cfg(feature = "debug")]
             log::info!("starting repl terminal shell");
             println!("[Starting REPL shell]");
-            start_repl();
+            #[cfg(feature = "repl_terminal")]
+            repl_terminal::start_repl();
         }
         return;
     } else {
