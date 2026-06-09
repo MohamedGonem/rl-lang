@@ -200,7 +200,8 @@ impl Parser {
                     }
                     self.match_type(&[TokenType::RightParen]);
                     let span = start.join(self.previous_span());
-                    return Ok(Expression::new(ExpressionKind::Call { path, args }, span));
+                    let expr = Expression::new(ExpressionKind::Call { path, args }, span);
+                    return self.parse_postfix(expr, start);
                 }
 
                 // not a call: module paths aren't first-class values
@@ -218,13 +219,14 @@ impl Parser {
                     log::debug!("found variable assignment");
                     let value = self.parse_expression()?;
                     let span = start.join(value.span);
-                    return Ok(Expression::new(
+                    let expr = Expression::new(
                         ExpressionKind::Assign {
                             name,
                             value: Box::new(value),
                         },
                         span,
-                    ));
+                    );
+                    return self.parse_postfix(expr, start);
                 }
                 if self.match_type(&[TokenType::LeftBracket]) {
                     let index = self.parse_expression()?;
@@ -270,13 +272,14 @@ impl Parser {
                         }
                         self.match_type(&[TokenType::RightParen]);
                         let span = start.join(self.previous_span());
-                        return Ok(Expression::new(
+                        let expr = Expression::new(
                             ExpressionKind::CallExpr {
                                 callee: Box::new(expr),
                                 args,
                             },
                             span,
-                        ));
+                        );
+                        return self.parse_postfix(expr, start);
                     }
 
                     // is it index-assign?
@@ -286,23 +289,23 @@ impl Parser {
                         let value = self.parse_expression()?;
                         let span = start.join(value.span);
                         if let ExpressionKind::Index { target, index } = expr.kind {
-                            return Ok(Expression::new(
+                            let expr = Expression::new(
                                 ExpressionKind::IndexAssign {
                                     target,
                                     index,
                                     value: Box::new(value),
                                 },
                                 span,
-                            ));
+                            );
+                            return self.parse_postfix(expr, start);
                         }
                     }
 
+                    let expr = Expression::new(ExpressionKind::Identifier(name), ident_span);
                     return self.parse_postfix(expr, start);
                 }
-                return Ok(Expression::new(
-                    ExpressionKind::Identifier(name),
-                    ident_span,
-                ));
+                let expr = Expression::new(ExpressionKind::Identifier(name), ident_span);
+                return self.parse_postfix(expr, start);
             }
         }
 
@@ -320,7 +323,8 @@ impl Parser {
             }
             self.match_type(&[TokenType::RightBracket]);
             let span = start.join(self.previous_span());
-            return Ok(Expression::new(ExpressionKind::ArrayLiteral(items), span));
+            let expr = Expression::new(ExpressionKind::ArrayLiteral(items), span);
+            return self.parse_postfix(expr, start);
         }
         // is it integer?
         if self.match_type(&[TokenType::NumberLiteral(0)]) {
@@ -328,7 +332,8 @@ impl Parser {
             log::debug!("found number");
             let span = self.previous_span();
             if let TokenType::NumberLiteral(n) = self.previous() {
-                return Ok(Expression::new(ExpressionKind::Integer(n), span));
+                let expr = Expression::new(ExpressionKind::Integer(n), span);
+                return self.parse_postfix(expr, start);
             }
         }
 
@@ -338,7 +343,8 @@ impl Parser {
             log::debug!("found string");
             let span = self.previous_span();
             if let TokenType::StringLiteral(s) = self.previous() {
-                return Ok(Expression::new(ExpressionKind::String(s), span));
+                let expr = Expression::new(ExpressionKind::String(s), span);
+                return self.parse_postfix(expr, start);
             }
         }
 
@@ -352,7 +358,8 @@ impl Parser {
             log::debug!("found characher");
             let span = self.previous_span();
             if let TokenType::CharacterLiteral(c) = self.previous() {
-                return Ok(Expression::new(ExpressionKind::Character(c), span));
+                let expr = Expression::new(ExpressionKind::Character(c), span);
+                return self.parse_postfix(expr, start);
             }
         }
 
@@ -360,7 +367,8 @@ impl Parser {
         if self.match_type(&[TokenType::BoolLiteral(false)]) {
             let span = self.previous_span();
             if let TokenType::BoolLiteral(b) = self.previous() {
-                return Ok(Expression::new(ExpressionKind::Bool(b), span));
+                let expr = Expression::new(ExpressionKind::Bool(b), span);
+                return self.parse_postfix(expr, start);
             }
         }
 
@@ -370,14 +378,16 @@ impl Parser {
             log::debug!("oh no found float");
             let span = self.previous_span();
             if let TokenType::FloatLiteral(f) = self.previous() {
-                return Ok(Expression::new(ExpressionKind::Float(f), span));
+                let expr = Expression::new(ExpressionKind::Float(f), span);
+                return self.parse_postfix(expr, start);
             }
         }
 
         // is it null?
         if self.match_type(&[TokenType::Null]) {
             let span = self.previous_span();
-            return Ok(Expression::new(ExpressionKind::Null, span));
+            let expr = Expression::new(ExpressionKind::Null, span);
+            return self.parse_postfix(expr, start);
         }
 
         // is it (Expression)?
@@ -387,10 +397,8 @@ impl Parser {
             let inner = self.parse_expression()?;
             self.match_type(&[TokenType::RightParen]);
             let span = start.join(self.previous_span());
-            return Ok(Expression::new(
-                ExpressionKind::Grouping(Box::new(inner)),
-                span,
-            ));
+            let expr = Expression::new(ExpressionKind::Grouping(Box::new(inner)), span);
+            return self.parse_postfix(expr, start);
         }
 
         // is it lambda?
@@ -426,14 +434,15 @@ impl Parser {
 
             let body = self.parse_block()?;
             let span = lambda_start.join(self.previous_span());
-            return Ok(Expression::new(
+            let expr = Expression::new(
                 ExpressionKind::Lambda {
                     params,
                     return_type,
                     body,
                 },
                 span,
-            ));
+            );
+            return self.parse_postfix(expr, start);
         }
 
         Err(self.err("expected expression", self.peek_span()))
