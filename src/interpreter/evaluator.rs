@@ -322,7 +322,7 @@ impl Evaluator {
     ) -> Result<Value, Error> {
         if let Some(f) = self.root_module.resolve(path) {
             let f = Arc::clone(f);
-            return Ok(f(self, args));
+            return f(self, args);
         }
 
         // detect user defined functions
