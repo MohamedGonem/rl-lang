@@ -90,6 +90,11 @@ pub enum StatementKind {
     ImportFile {
         path: Vec<String>,
     },
+
+    ImportFileNamed {
+        path: Vec<String>,
+        names: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
