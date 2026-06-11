@@ -1,3 +1,4 @@
+mod is_empty;
 mod repeat;
 mod to_lower;
 mod to_upper;
@@ -14,6 +15,7 @@ pub const KEYWORDS: &[&str] = &[
     "trim_end",
     "trim_start",
     "repeat",
+    "is_empty",
 ];
 
 pub fn module() -> Module {
@@ -24,4 +26,5 @@ pub fn module() -> Module {
         .with_function("trim_end", trim_end::std_trim_end)
         .with_function("trim_start", trim_start::std_trim_start)
         .with_function("repeat", repeat::std_repeat)
+        .with_function("is_empty", is_empty::std_is_empty)
 }
