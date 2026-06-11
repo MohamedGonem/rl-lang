@@ -3,6 +3,7 @@ mod char_at;
 mod concat;
 mod is_empty;
 mod repeat;
+mod reverse;
 mod to_lower;
 mod to_upper;
 mod trim;
@@ -36,4 +37,5 @@ pub fn module() -> Module {
         .with_raw_function("concat", concat::std_concat)
         .with_function("char_at", char_at::std_char_at)
         .with_function("bytes", bytes::std_bytes)
+        .with_function("reverse", reverse::std_reverse)
 }
