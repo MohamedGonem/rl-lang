@@ -6,9 +6,13 @@ mod contains;
 mod ends_with;
 mod is_empty;
 mod join;
+mod pad_left;
+mod pad_right;
 mod repeat;
+mod replace;
 mod reverse;
 mod slice;
+mod split;
 mod starts_with;
 mod to_lower;
 mod to_upper;
@@ -34,6 +38,10 @@ pub const KEYWORDS: &[&str] = &[
     "contains",
     "starts_with",
     "ends_with",
+    "replace",
+    "pad_left",
+    "pad_right",
+    "split",
     "join",
 ];
 
@@ -56,4 +64,5 @@ pub fn module() -> Module {
         .with_function("starts_with", starts_with::std_starts_with)
         .with_function("ends_with", ends_with::std_ends_with)
         .with_function("join", join::std_join)
+        .with_function("split", split::std_split)
 }
