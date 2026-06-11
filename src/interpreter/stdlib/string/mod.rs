@@ -1,5 +1,6 @@
 mod bytes;
 mod char_at;
+mod chars;
 mod concat;
 mod is_empty;
 mod repeat;
@@ -23,6 +24,7 @@ pub const KEYWORDS: &[&str] = &[
     "concat",
     "char_at",
     "bytes",
+    "chars",
 ];
 
 pub fn module() -> Module {
@@ -37,5 +39,6 @@ pub fn module() -> Module {
         .with_raw_function("concat", concat::std_concat)
         .with_function("char_at", char_at::std_char_at)
         .with_function("bytes", bytes::std_bytes)
+        .with_function("chars", chars::std_chars)
         .with_function("reverse", reverse::std_reverse)
 }
