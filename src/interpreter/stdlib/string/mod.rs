@@ -1,3 +1,4 @@
+mod bytes;
 mod char_at;
 mod concat;
 mod is_empty;
@@ -20,6 +21,7 @@ pub const KEYWORDS: &[&str] = &[
     "is_empty",
     "concat",
     "char_at",
+    "bytes",
 ];
 
 pub fn module() -> Module {
@@ -33,4 +35,5 @@ pub fn module() -> Module {
         .with_function("is_empty", is_empty::std_is_empty)
         .with_raw_function("concat", concat::std_concat)
         .with_function("char_at", char_at::std_char_at)
+        .with_function("bytes", bytes::std_bytes)
 }
