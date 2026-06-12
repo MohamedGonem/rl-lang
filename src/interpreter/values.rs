@@ -5,14 +5,17 @@ use crate::{
     interpreter::evaluator::EnvironmentItem,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Integer(i64),
     Float(f64),
     String(String),
     Bool(bool),
     Char(char),
-    Values(Vec<Value>),
+    Values {
+        items_type: TypeAnnotation,
+        items: Vec<Value>,
+    },
     Null,
     Function {
         params: Vec<Param>,
@@ -31,7 +34,7 @@ impl Value {
             Value::String(_) => "string",
             Value::Bool(_) => "bool",
             Value::Char(_) => "char",
-            Value::Values(_) => "array",
+            Value::Values { .. } => "array",
             Value::Null => "null",
             Value::Function { .. } => "function",
         }
@@ -46,7 +49,7 @@ impl fmt::Display for Value {
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Char(c) => write!(f, "'{}'", c),
-            Value::Values(items) => {
+            Value::Values { items, .. } => {
                 let formatted: Vec<String> = items.iter().map(|v| v.to_string()).collect();
                 write!(f, "[{}]", formatted.join(", "))
             }

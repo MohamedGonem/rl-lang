@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    ast::statements::{Statement, StatementKind},
+    ast::statements::{Statement, StatementKind, TypeAnnotation},
     interpreter::{evaluator::Evaluator, values::Value},
     lexer::tokenizer::Tokenizer,
     parser::parser_logic::Parser,
@@ -11,36 +11,84 @@ use crate::{
 impl Evaluator {
     pub fn evaluate_statement(&mut self, statement: &Statement) -> Result<(), Error> {
         match &statement.kind {
-            StatementKind::VariableDeclaration { name, value, .. } => {
+            StatementKind::VariableDeclaration {
+                name,
+                value,
+                type_annotation,
+            } => {
                 let val = self.evaluate(value)?;
-                let inferred_type = Evaluator::infer_type(&val);
-                self.insert_value(name.clone(), val, inferred_type, statement.span)?;
+                self.insert_value(name.clone(), val, type_annotation.clone(), statement.span)?;
             }
-
-            StatementKind::Array { name, value, .. } => {
+            StatementKind::Array {
+                name,
+                value,
+                type_annotation,
+            } => {
                 let mut items: Vec<Value> = Vec::new();
                 for item in value {
-                    items.push(self.evaluate(item)?);
+                    let val = self.evaluate(item)?;
+                    let val_type = Self::infer_type(&val);
+                    if val_type != *type_annotation && val_type != TypeAnnotation::Null {
+                        return Err(self.err(
+                            format!(
+                                "type mismatch: array expects {:?}, got {:?}",
+                                type_annotation, val_type
+                            ),
+                            item.span,
+                        ));
+                    }
+                    items.push(val);
                 }
-                let arr_type = Evaluator::infer_type(&Value::Values(items.clone()));
-                self.insert_value(name.clone(), Value::Values(items), arr_type, statement.span)?;
+                let arr_type = type_annotation.clone();
+                self.insert_value(
+                    name.clone(),
+                    Value::Values {
+                        items_type: arr_type.clone(),
+                        items,
+                    },
+                    arr_type,
+                    statement.span,
+                )?;
             }
-
-            StatementKind::ConstantDeclaration { name, value, .. } => {
+            StatementKind::ConstantDeclaration {
+                name,
+                value,
+                type_annotation,
+            } => {
                 let val = self.evaluate(value)?;
-                let inferred_type = Evaluator::infer_type(&val);
-                self.insert_const(name.clone(), val, inferred_type, statement.span)?;
+                self.insert_const(name.clone(), val, type_annotation.clone(), statement.span)?;
             }
-
-            StatementKind::ConstantArray { name, value, .. } => {
+            StatementKind::ConstantArray {
+                name,
+                value,
+                type_annotation,
+            } => {
                 let mut items: Vec<Value> = Vec::new();
                 for item in value {
-                    items.push(self.evaluate(item)?);
+                    let val = self.evaluate(item)?;
+                    let val_type = Self::infer_type(&val);
+                    if val_type != *type_annotation && val_type != TypeAnnotation::Null {
+                        return Err(self.err(
+                            format!(
+                                "type mismatch: array expects {:?}, got {:?}",
+                                type_annotation, val_type
+                            ),
+                            item.span,
+                        ));
+                    }
+                    items.push(val);
                 }
-                let arr_type = Evaluator::infer_type(&Value::Values(items.clone()));
-                self.insert_const(name.clone(), Value::Values(items), arr_type, statement.span)?;
+                let arr_type = type_annotation.clone();
+                self.insert_const(
+                    name.clone(),
+                    Value::Values {
+                        items_type: arr_type.clone(),
+                        items,
+                    },
+                    arr_type,
+                    statement.span,
+                )?;
             }
-
             StatementKind::Expression(expr) => {
                 self.evaluate(expr)?;
             }
@@ -257,7 +305,7 @@ impl Evaluator {
             } => {
                 let arr = self.evaluate(iterable)?;
                 let items = match arr {
-                    Value::Values(items) => items,
+                    Value::Values { items, .. } => items,
                     other => {
                         return Err(self
                             .err("for-each: expected an array", statement.span)

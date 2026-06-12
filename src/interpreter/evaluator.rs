@@ -19,14 +19,14 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PItem {
     pub value: Value,
     pub type_annotation: TypeAnnotation,
     pub is_const: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EnvironmentItem {
     PItem(PItem),
 }
@@ -91,7 +91,8 @@ impl Evaluator {
                 .with_module(stdlib::display::module())
                 .with_module(stdlib::io::module())
                 .with_module(stdlib::string::module())
-                .with_module(stdlib::types::module()),
+                .with_module(stdlib::types::module())
+                .with_module(stdlib::array::module()),
         )
     }
 
@@ -112,7 +113,7 @@ impl Evaluator {
             Value::String(_) => TypeAnnotation::String,
             Value::Bool(_) => TypeAnnotation::Bool,
             Value::Char(_) => TypeAnnotation::Char,
-            Value::Values(items) => {
+            Value::Values { items, .. } => {
                 let inner = items
                     .first()
                     .map(Self::infer_type)
@@ -147,7 +148,7 @@ impl Evaluator {
                 let idx = self.evaluate(index)?;
                 self.check_not_null(&idx, index.span)?;
                 match (&arr, &idx) {
-                    (Value::Values(items), Value::Integer(i)) => {
+                    (Value::Values { items, .. }, Value::Integer(i)) => {
                         let i_usize = *i as usize;
                         if i_usize >= items.len() {
                             return Err(self
@@ -175,8 +176,16 @@ impl Evaluator {
                 for e in items {
                     values.push(self.evaluate(e)?);
                 }
-                Value::Values(values)
+                let items_type = values
+                    .first()
+                    .map(Self::infer_type)
+                    .unwrap_or(TypeAnnotation::Null);
+                Value::Values {
+                    items_type,
+                    items: values,
+                }
             }
+
             ExpressionKind::IndexAssign {
                 target,
                 index,
@@ -427,6 +436,7 @@ impl Evaluator {
                 .chain(stdlib::io::KEYWORDS)
                 .chain(stdlib::string::KEYWORDS)
                 .chain(stdlib::types::KEYWORDS)
+                .chain(stdlib::array::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));
