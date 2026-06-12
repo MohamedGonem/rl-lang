@@ -5,8 +5,8 @@ use crate::{
 
 pub fn std_pop(_: &mut Evaluator, array: Value) -> Result<Value, Error> {
     match array {
-        Value::Values(v) => {
-            let mut v = v;
+        Value::Values { items, .. } => {
+            let mut v = items;
             let v = v.pop().unwrap_or_else(|| Value::Null);
             Ok(v)
         }

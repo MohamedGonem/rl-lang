@@ -5,10 +5,13 @@ use crate::{
 
 pub fn std_push(_: &mut Evaluator, array: Value, value: Value) -> Result<Value, Error> {
     match array {
-        Value::Values(v) => {
-            let mut v = v;
+        Value::Values { items_type, items } => {
+            let mut v = items;
             v.push(value);
-            Ok(Value::Values(v))
+            Ok(Value::Values {
+                items_type,
+                items: v,
+            })
         }
         _ => Err(Error::init(
             "push() accepts only arrays and values".to_string(),
