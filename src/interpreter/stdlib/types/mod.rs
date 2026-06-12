@@ -1,3 +1,9 @@
+mod is_bool;
+mod is_char;
+mod is_float;
+mod is_int;
+mod is_null;
+mod is_string;
 mod to_bin;
 mod to_bool;
 mod to_char;
@@ -18,6 +24,12 @@ pub const KEYWORDS: &[&str] = &[
     "to_int",
     "to_oct",
     "to_string",
+    "is_bool",
+    "is_null",
+    "is_char",
+    "is_int",
+    "is_string",
+    "is_float",
 ];
 
 pub fn module() -> Module {
@@ -30,4 +42,10 @@ pub fn module() -> Module {
         .with_function("to_int", to_int::std_to_int)
         .with_function("to_oct", to_oct::std_to_oct)
         .with_function("to_string", to_string::std_to_string)
+        .with_function("is_bool", is_bool::std_is_bool)
+        .with_function("is_null", is_null::std_is_null)
+        .with_function("is_char", is_char::std_is_char)
+        .with_function("is_int", is_int::std_is_int)
+        .with_function("is_float", is_float::std_is_float)
+        .with_function("is_string", is_string::std_is_string)
 }
