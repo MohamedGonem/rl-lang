@@ -3,7 +3,7 @@ use crate::{
     utils::errors::Error,
 };
 
-pub fn std_rev(_: &mut Evaluator, array: Value) -> Result<Value, Error> {
+pub fn std_arr_reverse(_: &mut Evaluator, array: Value) -> Result<Value, Error> {
     match array {
         Value::Values { items_type, items } => {
             let mut items = items;

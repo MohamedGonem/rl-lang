@@ -3,13 +3,13 @@
 - ~~`pop(arr)`~~
 - ~~`insert(arr, i, val)`~~
 - ~~`remove(arr, i)`~~
-- `reverse(arr)`
+- ~~`reverse(arr)`~~
 - `sort(arr)`
 - `sort_by(arr, fn)`
 - `contains(arr, val)`
 - `index_of(arr, val)`
 - `slice(arr, start, end)`
-- `concat(arr1, arr2)`
+- ~`concat(arr1, arr2)`~
 - `map(arr, fn)`
 - `filter(arr, fn)`
 - `reduce(arr, fn, init)`
