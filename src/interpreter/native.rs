@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::ast::statements::TypeAnnotation;
 use crate::interpreter::evaluator::Evaluator;
 use crate::interpreter::values::Value;
 use crate::utils::errors::Error;
@@ -52,6 +53,46 @@ impl Module {
             module = module.submodules.get(seg)?;
         }
         module.functions.get(&path[path.len() - 1])
+    }
+}
+
+pub trait ValueType {
+    fn type_annotation() -> TypeAnnotation;
+}
+
+impl ValueType for i64 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::Int
+    }
+}
+
+impl ValueType for f64 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::Float
+    }
+}
+
+impl ValueType for String {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::String
+    }
+}
+
+impl ValueType for bool {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::Bool
+    }
+}
+
+impl ValueType for char {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::Char
+    }
+}
+
+impl<T: ValueType> ValueType for Vec<T> {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::Array(Box::new(T::type_annotation()))
     }
 }
 
@@ -134,7 +175,7 @@ impl FromValue for char {
 impl<T: FromValue> FromValue for Vec<T> {
     fn from_value(v: Value) -> Result<Self, Error> {
         match v {
-            Value::Values(items) => items.into_iter().map(T::from_value).collect(),
+            Value::Values { items, .. } => items.into_iter().map(T::from_value).collect(),
             other => Err(Error::init(
                 format!("expected array, got {}", other.type_name()),
                 None,
@@ -190,9 +231,12 @@ impl IntoValue for char {
     }
 }
 
-impl<T: IntoValue> IntoValue for Vec<T> {
+impl<T: IntoValue + ValueType> IntoValue for Vec<T> {
     fn into_value(self) -> Value {
-        Value::Values(self.into_iter().map(T::into_value).collect())
+        Value::Values {
+            items_type: T::type_annotation(),
+            items: self.into_iter().map(T::into_value).collect(),
+        }
     }
 }
 
