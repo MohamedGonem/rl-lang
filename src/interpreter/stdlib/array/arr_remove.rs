@@ -3,7 +3,7 @@ use crate::{
     utils::errors::Error,
 };
 
-pub fn std_remove(_: &mut Evaluator, array: Value, index: i64) -> Result<Value, Error> {
+pub fn std_arr_remove(_: &mut Evaluator, array: Value, index: i64) -> Result<Value, Error> {
     match array {
         Value::Values { items, items_type } => {
             if index as usize >= items.len() {

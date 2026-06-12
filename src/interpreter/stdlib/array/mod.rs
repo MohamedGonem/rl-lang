@@ -5,24 +5,24 @@ mod arr_contains;
 mod arr_count;
 mod arr_first;
 mod arr_index_of;
+mod arr_insert;
 mod arr_is_empty;
 mod arr_last;
 mod arr_max;
 mod arr_min;
+mod arr_pop;
 mod arr_product;
+mod arr_push;
+mod arr_remove;
 mod arr_reverse;
 mod arr_sum;
 mod arr_unique;
-mod insert;
-mod pop;
-mod push;
-mod remove;
 
 pub const KEYWORDS: &[&str] = &[
-    "push",
-    "pop",
-    "insert",
-    "remove",
+    "arr_push",
+    "arr_pop",
+    "arr_insert",
+    "arr_remove",
     "arr_reverse",
     "arr_concat",
     "arr_first",
@@ -40,10 +40,10 @@ pub const KEYWORDS: &[&str] = &[
 
 pub fn module() -> Module {
     Module::new("array")
-        .with_function("push", push::std_push)
-        .with_function("pop", pop::std_pop)
-        .with_function("insert", insert::std_insert)
-        .with_function("remove", remove::std_remove)
+        .with_function("arr_push", arr_push::std_arr_push)
+        .with_function("arr_pop", arr_pop::std_arr_pop)
+        .with_function("arr_insert", arr_insert::std_arr_insert)
+        .with_function("arr_remove", arr_remove::std_arr_remove)
         .with_function("arr_reverse", arr_reverse::std_arr_reverse)
         .with_function("arr_concat", arr_concat::std_arr_concat)
         .with_function("arr_first", arr_first::std_arr_first)
