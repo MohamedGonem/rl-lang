@@ -20,10 +20,10 @@
 - `flatten(arr)`
 - `zip(arr1, arr2)`
 - `unique(arr)`
-- `sum(arr)`
-- `product(arr)`
-- `min_of(arr)`
-- `max_of(arr)`
+- ~`sum(arr)`~
+- ~`product(arr)`~
+- ~`min_of(arr)`~
+- ~`max_of(arr)`~
 - `first(arr)`
 - `last(arr)`
 - `is_empty(arr)`

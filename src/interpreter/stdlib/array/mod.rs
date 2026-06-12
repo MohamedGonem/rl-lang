@@ -3,7 +3,11 @@ use crate::interpreter::native::Module;
 mod arr_concat;
 mod arr_first;
 mod arr_last;
+mod arr_max;
+mod arr_min;
+mod arr_product;
 mod arr_reverse;
+mod arr_sum;
 mod insert;
 mod pop;
 mod push;
@@ -18,6 +22,10 @@ pub const KEYWORDS: &[&str] = &[
     "arr_concat",
     "arr_first",
     "arr_last",
+    "arr_max",
+    "arr_min",
+    "arr_sum",
+    "arr_product",
 ];
 
 pub fn module() -> Module {
@@ -30,4 +38,8 @@ pub fn module() -> Module {
         .with_function("arr_concat", arr_concat::std_arr_concat)
         .with_function("arr_first", arr_first::std_arr_first)
         .with_function("arr_last", arr_last::std_arr_last)
+        .with_function("arr_max", arr_max::std_arr_max)
+        .with_function("arr_min", arr_min::std_arr_min)
+        .with_function("arr_sum", arr_sum::std_arr_sum)
+        .with_function("arr_product", arr_product::std_arr_product)
 }
