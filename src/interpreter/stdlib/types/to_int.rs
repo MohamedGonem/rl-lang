@@ -20,17 +20,17 @@ pub fn std_to_int(_: &mut Evaluator, value: Value) -> Result<i64, Error> {
             }
         }
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as int"),
+            "cannot parse \"function\" as int".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as int"),
+            "cannot parse \"array\" as int".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as int"),
+            "cannot parse \"null\" as int".to_string(),
             None,
             None,
         )),

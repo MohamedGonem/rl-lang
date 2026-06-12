@@ -7,7 +7,7 @@ pub fn std_to_bin(_: &mut Evaluator, value: Value) -> Result<String, Error> {
     match value {
         Value::Integer(v) => Ok(format!("{:b}", v)),
         Value::Float(_) => Err(Error::init(
-            format!("cannot parse \"float\" as binary"),
+            "cannot parse \"float\" as binary".to_string(),
             None,
             None,
         )),
@@ -21,17 +21,17 @@ pub fn std_to_bin(_: &mut Evaluator, value: Value) -> Result<String, Error> {
         Value::Char(v) => Ok(format!("{:b}", v as u32)),
         Value::String(s) => Ok(s.bytes().map(|b| format!("{:b}", b)).collect::<String>()),
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as binary"),
+            "cannot parse \"function\" as binary".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as binary"),
+            "cannot parse \"array\" as binary".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as binary"),
+            "cannot parse \"null\" as binary".to_string(),
             None,
             None,
         )),
