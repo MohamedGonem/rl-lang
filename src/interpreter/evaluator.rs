@@ -19,14 +19,14 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PItem {
     pub value: Value,
     pub type_annotation: TypeAnnotation,
     pub is_const: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EnvironmentItem {
     PItem(PItem),
 }

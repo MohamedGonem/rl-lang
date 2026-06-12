@@ -19,7 +19,7 @@
 - `count(arr, val)`
 - `flatten(arr)`
 - `zip(arr1, arr2)`
-- `unique(arr)`
+- ~`unique(arr)`~
 - ~`sum(arr)`~
 - ~`product(arr)`~
 - ~`min_of(arr)`~

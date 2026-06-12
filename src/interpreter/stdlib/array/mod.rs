@@ -8,6 +8,7 @@ mod arr_min;
 mod arr_product;
 mod arr_reverse;
 mod arr_sum;
+mod arr_unique;
 mod insert;
 mod pop;
 mod push;
@@ -26,6 +27,7 @@ pub const KEYWORDS: &[&str] = &[
     "arr_min",
     "arr_sum",
     "arr_product",
+    "arr_unique",
 ];
 
 pub fn module() -> Module {
@@ -42,4 +44,5 @@ pub fn module() -> Module {
         .with_function("arr_min", arr_min::std_arr_min)
         .with_function("arr_sum", arr_sum::std_arr_sum)
         .with_function("arr_product", arr_product::std_arr_product)
+        .with_function("arr_unique", arr_unique::std_arr_unique)
 }
