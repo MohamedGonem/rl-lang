@@ -28,28 +28,28 @@ pub fn std_to_char(_: &mut Evaluator, value: Value) -> Result<char, Error> {
         }
 
         Value::Float(_) => Err(Error::init(
-            format!("cannot parse \"float\" as character"),
+            "cannot parse \"float\" as character".to_string(),
             None,
             None,
         )),
         Value::Bool(_) => Err(Error::init(
-            format!("cannot parse \"bool\" as character"),
+            "cannot parse \"bool\" as character".to_string(),
             None,
             None,
         )),
 
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as character"),
+            "cannot parse \"function\" as character".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as character"),
+            "cannot parse \"array\" as character".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as character"),
+            "cannot parse \"null\" as character".to_string(),
             None,
             None,
         )),

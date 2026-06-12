@@ -11,17 +11,17 @@ pub fn std_to_string(_: &mut Evaluator, value: Value) -> Result<String, Error> {
         Value::Char(v) => Ok(v.to_string()),
         Value::String(s) => Ok(s),
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as string"),
+            "cannot parse \"function\" as string".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as string"),
+            "cannot parse \"array\" as string".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as string"),
+            "cannot parse \"null\" as string".to_string(),
             None,
             None,
         )),

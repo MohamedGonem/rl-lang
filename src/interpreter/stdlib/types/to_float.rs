@@ -13,23 +13,23 @@ pub fn std_to_float(_: &mut Evaluator, value: Value) -> Result<f64, Error> {
             .parse::<f64>()
             .map_err(|_| Error::init(format!("cannot parse \"{}\" as float", s), None, None)),
         Value::Char(_) => Err(Error::init(
-            format!("cannot parse \"char\" as float"),
+            "cannot parse \"char\" as float".to_string(),
             None,
             None,
         )),
 
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as float"),
+            "cannot parse \"function\" as float".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as float"),
+            "cannot parse \"array\" as float".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as float"),
+            "cannot parse \"null\" as float".to_string(),
             None,
             None,
         )),

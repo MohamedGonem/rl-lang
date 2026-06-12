@@ -7,29 +7,29 @@ pub fn std_to_hex(_: &mut Evaluator, value: Value) -> Result<String, Error> {
     match value {
         Value::Integer(v) => Ok(format!("{:x}", v)),
         Value::Float(_) => Err(Error::init(
-            format!("cannot parse \"float\" as hexadecimal"),
+            "cannot parse \"float\" as hexadecimal".to_string(),
             None,
             None,
         )),
         Value::Bool(_) => Err(Error::init(
-            format!("cannot parse \"bool\" as hexadecimal"),
+            "cannot parse \"bool\" as hexadecimal".to_string(),
             None,
             None,
         )),
         Value::Char(v) => Ok(format!("{:x}", v as u32)),
         Value::String(s) => Ok(s.bytes().map(|b| format!("{:x}", b)).collect::<String>()),
         Value::Function { .. } => Err(Error::init(
-            format!("cannot parse \"function\" as hexadecimal"),
+            "cannot parse \"function\" as hexadecimal".to_string(),
             None,
             None,
         )),
         Value::Values(_) => Err(Error::init(
-            format!("cannot parse \"array\" as hexadecimal"),
+            "cannot parse \"array\" as hexadecimal".to_string(),
             None,
             None,
         )),
         Value::Null => Err(Error::init(
-            format!("cannot parse \"null\" as hexadecimal"),
+            "cannot parse \"null\" as hexadecimal".to_string(),
             None,
             None,
         )),
