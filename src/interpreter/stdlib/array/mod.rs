@@ -1,7 +1,10 @@
 use crate::interpreter::native::Module;
 
 mod arr_concat;
+mod arr_contains;
+mod arr_count;
 mod arr_first;
+mod arr_index_of;
 mod arr_is_empty;
 mod arr_last;
 mod arr_max;
@@ -30,6 +33,9 @@ pub const KEYWORDS: &[&str] = &[
     "arr_product",
     "arr_unique",
     "arr_is_empty",
+    "arr_count",
+    "arr_contains",
+    "arr_index_of",
 ];
 
 pub fn module() -> Module {
@@ -48,4 +54,7 @@ pub fn module() -> Module {
         .with_function("arr_product", arr_product::std_arr_product)
         .with_function("arr_unique", arr_unique::std_arr_unique)
         .with_function("arr_is_empty", arr_is_empty::std_arr_is_empty)
+        .with_function("arr_index_of", arr_index_of::std_arr_index_of)
+        .with_function("arr_count", arr_count::std_arr_count)
+        .with_function("arr_contains", arr_contains::std_arr_contains)
 }

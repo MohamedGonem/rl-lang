@@ -4,21 +4,21 @@
 - ~~`insert(arr, i, val)`~~
 - ~~`remove(arr, i)`~~
 - ~~`reverse(arr)`~~
-- `sort(arr)`
-- `sort_by(arr, fn)`
-- `contains(arr, val)`
-- `index_of(arr, val)`
-- `slice(arr, start, end)`
+- `sort(arr)` << 
+- `sort_by(arr, fn)` <-
+- ~`contains(arr, val)`~
+- ~`index_of(arr, val)`~
+- `slice(arr, start, end)` << 
 - ~`concat(arr1, arr2)`~
-- `map(arr, fn)`
-- `filter(arr, fn)`
-- `reduce(arr, fn, init)`
-- `any(arr, fn)`
-- `all(arr, fn)`
-- `find(arr, fn)`
-- `count(arr, val)`
-- `flatten(arr)`
-- `zip(arr1, arr2)`
+- `map(arr, fn)` <-
+- `filter(arr, fn)` <-
+- `reduce(arr, fn, init)` <-
+- `any(arr, fn)` <-
+- `all(arr, fn)` <-
+- `find(arr, fn)` <-
+- ~`count(arr, val)`~
+- `flatten(arr)` << 
+- `zip(arr1, arr2)` -> requires tuples -> will implement (just not tonight)
 - ~`unique(arr)`~
 - ~`sum(arr)`~
 - ~`product(arr)`~
@@ -27,5 +27,8 @@
 - ~`first(arr)`~
 - ~`last(arr)`~
 - ~`is_empty(arr)`~
-- `fill(n, val)`
-- `range(start, end, step)`
+- `fill(n, val)` << 
+- `range(start, end, step)` << 
+
+for what is gonna be implemented before i sleep << 
+for what does need good amount of tinkering <- (and actually thats the most useful so far)
