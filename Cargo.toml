@@ -18,6 +18,7 @@ crossterm = { version = "0.28", optional = true }
 tower-lsp = { version = "0.20", optional = true }
 tokio = { version = "1", features = ["full"] , optional = true }
 serde_json = { version = "1", optional = true }
+clap = { version = "4.6.1", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5"
