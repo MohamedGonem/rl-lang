@@ -67,7 +67,7 @@ fn main() {
         return;
     } else if cfg!(feature = "lsp") && arguments.len() == 2 && arguments[1] == "lsp" {
         #[cfg(feature = "lsp")]
-        run_lsp();
+        tokio::runtime::Runtime::new().unwrap().block_on(run_lsp());
         return;
     } else {
         println!("Error: wrong usage");

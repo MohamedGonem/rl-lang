@@ -23,7 +23,7 @@ serde_json = { version = "1", optional = true }
 criterion = "0.5"
 
 [features]
-default = ["repl", "repl_tui", "run", "eval", "lsp"]
+default = ["repl", "repl_tui", "run", "eval"]
 run = []
 repl = []
 repl_terminal = []

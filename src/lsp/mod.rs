@@ -21,5 +21,6 @@ pub async fn run_lsp() {
 
     // creates a new server and passes the stdin stdout and the socket
     // and serves the lsp services
+    // actually this should be blocked to work infinitly
     Server::new(stdin, stdout, socket).serve(service).await;
 }
