@@ -10,7 +10,7 @@ fn dec_int() {
 
 #[test]
 fn dec_float() {
-    let evaluator = eval_program("dec float x = 42").unwrap();
+    let evaluator = eval_program("dec float x = 42.0").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::Integer(42)));
 }
 
