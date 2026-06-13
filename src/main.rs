@@ -26,6 +26,13 @@ enum Commands {
     },
     /// Start the REPL
     Repl,
+
+    /// Run the project directory
+    Dev,
+
+    /// Create a new project directory
+    New { name: String },
+
     /// Start the LSP server
     #[cfg(feature = "lsp")]
     Lsp,
@@ -48,6 +55,11 @@ fn main() {
                 eval_loop(source, statements);
             }
         }
+
+        // will add in next branch
+        Commands::Dev => {}
+
+        Commands::New { .. } => {}
 
         Commands::Repl => {
             #[cfg(feature = "repl_tui")]
