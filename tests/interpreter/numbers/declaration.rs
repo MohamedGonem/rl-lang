@@ -61,6 +61,16 @@ fn float_assigned_int_is_error() {
 }
 
 #[test]
+fn const_int_reassigned_is_error() {
+    assert!(eval_program("CONST int x = 1\nx = 2").is_err());
+}
+
+#[test]
+fn const_float_reassigned_is_error() {
+    assert!(eval_program("CONST float x = 1.0\nx = 2.0").is_err());
+}
+
+#[test]
 fn int_undefined_variable_is_error() {
     assert!(eval_program("dec int x = y").is_err());
 }
@@ -68,4 +78,14 @@ fn int_undefined_variable_is_error() {
 #[test]
 fn float_undefined_variable_is_error() {
     assert!(eval_program("dec float x = y").is_err());
+}
+
+#[test]
+fn const_int_undefined_variable_is_error() {
+    assert!(eval_program("CONST int x = y").is_err());
+}
+
+#[test]
+fn const_float_undefined_variable_is_error() {
+    assert!(eval_program("CONST float x = y").is_err());
 }
