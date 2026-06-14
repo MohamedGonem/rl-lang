@@ -6,8 +6,9 @@ pub static MATH: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &'static [&'static FnEntry] = &[
-    &ABS, &ACOS, &ASIN, &ATAN, &ATAN2, &COS, &DEGREES, &EXP, &FACTORIAL, &FIBONACCI, &GCD, &HYPOT,
-    &IS_PRIME, &LCM, &LERP, &LOG, &LOG2, &LOG10, &MAP_RANGE, &MOD, &RADIANS, &SIGN, &SIN, &TAN,
+    &ABS, &ACOS, &ASIN, &ATAN, &ATAN2, &CEIL, &CLAMP, &COS, &DEGREES, &EXP, &FACTORIAL, &FIBONACCI,
+    &FLOOR, &GCD, &HYPOT, &IS_PRIME, &LCM, &LERP, &LOG, &LOG2, &LOG10, &MAP_RANGE, &MAX, &MIN,
+    &MOD, &POW, &RADIANS, &ROUND, &SIGN, &SIN, &SQRT, &TAN,
 ];
 
 static ABS: FnEntry = FnEntry {
@@ -40,6 +41,18 @@ static ATAN2: FnEntry = FnEntry {
     example: "get std::math::atan2\n\natan2(1.0, 1.0) // 0.7853...",
 };
 
+static CEIL: FnEntry = FnEntry {
+    signature: "ceil(x)",
+    description: "smallest integer greater than or equal to x",
+    example: "get std::math::ceil\n\nceil(2.12) // 3.0",
+};
+
+static CLAMP: FnEntry = FnEntry {
+    signature: "clamp(x, min, max)",
+    description: "clamps x between min and max, returning min if x < min, max if x > max",
+    example: "get std::math::clamp\n\nclamp(12, 15, 20) // 15",
+};
+
 static COS: FnEntry = FnEntry {
     signature: "cos(x)",
     description: "cosine of x in radians",
@@ -68,6 +81,12 @@ static FIBONACCI: FnEntry = FnEntry {
     signature: "fibonacci(x)",
     description: "xth fibonacci number",
     example: "get std::math::fibonacci\n\nfibonacci(7) // 13",
+};
+
+static FLOOR: FnEntry = FnEntry {
+    signature: "floor(x)",
+    description: "largest integer less than or equal to x",
+    example: "get std::math::floor\n\nfloor(1.23) // 1.0",
 };
 
 static GCD: FnEntry = FnEntry {
@@ -124,16 +143,40 @@ static MAP_RANGE: FnEntry = FnEntry {
     example: "get std::math::map_range\n\nmap_range(5.0, 0.0, 10.0, 0.0, 100.0) // 50.0",
 };
 
+static MAX: FnEntry = FnEntry {
+    signature: "max(a, b)",
+    description: "returns the larger of a and b",
+    example: "get std::math::max\n\nmax(4, 6) // 6",
+};
+
+static MIN: FnEntry = FnEntry {
+    signature: "min(a, b)",
+    description: "returns the smaller of a and b",
+    example: "get std::math::min\n\nmin(4, 6) // 4",
+};
+
 static MOD: FnEntry = FnEntry {
     signature: "mod(a, b)",
     description: "remainder of a divided by b",
     example: "get std::math::mod\n\nmod(10, 3) // 1",
 };
 
+static POW: FnEntry = FnEntry {
+    signature: "pow(a, b)",
+    description: "raises a to the power of b",
+    example: "get std::math::pow\n\npow(2, 2) // 4.0",
+};
+
 static RADIANS: FnEntry = FnEntry {
     signature: "radians(x)",
     description: "convert degrees to radians",
     example: "get std::math::radians\n\nradians(180.0) // 3.14159...",
+};
+
+static ROUND: FnEntry = FnEntry {
+    signature: "round(x)",
+    description: "rounds x to the nearest integer",
+    example: "get std::math::round\n\nround(2.2) // 2.0",
 };
 
 static SIGN: FnEntry = FnEntry {
@@ -146,6 +189,12 @@ static SIN: FnEntry = FnEntry {
     signature: "sin(x)",
     description: "sine of x in radians",
     example: "get std::math::sin\n\nsin(0.0) // 0.0",
+};
+
+static SQRT: FnEntry = FnEntry {
+    signature: "sqrt(x)",
+    description: "square root of x",
+    example: "get std::math::sqrt\n\nsqrt(4) // 2.0",
 };
 
 static TAN: FnEntry = FnEntry {
