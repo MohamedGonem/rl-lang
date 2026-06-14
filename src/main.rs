@@ -115,8 +115,10 @@ fn main() {
         // will move stdlib helper from repl to docs/ as single source of truth
         // not because i am lazy... really...
         Commands::Docs { .. } => {
-            let enteries = docs::entries::stdlib_entries();
-            println!("{}", docs::std_to_markdown(&enteries))
+            let std_enteries = docs::entries::stdlib_entries();
+            println!("{}", docs::std_to_markdown(&std_enteries));
+            let concepts_entries = docs::entries::concept_entries();
+            println!("{}", docs::concept_to_markdown(&concepts_entries));
         }
 
         Commands::Repl => {
