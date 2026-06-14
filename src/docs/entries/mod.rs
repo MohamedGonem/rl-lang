@@ -1,5 +1,6 @@
-use crate::docs::entry::StdEntry;
+use crate::docs::entry::{ConceptEntry, StdEntry};
 
+mod concepts;
 mod stdlib;
 
 pub fn stdlib_entries() -> Vec<&'static StdEntry> {
@@ -11,5 +12,22 @@ pub fn stdlib_entries() -> Vec<&'static StdEntry> {
         &stdlib::arrays::ARRAY,
         &stdlib::str::STR,
         &stdlib::types::TYPES,
+    ]
+}
+
+pub fn concept_entries() -> Vec<&'static ConceptEntry> {
+    vec![
+        &concepts::arrays::ARRAYS,
+        &concepts::constants::CONSTANTS,
+        &concepts::flow::CONTROL_FLOW,
+        &concepts::flow::FOR_LOOPS,
+        &concepts::functions::FUNCTIONS,
+        &concepts::general::COMMENTS,
+        &concepts::imports::IMPORTS,
+        &concepts::lambdas::LAMBDAS,
+        &concepts::null::NULL,
+        &concepts::operators::OPERATORS,
+        &concepts::types::TYPES,
+        &concepts::variables::VARIABLES,
     ]
 }

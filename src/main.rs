@@ -112,11 +112,43 @@ fn main() {
             create_project(&name);
         }
 
-        // will move stdlib helper from repl to docs/ as single source of truth
-        // not because i am lazy... really...
-        Commands::Docs { .. } => {
-            let enteries = docs::entries::stdlib_entries();
-            println!("{}", docs::std_to_markdown(&enteries))
+        Commands::Docs { topic } => {
+            let std_entries = docs::entries::stdlib_entries();
+            let concept_entries = docs::entries::concept_entries();
+
+            match topic.as_deref() {
+                None => {
+                    println!("{}", docs::std_to_markdown(&std_entries));
+                    println!("{}", docs::concept_to_markdown(&concept_entries));
+                }
+                Some(query) => {
+                    // search stdlib entries
+                    let matched_std: Vec<&docs::entry::StdEntry> = std_entries
+                        .iter()
+                        .copied()
+                        .filter(|e| e.name.contains(query))
+                        .collect();
+
+                    // search concept entries
+                    let matched_concepts: Vec<&docs::entry::ConceptEntry> = concept_entries
+                        .iter()
+                        .copied()
+                        .filter(|e| e.name.contains(query))
+                        .collect();
+
+                    if matched_std.is_empty() && matched_concepts.is_empty() {
+                        eprintln!("no docs found for '{}'", query);
+                        std::process::exit(1);
+                    }
+
+                    if !matched_std.is_empty() {
+                        println!("{}", docs::std_to_markdown(&matched_std));
+                    }
+                    if !matched_concepts.is_empty() {
+                        println!("{}", docs::concept_to_markdown(&matched_concepts));
+                    }
+                }
+            }
         }
 
         Commands::Repl => {

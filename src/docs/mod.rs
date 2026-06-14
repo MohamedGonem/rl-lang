@@ -1,5 +1,5 @@
 pub mod entries;
-mod entry;
+pub mod entry;
 use crate::docs::entry::{ConceptEntry, StdEntry};
 
 // helper functions that transform docs into readable mark down
