@@ -1,3 +1,4 @@
+pub mod entries;
 mod entry;
 use crate::docs::entry::{ConceptEntry, StdEntry};
 
