@@ -233,13 +233,17 @@ impl Evaluator {
                 let exported: Vec<_> = self
                     .environment
                     .last()
-                    .unwrap()
+                    .ok_or_else(|| self.err("no active scope", statement.span))?
                     .iter()
                     .map(|(k, v)| (k.clone(), v.clone()))
                     .collect();
                 self.pop_scope();
+                let no_scope_err = self.err("no active scope", statement.span);
                 for (name, item) in exported {
-                    self.environment.last_mut().unwrap().insert(name, item);
+                    self.environment
+                        .last_mut()
+                        .ok_or_else(|| no_scope_err.clone())?
+                        .insert(name, item);
                 }
             }
 
@@ -261,9 +265,8 @@ impl Evaluator {
                 let exported: Vec<_> = self
                     .environment
                     .last()
-                    .unwrap()
+                    .ok_or_else(|| self.err("no active scope", statement.span))?
                     .iter()
-                    .filter(|(k, _)| names.contains(k))
                     .map(|(k, v)| (k.clone(), v.clone()))
                     .collect();
                 self.pop_scope();
@@ -276,8 +279,12 @@ impl Evaluator {
                         statement.span,
                     ));
                 }
+                let no_scope_err = self.err("no active scope", statement.span);
                 for (name, item) in exported {
-                    self.environment.last_mut().unwrap().insert(name, item);
+                    self.environment
+                        .last_mut()
+                        .ok_or_else(|| no_scope_err.clone())?
+                        .insert(name, item);
                 }
             }
 
