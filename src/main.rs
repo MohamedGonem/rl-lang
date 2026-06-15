@@ -7,8 +7,6 @@ use std::path::PathBuf;
 use rl_lang::lsp::run_lsp;
 #[cfg(feature = "repl_tui")]
 use rl_lang::repl;
-#[cfg(feature = "repl_terminal")]
-use rl_lang::repl_terminal;
 use rl_lang::utils::source::SourceFile;
 use rl_lang::{
     logic_loops::{eval_loop, lexing_loop, parsing_loop},
@@ -154,8 +152,6 @@ fn main() {
         Commands::Repl => {
             #[cfg(feature = "repl_tui")]
             repl::start_repl();
-            #[cfg(feature = "repl_terminal")]
-            repl_terminal::start_repl();
         }
 
         #[cfg(feature = "lsp")]
