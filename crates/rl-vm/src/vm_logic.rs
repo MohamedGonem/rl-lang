@@ -60,6 +60,13 @@ pub struct Vm {
     /// functions, `Record::method(...)`) and `OpCode::LookupMethod`
     /// (instance methods, `value.method(...)`).
     impl_methods: HashMap<String, Rc<VmFunction>>,
+    /// Side-table of native C-interop resources (`std::c`), keyed by handle
+    /// id. `pub(crate)` (unlike every field above) because, unlike every
+    /// other native function so far, `std::c`'s functions need persistent
+    /// state across calls, not just their own arguments - see `stdlib::c`.
+    pub(crate) c_handles: HashMap<i64, crate::stdlib::c::CHandle>,
+    /// Next handle id to hand out for `std::c` resources; only ever increments.
+    pub(crate) c_next_handle: i64,
 }
 
 impl Vm {
@@ -73,6 +80,8 @@ impl Vm {
             source: None,
             line_index: None,
             impl_methods: HashMap::new(),
+            c_handles: HashMap::new(),
+            c_next_handle: 1,
         }
     }
 

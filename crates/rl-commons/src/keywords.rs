@@ -147,7 +147,7 @@ pub mod net {
 }
 
 pub mod c {
-    pub const KEYWORDS: &[&str] = &["compile", "call", "close"];
+    pub const KEYWORDS: &[&str] = &["compile", "load", "call", "close"];
 }
 
 pub mod path {

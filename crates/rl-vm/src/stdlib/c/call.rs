@@ -1,14 +1,15 @@
 use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
 use libloading::Symbol;
-use rl_ast::statements::TypeAnnotation;
+use std::rc::Rc;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, vb, vby, verr, vf, vi, vnl, vok, vs},
+        common::{extract_number, extract_string},
+        macros::{vb, vby, verr, vf, vi, vnl, vok, vs},
     },
-    values::Value,
+    values::VmValue,
 };
 
 /// The element type of an `"arr:TYPE:N"` arg.
@@ -47,7 +48,7 @@ impl ArrElem {
     }
 }
 
-/// One argument's value, converted from its rl-lang `Value` into the exact
+/// One argument's value, converted from its rl-lang `VmValue` into the exact
 /// Rust representation its declared C type requires. Kept as an owned value
 /// (rather than immediately building an `Arg`) so it has somewhere to live
 /// while the `Arg`s that borrow from it are assembled and passed to `Cif::call`.
@@ -75,14 +76,14 @@ enum ArgKind {
     Arr(ArrElem, usize),
 }
 
-pub fn func(
-    eval: &mut Evaluator,
-    handle: Value,
-    fn_name: Value,
-    args: Value,
-    arg_types: Value,
-    ret_type: Value,
-) -> Value {
+pub fn std_call(
+    vm: &mut Vm,
+    handle: VmValue,
+    fn_name: VmValue,
+    args: VmValue,
+    arg_types: VmValue,
+    ret_type: VmValue,
+) -> VmValue {
     let handle_id = match extract_number(handle, "call") {
         Ok(n) => n as i64,
         Err(e) => return verr!(vs!(format!("call: {}", e))),
@@ -97,11 +98,11 @@ pub fn func(
     };
 
     let arg_type_names: Vec<String> = match arg_types {
-        Value::Values { items, .. } => {
+        VmValue::Arr(items) => {
             let mut out = Vec::with_capacity(items.len());
-            for item in items {
+            for item in items.iter() {
                 match item {
-                    Value::String(s) => out.push(s),
+                    VmValue::Str(s) => out.push(s.to_string()),
                     other => {
                         return verr!(vs!(format!(
                             "call: arg_types must be an array of string, found {}",
@@ -120,8 +121,8 @@ pub fn func(
         }
     };
 
-    let arg_values: Vec<Value> = match args {
-        Value::Tuple(items) => items,
+    let arg_values: Vec<VmValue> = match args {
+        VmValue::Tuple(items) => (*items).clone(),
         other => {
             return verr!(vs!(format!(
                 "call: expected a tuple of args (e.g. (\"hello\", 16)), found {}",
@@ -167,7 +168,7 @@ pub fn func(
         })
         .collect();
 
-    let CHandle::Library(lib) = match eval.c_handles.get(&handle_id) {
+    let CHandle::Library(lib) = match vm.c_handles.get(&handle_id) {
         Some(h) => h,
         None => return verr!(vs!(format!("call: unknown handle {}", handle_id))),
     };
@@ -202,8 +203,8 @@ pub fn func(
     // caller's side - same as passing any buffer+length pair to C in C
     // itself). Getting the symbol (`lib.get`) is also unsafe per
     // `libloading`'s contract.
-    let ret_value: Value = unsafe {
-        let sym: Symbol<unsafe extern "C" fn()> = match lib.get(fn_name.as_bytes()) {
+    let ret_value: VmValue = unsafe {
+        let sym: Symbol<'_, unsafe extern "C" fn()> = match lib.get(fn_name.as_bytes()) {
             Ok(s) => s,
             Err(e) => {
                 return verr!(vs!(format!(
@@ -234,39 +235,31 @@ pub fn func(
     // order their args appeared - this is the only "mutation" that crosses
     // back into rl-lang, and only because the caller explicitly opted an
     // arg into it via `"str:N"`/`"arr:TYPE:N"`.
-    let mutated_outs: Vec<Value> = c_args
+    let mutated_outs: Vec<VmValue> = c_args
         .into_iter()
         .filter_map(|c| match c {
             CArg::Str { buf, .. } => {
                 let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
-                Some(Value::String(
-                    String::from_utf8_lossy(&buf[..end]).into_owned(),
-                ))
+                Some(vs!(String::from_utf8_lossy(&buf[..end]).into_owned()))
             }
-            CArg::ArrI32 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Int,
-                items: buf.into_iter().map(|v| Value::Integer(v as i64)).collect(),
-            }),
-            CArg::ArrI64 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Int,
-                items: buf.into_iter().map(Value::Integer).collect(),
-            }),
-            CArg::ArrI16 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Int,
-                items: buf.into_iter().map(|v| Value::Integer(v as i64)).collect(),
-            }),
-            CArg::ArrU8 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Byte,
-                items: buf.into_iter().map(Value::Byte).collect(),
-            }),
-            CArg::ArrF32 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Float,
-                items: buf.into_iter().map(|v| Value::Float(v as f64)).collect(),
-            }),
-            CArg::ArrF64 { buf, .. } => Some(Value::Values {
-                items_type: TypeAnnotation::Float,
-                items: buf.into_iter().map(Value::Float).collect(),
-            }),
+            CArg::ArrI32 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(|v| VmValue::Int(v as i64)).collect(),
+            ))),
+            CArg::ArrI64 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(VmValue::Int).collect(),
+            ))),
+            CArg::ArrI16 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(|v| VmValue::Int(v as i64)).collect(),
+            ))),
+            CArg::ArrU8 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(VmValue::Byte).collect(),
+            ))),
+            CArg::ArrF32 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(|v| VmValue::Float(v as f64)).collect(),
+            ))),
+            CArg::ArrF64 { buf, .. } => Some(VmValue::Arr(Rc::new(
+                buf.into_iter().map(VmValue::Float).collect(),
+            ))),
             _ => None,
         })
         .collect();
@@ -274,11 +267,14 @@ pub fn func(
     if mutated_outs.is_empty() {
         vok!(ret_value)
     } else {
-        vok!(Value::Tuple(vec![ret_value, Value::Tuple(mutated_outs)]))
+        vok!(VmValue::Tuple(Rc::new(vec![
+            ret_value,
+            VmValue::Tuple(Rc::new(mutated_outs)),
+        ])))
     }
 }
 
-fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
+fn parse_arg_kind(name: &str) -> Result<ArgKind, VmValue> {
     match name {
         "i32" | "i64" | "f32" | "f64" | "bool" | "u8" | "i16" => Ok(ArgKind::Num(match name {
             "i32" => "i32",
@@ -361,7 +357,7 @@ fn numeric_ffi_type(name: &str) -> Type {
     }
 }
 
-fn parse_ret_type(name: &str) -> Result<Type, Value> {
+fn parse_ret_type(name: &str) -> Result<Type, VmValue> {
     match name {
         "void" => Ok(Type::void()),
         "i32" | "i64" | "i16" | "u8" | "f32" | "f64" | "bool" => Ok(numeric_ffi_type(name)),
@@ -373,16 +369,14 @@ fn parse_ret_type(name: &str) -> Result<Type, Value> {
     }
 }
 
-/// Builds one `"arr:TYPE:N"` argument's buffer from an rl-lang `arr[T]`,
-/// checking every element's type and that the length is exactly `count`.
 fn arr_value_to_carg(
-    value: Value,
+    value: VmValue,
     elem: ArrElem,
     count: usize,
     index: usize,
-) -> Result<CArg, Value> {
-    let items = match value {
-        Value::Values { items, .. } => items,
+) -> Result<CArg, VmValue> {
+    let items: Vec<VmValue> = match value {
+        VmValue::Arr(items) => (*items).clone(),
         other => {
             return Err(verr!(vs!(format!(
                 "call: arg {} declared as arr:{}:{} but got {}",
@@ -409,8 +403,8 @@ fn arr_value_to_carg(
             let mut buf: Vec<$ty> = Vec::with_capacity(count);
             for (i, item) in items.into_iter().enumerate() {
                 let v: i64 = match item {
-                    Value::Integer(n) => n,
-                    Value::Byte(b) => b as i64,
+                    VmValue::Int(n) => n,
+                    VmValue::Byte(b) => b as i64,
                     other => {
                         return Err(verr!(vs!(format!(
                             "call: arg {} element {} declared as {} but got {}",
@@ -443,7 +437,7 @@ fn arr_value_to_carg(
             let mut buf: Vec<$ty> = Vec::with_capacity(count);
             for (i, item) in items.into_iter().enumerate() {
                 match item {
-                    Value::Float(f) => buf.push(f as $ty),
+                    VmValue::Float(f) => buf.push(f as $ty),
                     other => {
                         return Err(verr!(vs!(format!(
                             "call: arg {} element {} declared as {} but got {}",
@@ -470,17 +464,17 @@ fn arr_value_to_carg(
     }
 }
 
-fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Value> {
+fn value_to_carg(value: VmValue, kind: &ArgKind, index: usize) -> Result<CArg, VmValue> {
     match (kind, value) {
-        (ArgKind::Num("i32"), Value::Integer(i)) => Ok(CArg::I32(i as i32)),
-        (ArgKind::Num("i32"), Value::Byte(b)) => Ok(CArg::I32(b as i32)),
-        (ArgKind::Num("i64"), Value::Integer(i)) => Ok(CArg::I64(i)),
-        (ArgKind::Num("i64"), Value::Byte(b)) => Ok(CArg::I64(b as i64)),
-        (ArgKind::Num("f32"), Value::Float(f)) => Ok(CArg::F32(f as f32)),
-        (ArgKind::Num("f64"), Value::Float(f)) => Ok(CArg::F64(f)),
-        (ArgKind::Num("bool"), Value::Bool(b)) => Ok(CArg::Bool(u8::from(b))),
-        (ArgKind::Num("u8"), Value::Byte(b)) => Ok(CArg::U8(b)),
-        (ArgKind::Num("u8"), Value::Integer(i)) => {
+        (ArgKind::Num("i32"), VmValue::Int(i)) => Ok(CArg::I32(i as i32)),
+        (ArgKind::Num("i32"), VmValue::Byte(b)) => Ok(CArg::I32(b as i32)),
+        (ArgKind::Num("i64"), VmValue::Int(i)) => Ok(CArg::I64(i)),
+        (ArgKind::Num("i64"), VmValue::Byte(b)) => Ok(CArg::I64(b as i64)),
+        (ArgKind::Num("f32"), VmValue::Float(f)) => Ok(CArg::F32(f as f32)),
+        (ArgKind::Num("f64"), VmValue::Float(f)) => Ok(CArg::F64(f)),
+        (ArgKind::Num("bool"), VmValue::Bool(b)) => Ok(CArg::Bool(u8::from(b))),
+        (ArgKind::Num("u8"), VmValue::Byte(b)) => Ok(CArg::U8(b)),
+        (ArgKind::Num("u8"), VmValue::Int(i)) => {
             if !(0..=255).contains(&i) {
                 return Err(verr!(vs!(format!(
                     "call: arg {} is {} but \"u8\" only holds 0..=255",
@@ -489,7 +483,7 @@ fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Val
             }
             Ok(CArg::U8(i as u8))
         }
-        (ArgKind::Num("i16"), Value::Integer(i)) => {
+        (ArgKind::Num("i16"), VmValue::Int(i)) => {
             if !(i16::MIN as i64..=i16::MAX as i64).contains(&i) {
                 return Err(verr!(vs!(format!(
                     "call: arg {} is {} but \"i16\" only holds {}..={}",
@@ -507,7 +501,7 @@ fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Val
             t,
             other.type_name()
         )))),
-        (ArgKind::Str(cap), Value::String(s)) => {
+        (ArgKind::Str(cap), VmValue::Str(s)) => {
             let cap = *cap;
             if s.len() >= cap {
                 return Err(verr!(vs!(format!(

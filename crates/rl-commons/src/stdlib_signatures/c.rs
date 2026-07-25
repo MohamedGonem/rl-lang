@@ -7,12 +7,17 @@ use rl_ast::statements::TypeAnnotation as T;
 pub fn module() -> ModuleNames {
     ModuleNames::new("c")
         .with_typed_function(compile())
+        .with_typed_function(load())
         .with_typed_function(call())
         .with_typed_function(close())
 }
 
 fn compile() -> StdFn {
     StdFn::typed("compile", vec![(params(vec![T::String]), result(T::Int))])
+}
+
+fn load() -> StdFn {
+    StdFn::typed("load", vec![(params(vec![T::String]), result(T::Int))])
 }
 
 fn call() -> StdFn {
