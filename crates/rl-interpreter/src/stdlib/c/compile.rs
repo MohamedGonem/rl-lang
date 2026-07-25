@@ -1,3 +1,5 @@
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -42,6 +44,10 @@ pub fn func(eval: &mut Evaluator, source: Value) -> Value {
         Err(e) => return verr!(vs!(format!("compile: {}", e))),
     };
 
+    let mut hasher = DefaultHasher::new();
+    source.hash(&mut hasher);
+    let hash = hasher.finish();
+
     let dir = cache_dir();
     if let Err(e) = std::fs::create_dir_all(&dir) {
         return verr!(vs!(format!(
@@ -50,4 +56,7 @@ pub fn func(eval: &mut Evaluator, source: Value) -> Value {
             e
         )));
     }
+
+    let src_path = dir.join(format!("{:016x}.c", hash));
+    let out_path = dir.join(format!("{:016x}.{}", hash, SHARED_LIB_EXT));
 }
