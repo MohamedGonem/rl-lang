@@ -19,6 +19,7 @@ crossterm.workspace = true
 tiny_http.workspace = true
 ureq.workspace = true
 libloading.workspace = true
+libffi.workspace = true
 log = { workspace = true, optional = true }
 
 [features]
