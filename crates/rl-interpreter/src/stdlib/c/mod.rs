@@ -1,4 +1,4 @@
-//! `std::c` - compile C source with the system compiler or load library and call into it.
+//! `std::c` - compile or load a C shared library and call into it.
 
 use crate::native::Module;
 use libloading::Library;
@@ -7,6 +7,7 @@ mod call;
 mod close;
 mod common;
 mod compile;
+mod has_symbol;
 mod load;
 
 pub use rl_commons::keywords::c::KEYWORDS;
@@ -21,5 +22,6 @@ pub fn module() -> Module {
         .with_function("compile", compile::func)
         .with_function("load", load::func)
         .with_function("call", call::func)
+        .with_function("has_symbol", has_symbol::func)
         .with_function("close", close::func)
 }

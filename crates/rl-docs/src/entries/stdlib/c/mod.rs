@@ -3,6 +3,7 @@ use crate::entry::{FnEntry, StdEntry};
 mod call;
 mod close;
 mod compile;
+mod has_symbol;
 mod load;
 
 pub static C: StdEntry = StdEntry {
@@ -13,4 +14,10 @@ pub static C: StdEntry = StdEntry {
     unstable: true,
 };
 
-static FUNCTIONS: &[&FnEntry] = &[&compile::COMPILE, &load::LOAD, &call::CALL, &close::CLOSE];
+static FUNCTIONS: &[&FnEntry] = &[
+    &compile::COMPILE,
+    &load::LOAD,
+    &call::CALL,
+    &has_symbol::HAS_SYMBOL,
+    &close::CLOSE,
+];
