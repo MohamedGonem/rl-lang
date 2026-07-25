@@ -130,7 +130,7 @@ pub fn func(
     // as declared by the caller. If those don't match the real C function's
     // signature, this is UB - same contract as any FFI call. Getting the
     // symbol itself (`lib.get`) is also unsafe per `libloading`'s contract.
-    let result = unsafe {
+    unsafe {
         let sym: Symbol<unsafe extern "C" fn()> = match lib.get(fn_name.as_bytes()) {
             Ok(s) => s,
             Err(e) => {
@@ -153,9 +153,7 @@ pub fn func(
             "f64" => vok!(vf!(cif.call::<f64>(code_ptr, &ffi_args))),
             _ => unreachable!("ret_type validated by parse_type above"),
         }
-    };
-
-    result
+    }
 }
 
 fn parse_type(name: &str, context: &str) -> Result<Type, Value> {
