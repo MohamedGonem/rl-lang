@@ -54,6 +54,7 @@ toml = "0.8"
 tiny_http = "0.12"
 ureq = "2"
 libloading = "0.8"
+libffi = "5"
 clap = { version = "4.6.1", features = ["derive"] }
 log = "0.4"
 env_logger = "0.11"
