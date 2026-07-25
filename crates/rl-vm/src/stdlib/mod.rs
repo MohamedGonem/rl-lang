@@ -6,6 +6,7 @@
 //! variants first.
 
 mod array;
+pub(crate) mod c;
 mod collections;
 pub mod common;
 mod io;

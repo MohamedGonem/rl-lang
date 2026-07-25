@@ -1674,6 +1674,8 @@ dependencies = [
 name = "rl-vm"
 version = "0.3.0"
 dependencies = [
+ "libffi",
+ "libloading",
  "rl-ast",
  "rl-lexer",
  "rl-utils",
