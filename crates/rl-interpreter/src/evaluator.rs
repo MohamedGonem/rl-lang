@@ -183,7 +183,8 @@ impl Evaluator {
                 .with_module(stdlib::debug::module())
                 .with_module(stdlib::net::module())
                 .with_module(stdlib::http::module())
-                .with_module(stdlib::collections::module()),
+                .with_module(stdlib::collections::module())
+                .with_module(stdlib::c::module()),
         )
     }
 
