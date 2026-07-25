@@ -56,4 +56,9 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
         Some(h) => h,
         None => return verr!(vs!(format!("call: unknown handle {}", handle_id))),
     };
+fn sym_err(fn_name: &str, e: libloading::Error) -> Value {
+    verr!(vs!(format!(
+        "call: symbol \"{}\" not found: {}",
+        fn_name, e
+    )))
 }
