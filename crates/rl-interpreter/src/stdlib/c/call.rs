@@ -10,7 +10,6 @@ use crate::{
     values::Value,
 };
 
-const MAX_ARGS: usize = 6;
 enum CArg {
     I32(i32),
     I64(i64),
@@ -18,7 +17,14 @@ enum CArg {
     F64(f64),
 }
 
-pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) -> Value {
+pub fn func(
+    eval: &mut Evaluator,
+    handle: Value,
+    fn_name: Value,
+    args: Value,
+    arg_types: Value,
+    ret_type: Value,
+) -> Value {
     let handle_id = match extract_number(handle, "call") {
         Ok(n) => n as i64,
         Err(e) => return verr!(vs!(format!("call: {}", e))),
@@ -27,16 +33,20 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("call: {}", e))),
     };
-    let args: Vec<i64> = match args {
+    let ret_type = match extract_string(ret_type, "call") {
+        Ok(s) => s,
+        Err(e) => return verr!(vs!(format!("call: {}", e))),
+    };
+
+    let arg_type_names: Vec<String> = match arg_types {
         Value::Values { items, .. } => {
             let mut out = Vec::with_capacity(items.len());
             for item in items {
                 match item {
-                    Value::Integer(i) => out.push(i),
-                    Value::Byte(b) => out.push(b as i64),
+                    Value::String(s) => out.push(s),
                     other => {
                         return verr!(vs!(format!(
-                            "call: all args must be int, found {}",
+                            "call: arg_types must be an array of string, found {}",
                             other.type_name()
                         )));
                     }
@@ -46,16 +56,27 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
         }
         other => {
             return verr!(vs!(format!(
-                "call: expected an array of int args, found {}",
+                "call: expected an array of string for arg_types, found {}",
                 other.type_name()
             )));
         }
     };
-    if args.len() > MAX_ARGS {
+
+    let arg_values: Vec<Value> = match args {
+        Value::Values { items, .. } => items,
+        other => {
+            return verr!(vs!(format!(
+                "call: expected an array of args, found {}",
+                other.type_name()
+            )));
+        }
+    };
+
+    if arg_values.len() != arg_type_names.len() {
         return verr!(vs!(format!(
-            "call: at most {} args are supported in this version, got {}",
-            MAX_ARGS,
-            args.len()
+            "call: {} arg(s) but {} arg_type(s) given",
+            arg_values.len(),
+            arg_type_names.len()
         )));
     }
 
