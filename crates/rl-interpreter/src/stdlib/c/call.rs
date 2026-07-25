@@ -162,31 +162,95 @@ pub fn func(
     }
 }
 
-fn parse_type(name: &str, context: &str) -> Result<Type, Value> {
+fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
     match name {
-        "i32" => Ok(Type::i32()),
-        "i64" => Ok(Type::i64()),
-        "f32" => Ok(Type::f32()),
-        "f64" => Ok(Type::f64()),
+        "i32" | "i64" | "f32" | "f64" => Ok(ArgKind::Num(match name {
+            "i32" => "i32",
+            "i64" => "i64",
+            "f32" => "f32",
+            _ => "f64",
+        })),
+        _ if name.starts_with("str:") => {
+            let cap: usize = name["str:".len()..].parse().map_err(|_| {
+                verr!(vs!(format!(
+                    "call: invalid str capacity in \"{}\" (expected e.g. \"str:64\")",
+                    name
+                )))
+            })?;
+            if cap == 0 {
+                return Err(verr!(vs!(format!(
+                    "call: str capacity in \"{}\" must be at least 1",
+                    name
+                ))));
+            }
+            Ok(ArgKind::Str(cap))
+        }
+        "str" => Err(verr!(vs!(
+            "call: \"str\" needs an explicit capacity, e.g. \"str:64\" - \
+             there's no safe default to write past"
+                .to_string()
+        ))),
         other => Err(verr!(vs!(format!(
-            "call: unsupported {} type \"{}\" (supported: i32, i64, f32, f64)",
-            context, other
+            "call: unsupported arg type \"{}\" (supported: i32, i64, f32, f64, str:N)",
+            other
         )))),
     }
 }
 
-fn value_to_carg(value: Value, type_name: &str, index: usize) -> Result<CArg, Value> {
-    match (type_name, &value) {
-        ("i32", Value::Integer(i)) => Ok(CArg::I32(*i as i32)),
-        ("i32", Value::Byte(b)) => Ok(CArg::I32(*b as i32)),
-        ("i64", Value::Integer(i)) => Ok(CArg::I64(*i)),
-        ("i64", Value::Byte(b)) => Ok(CArg::I64(*b as i64)),
-        ("f32", Value::Float(f)) => Ok(CArg::F32(*f as f32)),
-        ("f64", Value::Float(f)) => Ok(CArg::F64(*f)),
-        (t, other) => Err(verr!(vs!(format!(
+fn numeric_ffi_type(name: &str) -> Type {
+    match name {
+        "i32" => Type::i32(),
+        "i64" => Type::i64(),
+        "f32" => Type::f32(),
+        _ => Type::f64(),
+    }
+}
+
+fn parse_ret_type(name: &str) -> Result<Type, Value> {
+    match name {
+        "void" => Ok(Type::void()),
+        "i32" | "i64" | "f32" | "f64" => Ok(numeric_ffi_type(name)),
+        other => Err(verr!(vs!(format!(
+            "call: unsupported return type \"{}\" (supported: i32, i64, f32, f64, void - \
+             no \"str\" return: an unmanaged C string's ownership can't be known safely)",
+            other
+        )))),
+    }
+}
+
+fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Value> {
+    match (kind, value) {
+        (ArgKind::Num("i32"), Value::Integer(i)) => Ok(CArg::I32(i as i32)),
+        (ArgKind::Num("i32"), Value::Byte(b)) => Ok(CArg::I32(b as i32)),
+        (ArgKind::Num("i64"), Value::Integer(i)) => Ok(CArg::I64(i)),
+        (ArgKind::Num("i64"), Value::Byte(b)) => Ok(CArg::I64(b as i64)),
+        (ArgKind::Num("f32"), Value::Float(f)) => Ok(CArg::F32(f as f32)),
+        (ArgKind::Num("f64"), Value::Float(f)) => Ok(CArg::F64(f)),
+        (ArgKind::Num(t), other) => Err(verr!(vs!(format!(
             "call: arg {} declared as \"{}\" but got {}",
             index,
             t,
+            other.type_name()
+        )))),
+        (ArgKind::Str(cap), Value::String(s)) => {
+            let cap = *cap;
+            if s.len() >= cap {
+                return Err(verr!(vs!(format!(
+                    "call: arg {} is {} byte(s) but its str buffer capacity is only {} \
+                     (need room for a null terminator - raise the \"str:N\")",
+                    index,
+                    s.len(),
+                    cap
+                ))));
+            }
+            let mut buf = vec![0u8; cap];
+            buf[..s.len()].copy_from_slice(s.as_bytes());
+            let ptr = buf.as_mut_ptr();
+            Ok(CArg::Str { buf, ptr })
+        }
+        (ArgKind::Str(_), other) => Err(verr!(vs!(format!(
+            "call: arg {} declared as str but got {}",
+            index,
             other.type_name()
         )))),
     }
