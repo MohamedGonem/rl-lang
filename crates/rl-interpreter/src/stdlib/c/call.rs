@@ -11,6 +11,12 @@ use crate::{
 };
 
 const MAX_ARGS: usize = 6;
+enum CArg {
+    I32(i32),
+    I64(i64),
+    F32(f32),
+    F64(f64),
+}
 
 pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) -> Value {
     let handle_id = match extract_number(handle, "call") {
