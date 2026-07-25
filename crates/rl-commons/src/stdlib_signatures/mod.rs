@@ -12,6 +12,7 @@ use std::rc::Rc;
 
 pub mod array;
 pub mod bitwise;
+pub mod c;
 pub mod collections;
 pub mod constants;
 pub mod debug;
