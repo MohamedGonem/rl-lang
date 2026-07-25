@@ -80,14 +80,45 @@ pub fn func(
         )));
     }
 
+    let mut c_args: Vec<CArg> = Vec::with_capacity(arg_values.len());
+    for (i, (value, type_name)) in arg_values.into_iter().zip(&arg_type_names).enumerate() {
+        match value_to_carg(value, type_name, i) {
+            Ok(c_arg) => c_args.push(c_arg),
+            Err(e) => return e,
+        }
+    }
+
+    let mut arg_ffi_types: Vec<Type> = Vec::with_capacity(arg_type_names.len());
+    for type_name in &arg_type_names {
+        match parse_type(type_name, "arg") {
+            Ok(t) => arg_ffi_types.push(t),
+            Err(e) => return e,
+        }
+    }
+
+    let ret_ffi_type = if ret_type == "void" {
+        Type::void()
+    } else {
+        match parse_type(&ret_type, "return") {
+            Ok(t) => t,
+            Err(e) => return e,
+        }
+    };
+
     let CHandle::Library(lib) = match eval.c_handles.get(&handle_id) {
         Some(h) => h,
         None => return verr!(vs!(format!("call: unknown handle {}", handle_id))),
     };
 
-    // SAFETY: the caller-declared signature (all-i64, fixed arity) must match
-    // the real C function's signature. Getting this wrong is UB - same
-    // contract as any FFI call.
+    let ffi_args: Vec<Arg> = c_args
+        .iter()
+        .map(|c| match c {
+            CArg::I32(v) => arg(v),
+            CArg::I64(v) => arg(v),
+            CArg::F32(v) => arg(v),
+            CArg::F64(v) => arg(v),
+        })
+        .collect();
     let result = unsafe {
         match args.len() {
             0 => {
