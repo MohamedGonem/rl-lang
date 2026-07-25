@@ -67,10 +67,10 @@ pub fn func(
     };
 
     let arg_values: Vec<Value> = match args {
-        Value::Values { items, .. } => items,
+        Value::Tuple(items) => items,
         other => {
             return verr!(vs!(format!(
-                "call: expected an array of args, found {}",
+                "call: expected a tuple of args (e.g. (\"hello\", 16)), found {}",
                 other.type_name()
             )));
         }
