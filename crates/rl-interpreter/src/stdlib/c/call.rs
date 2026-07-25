@@ -1,5 +1,6 @@
 use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
 use libloading::Symbol;
+use rl_ast::statements::TypeAnnotation;
 
 use crate::{
     evaluator::Evaluator,
@@ -167,6 +168,33 @@ pub fn func(
             "f64" => vf!(cif.call::<f64>(code_ptr, &ffi_args)),
             _ => unreachable!("ret_type validated by parse_ret_type above"),
         }
+    };
+
+    // Read back any `str` buffers C may have written into, in the order
+    // their args appeared`.
+    let mutated_strs: Vec<Value> = c_args
+        .iter()
+        .filter_map(|c| match c {
+            CArg::Str { buf, .. } => {
+                let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+                Some(Value::String(
+                    String::from_utf8_lossy(&buf[..end]).into_owned(),
+                ))
+            }
+            _ => None,
+        })
+        .collect();
+
+    if mutated_strs.is_empty() {
+        vok!(ret_value)
+    } else {
+        vok!(Value::Tuple(vec![
+            ret_value,
+            Value::Values {
+                items_type: TypeAnnotation::String,
+                items: mutated_strs,
+            },
+        ]))
     }
 }
 
