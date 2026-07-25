@@ -19,6 +19,12 @@ enum CArg {
     I64(i64),
     F32(f32),
     F64(f64),
+    Str { buf: Vec<u8>, ptr: *mut u8 },
+}
+
+enum ArgKind {
+    Num(&'static str),
+    Str(usize),
 }
 
 pub fn func(
