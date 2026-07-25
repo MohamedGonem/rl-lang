@@ -19,6 +19,9 @@ const SHARED_LIB_EXT: &str = "dylib";
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 const SHARED_LIB_EXT: &str = "so";
 
+/// Builds the compiler invocation for turning `src` into `out` on this platform.
+/// macOS wants `-dynamiclib`; everything else (incl. mingw-w64 `cc`/`gcc` on Windows)
+/// accepts `-shared -fPIC`. Native MSVC (`cl.exe`) is not supported here.
 fn compiler_command(compiler: &str, src: &PathBuf, out: &PathBuf) -> Command {
     let mut cmd = Command::new(compiler);
     #[cfg(target_os = "macos")]
