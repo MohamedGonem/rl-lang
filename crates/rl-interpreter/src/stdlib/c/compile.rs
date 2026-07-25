@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::{
+    evaluator::Evaluator,
+    values::Value,
+};
+
 #[cfg(target_os = "windows")]
 const SHARED_LIB_EXT: &str = "dll";
 #[cfg(target_os = "macos")]
@@ -31,3 +36,9 @@ fn cache_dir() -> PathBuf {
     std::env::temp_dir().join("rl_std_c_cache")
 }
 
+pub fn func(eval: &mut Evaluator, source: Value) -> Value {
+    let source = match extract_string(source, "compile") {
+        Ok(s) => s,
+        Err(e) => return verr!(vs!(format!("compile: {}", e))),
+    };
+}
