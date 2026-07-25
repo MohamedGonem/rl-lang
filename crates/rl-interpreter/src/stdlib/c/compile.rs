@@ -59,4 +59,36 @@ pub fn func(eval: &mut Evaluator, source: Value) -> Value {
 
     let src_path = dir.join(format!("{:016x}.c", hash));
     let out_path = dir.join(format!("{:016x}.{}", hash, SHARED_LIB_EXT));
+
+    // Cache hit: skip both writing the source and recompiling.
+    if !out_path.exists() {
+        if let Err(e) = std::fs::write(&src_path, &source) {
+            return verr!(vs!(format!(
+                "compile: failed to write {}: {}",
+                src_path.display(),
+                e
+            )));
+        }
+
+        let compiler = find_compiler();
+        let output = compiler_command(&compiler, &src_path, &out_path).output();
+
+        match output {
+            Ok(o) if o.status.success() => {}
+            Ok(o) => {
+                let stderr = String::from_utf8_lossy(&o.stderr);
+                return verr!(vs!(format!(
+                    "compile: `{}` failed:\n{}",
+                    compiler,
+                    stderr.trim_end()
+                )));
+            }
+            Err(e) => {
+                return verr!(vs!(format!(
+                    "compile: couldn't run `{}` (set $CC to point at a C compiler if it's not on $PATH): {}",
+                    compiler, e
+                )));
+            }
+        }
+    }
 }
