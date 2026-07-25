@@ -1,10 +1,11 @@
+use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
 use libloading::Symbol;
 
 use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, verr, vi, vok, vs},
+        common::{extract_number, extract_string, verr, vf, vi, vnl, vok, vs},
     },
     values::Value,
 };
