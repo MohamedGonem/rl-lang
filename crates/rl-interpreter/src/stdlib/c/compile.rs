@@ -27,3 +27,7 @@ fn find_compiler() -> String {
     std::env::var("CC").unwrap_or_else(|_| "cc".to_string())
 }
 
+fn cache_dir() -> PathBuf {
+    std::env::temp_dir().join("rl_std_c_cache")
+}
+
