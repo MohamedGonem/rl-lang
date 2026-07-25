@@ -6,20 +6,21 @@ use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, verr, vf, vi, vnl, vok, vs},
+        common::{extract_number, extract_string, vb, verr, vf, vi, vnl, vok, vs},
     },
     values::Value,
 };
 
 /// One argument's value, converted from its rl-lang `Value` into the exact
-/// Rust type its declared C type requires. Kept as an owned value (rather
-/// than immediately building an `Arg`) so it has somewhere to live while the
-/// `Arg`s that borrow from it are assembled and passed to `Cif::call`.
+/// Rust representation its declared C type requires. Kept as an owned value
+/// (rather than immediately building an `Arg`) so it has somewhere to live
+/// while the `Arg`s that borrow from it are assembled and passed to `Cif::call`.
 enum CArg {
     I32(i32),
     I64(i64),
     F32(f32),
     F64(f64),
+    Bool(u8),
     Str { buf: Vec<u8>, ptr: *mut u8 },
 }
 
@@ -132,6 +133,7 @@ pub fn func(
             CArg::I64(v) => arg(v),
             CArg::F32(v) => arg(v),
             CArg::F64(v) => arg(v),
+            CArg::Bool(v) => arg(v),
             CArg::Str { ptr, .. } => arg(ptr),
         })
         .collect();
@@ -166,6 +168,7 @@ pub fn func(
             "i64" => vi!(cif.call::<i64>(code_ptr, &ffi_args)),
             "f32" => vf!(cif.call::<f32>(code_ptr, &ffi_args) as f64),
             "f64" => vf!(cif.call::<f64>(code_ptr, &ffi_args)),
+            "bool" => vb!(cif.call::<u8>(code_ptr, &ffi_args) != 0),
             _ => unreachable!("ret_type validated by parse_ret_type above"),
         }
     };
@@ -200,11 +203,12 @@ pub fn func(
 
 fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
     match name {
-        "i32" | "i64" | "f32" | "f64" => Ok(ArgKind::Num(match name {
+        "i32" | "i64" | "f32" | "f64" | "bool" => Ok(ArgKind::Num(match name {
             "i32" => "i32",
             "i64" => "i64",
             "f32" => "f32",
-            _ => "f64",
+            "f64" => "f64",
+            _ => "bool",
         })),
         _ if name.starts_with("str:") => {
             let cap: usize = name["str:".len()..].parse().map_err(|_| {
@@ -227,7 +231,7 @@ fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
                 .to_string()
         ))),
         other => Err(verr!(vs!(format!(
-            "call: unsupported arg type \"{}\" (supported: i32, i64, f32, f64, str:N)",
+            "call: unsupported arg type \"{}\" (supported: i32, i64, f32, f64, bool, str:N)",
             other
         )))),
     }
@@ -238,16 +242,17 @@ fn numeric_ffi_type(name: &str) -> Type {
         "i32" => Type::i32(),
         "i64" => Type::i64(),
         "f32" => Type::f32(),
-        _ => Type::f64(),
+        "f64" => Type::f64(),
+        _ => Type::u8(), // "bool"
     }
 }
 
 fn parse_ret_type(name: &str) -> Result<Type, Value> {
     match name {
         "void" => Ok(Type::void()),
-        "i32" | "i64" | "f32" | "f64" => Ok(numeric_ffi_type(name)),
+        "i32" | "i64" | "f32" | "f64" | "bool" => Ok(numeric_ffi_type(name)),
         other => Err(verr!(vs!(format!(
-            "call: unsupported return type \"{}\" (supported: i32, i64, f32, f64, void - \
+            "call: unsupported return type \"{}\" (supported: i32, i64, f32, f64, bool, void - \
              no \"str\" return: an unmanaged C string's ownership can't be known safely)",
             other
         )))),
@@ -262,6 +267,7 @@ fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Val
         (ArgKind::Num("i64"), Value::Byte(b)) => Ok(CArg::I64(b as i64)),
         (ArgKind::Num("f32"), Value::Float(f)) => Ok(CArg::F32(f as f32)),
         (ArgKind::Num("f64"), Value::Float(f)) => Ok(CArg::F64(f)),
+        (ArgKind::Num("bool"), Value::Bool(b)) => Ok(CArg::Bool(u8::from(b))),
         (ArgKind::Num(t), other) => Err(verr!(vs!(format!(
             "call: arg {} declared as \"{}\" but got {}",
             index,
