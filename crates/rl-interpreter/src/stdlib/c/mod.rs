@@ -2,6 +2,7 @@ use crate::native::Module;
 use libloading::Library;
 
 mod call;
+mod compile;
 pub enum CHandle {
     Library(Library),
 }
