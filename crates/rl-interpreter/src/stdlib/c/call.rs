@@ -90,30 +90,34 @@ pub fn func(
         )));
     }
 
+    let mut arg_kinds: Vec<ArgKind> = Vec::with_capacity(arg_type_names.len());
+    for type_name in &arg_type_names {
+        match parse_arg_kind(type_name) {
+            Ok(k) => arg_kinds.push(k),
+            Err(e) => return e,
+        }
+    }
+
+    let ret_ffi_type = match parse_ret_type(&ret_type) {
+        Ok(t) => t,
+        Err(e) => return e,
+    };
+
     let mut c_args: Vec<CArg> = Vec::with_capacity(arg_values.len());
-    for (i, (value, type_name)) in arg_values.into_iter().zip(&arg_type_names).enumerate() {
-        match value_to_carg(value, type_name, i) {
+    for (i, (value, kind)) in arg_values.into_iter().zip(&arg_kinds).enumerate() {
+        match value_to_carg(value, kind, i) {
             Ok(c_arg) => c_args.push(c_arg),
             Err(e) => return e,
         }
     }
 
-    let mut arg_ffi_types: Vec<Type> = Vec::with_capacity(arg_type_names.len());
-    for type_name in &arg_type_names {
-        match parse_type(type_name, "arg") {
-            Ok(t) => arg_ffi_types.push(t),
-            Err(e) => return e,
-        }
-    }
-
-    let ret_ffi_type = if ret_type == "void" {
-        Type::void()
-    } else {
-        match parse_type(&ret_type, "return") {
-            Ok(t) => t,
-            Err(e) => return e,
-        }
-    };
+    let arg_ffi_types: Vec<Type> = arg_kinds
+        .iter()
+        .map(|k| match k {
+            ArgKind::Num(name) => numeric_ffi_type(name),
+            ArgKind::Str(_) => Type::pointer(),
+        })
+        .collect();
 
     let CHandle::Library(lib) = match eval.c_handles.get(&handle_id) {
         Some(h) => h,
@@ -127,6 +131,7 @@ pub fn func(
             CArg::I64(v) => arg(v),
             CArg::F32(v) => arg(v),
             CArg::F64(v) => arg(v),
+            CArg::Str { ptr, .. } => arg(ptr),
         })
         .collect();
 
@@ -134,9 +139,12 @@ pub fn func(
 
     // SAFETY: `cif`'s arg/return types come directly from `arg_types`/`ret_type`
     // as declared by the caller. If those don't match the real C function's
-    // signature, this is UB - same contract as any FFI call. Getting the
-    // symbol itself (`lib.get`) is also unsafe per `libloading`'s contract.
-    unsafe {
+    // signature, this is UB - same contract as any FFI call. For `str` args,
+    // the buffer is sized to the declared capacity and C is trusted to
+    // respect it (there's no way to enforce that from the caller's side -
+    // same as passing any buffer+length pair to C in C itself). Getting the
+    // symbol (`lib.get`) is also unsafe per `libloading`'s contract.
+    let ret_value: Value = unsafe {
         let sym: Symbol<unsafe extern "C" fn()> = match lib.get(fn_name.as_bytes()) {
             Ok(s) => s,
             Err(e) => {
