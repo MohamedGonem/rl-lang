@@ -119,76 +119,39 @@ pub fn func(
             CArg::F64(v) => arg(v),
         })
         .collect();
+
+    let cif = Cif::new(arg_ffi_types, ret_ffi_type);
+
+    // SAFETY: `cif`'s arg/return types come directly from `arg_types`/`ret_type`
+    // as declared by the caller. If those don't match the real C function's
+    // signature, this is UB - same contract as any FFI call. Getting the
+    // symbol itself (`lib.get`) is also unsafe per `libloading`'s contract.
     let result = unsafe {
-        match args.len() {
-            0 => {
-                let sym: Symbol<'_, unsafe extern "C" fn() -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym()
+        let sym: Symbol<unsafe extern "C" fn()> = match lib.get(fn_name.as_bytes()) {
+            Ok(s) => s,
+            Err(e) => {
+                return verr!(vs!(format!(
+                    "call: symbol \"{}\" not found: {}",
+                    fn_name, e
+                )));
             }
-            1 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0])
+        };
+        let code_ptr = CodePtr::from_fun(*sym);
+
+        match ret_type.as_str() {
+            "void" => {
+                let _: () = cif.call(code_ptr, &ffi_args);
+                vok!(vnl!())
             }
-            2 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0], args[1])
-            }
-            3 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0], args[1], args[2])
-            }
-            4 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0], args[1], args[2], args[3])
-            }
-            5 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64, i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0], args[1], args[2], args[3], args[4])
-            }
-            6 => {
-                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64, i64, i64) -> i64> =
-                    match lib.get(fn_name.as_bytes()) {
-                        Ok(s) => s,
-                        Err(e) => return sym_err(&fn_name, e),
-                    };
-                sym(args[0], args[1], args[2], args[3], args[4], args[5])
-            }
-            _ => unreachable!("checked above"),
+            "i32" => vok!(vi!(cif.call::<i32>(code_ptr, &ffi_args) as i64)),
+            "i64" => vok!(vi!(cif.call::<i64>(code_ptr, &ffi_args))),
+            "f32" => vok!(vf!(cif.call::<f32>(code_ptr, &ffi_args) as f64)),
+            "f64" => vok!(vf!(cif.call::<f64>(code_ptr, &ffi_args))),
+            _ => unreachable!("ret_type validated by parse_type above"),
         }
     };
 
-    vok!(vi!(result))
-}
-
-fn sym_err(fn_name: &str, e: libloading::Error) -> Value {
-    verr!(vs!(format!(
-        "call: symbol \"{}\" not found: {}",
-        fn_name, e
-    )))
+    result
 }
 
 fn parse_type(name: &str, context: &str) -> Result<Type, Value> {
