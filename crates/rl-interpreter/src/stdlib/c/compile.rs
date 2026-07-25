@@ -41,4 +41,13 @@ pub fn func(eval: &mut Evaluator, source: Value) -> Value {
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("compile: {}", e))),
     };
+
+    let dir = cache_dir();
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        return verr!(vs!(format!(
+            "compile: failed to create cache dir {}: {}",
+            dir.display(),
+            e
+        )));
+    }
 }
