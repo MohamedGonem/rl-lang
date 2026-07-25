@@ -138,3 +138,33 @@ fn sym_err(fn_name: &str, e: libloading::Error) -> Value {
         fn_name, e
     )))
 }
+
+fn parse_type(name: &str, context: &str) -> Result<Type, Value> {
+    match name {
+        "i32" => Ok(Type::i32()),
+        "i64" => Ok(Type::i64()),
+        "f32" => Ok(Type::f32()),
+        "f64" => Ok(Type::f64()),
+        other => Err(verr!(vs!(format!(
+            "call: unsupported {} type \"{}\" (supported: i32, i64, f32, f64)",
+            context, other
+        )))),
+    }
+}
+
+fn value_to_carg(value: Value, type_name: &str, index: usize) -> Result<CArg, Value> {
+    match (type_name, &value) {
+        ("i32", Value::Integer(i)) => Ok(CArg::I32(*i as i32)),
+        ("i32", Value::Byte(b)) => Ok(CArg::I32(*b as i32)),
+        ("i64", Value::Integer(i)) => Ok(CArg::I64(*i)),
+        ("i64", Value::Byte(b)) => Ok(CArg::I64(*b as i64)),
+        ("f32", Value::Float(f)) => Ok(CArg::F32(*f as f32)),
+        ("f64", Value::Float(f)) => Ok(CArg::F64(*f)),
+        (t, other) => Err(verr!(vs!(format!(
+            "call: arg {} declared as \"{}\" but got {}",
+            index,
+            t,
+            other.type_name()
+        )))),
+    }
+}
