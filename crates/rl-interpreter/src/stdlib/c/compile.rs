@@ -5,6 +5,10 @@ use std::process::Command;
 
 use crate::{
     evaluator::Evaluator,
+    stdlib::{
+        c::{CHandle, common::insert_handle},
+        common::{extract_string, verr, vi, vok, vs},
+    },
     values::Value,
 };
 
@@ -91,4 +95,20 @@ pub fn func(eval: &mut Evaluator, source: Value) -> Value {
             }
         }
     }
+
+    // SAFETY: loading the shared library we just compiled from a fixed cache
+    // path.
+    let lib = match unsafe { libloading::Library::new(&out_path) } {
+        Ok(l) => l,
+        Err(e) => {
+            return verr!(vs!(format!(
+                "compile: failed to load compiled library {}: {}",
+                out_path.display(),
+                e
+            )));
+        }
+    };
+
+    let id = insert_handle(eval, CHandle::Library(lib));
+    vok!(vi!(id))
 }
