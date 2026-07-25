@@ -151,13 +151,13 @@ pub fn func(
         match ret_type.as_str() {
             "void" => {
                 let _: () = cif.call(code_ptr, &ffi_args);
-                vok!(vnl!())
+                vnl!()
             }
-            "i32" => vok!(vi!(cif.call::<i32>(code_ptr, &ffi_args) as i64)),
-            "i64" => vok!(vi!(cif.call::<i64>(code_ptr, &ffi_args))),
-            "f32" => vok!(vf!(cif.call::<f32>(code_ptr, &ffi_args) as f64)),
-            "f64" => vok!(vf!(cif.call::<f64>(code_ptr, &ffi_args))),
-            _ => unreachable!("ret_type validated by parse_type above"),
+            "i32" => vi!(cif.call::<i32>(code_ptr, &ffi_args) as i64),
+            "i64" => vi!(cif.call::<i64>(code_ptr, &ffi_args)),
+            "f32" => vf!(cif.call::<f32>(code_ptr, &ffi_args) as f64),
+            "f64" => vf!(cif.call::<f64>(code_ptr, &ffi_args)),
+            _ => unreachable!("ret_type validated by parse_ret_type above"),
         }
     }
 }
