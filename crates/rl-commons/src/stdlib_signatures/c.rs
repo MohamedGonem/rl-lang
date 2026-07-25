@@ -11,6 +11,7 @@ pub fn module() -> ModuleNames {
         .with_typed_function(call())
         .with_typed_function(has_symbol())
         .with_typed_function(close())
+        .with_typed_function(clear_cache())
 }
 
 fn compile() -> StdFn {
@@ -34,4 +35,8 @@ fn has_symbol() -> StdFn {
 
 fn close() -> StdFn {
     StdFn::typed("close", overloads(vec![handle()], result(T::Null)))
+}
+
+fn clear_cache() -> StdFn {
+    StdFn::typed("clear_cache", vec![(params(vec![]), result(T::Null))])
 }

@@ -1,6 +1,7 @@
 use crate::entry::{FnEntry, StdEntry};
 
 mod call;
+mod clear_cache;
 mod close;
 mod compile;
 mod has_symbol;
@@ -20,4 +21,5 @@ static FUNCTIONS: &[&FnEntry] = &[
     &call::CALL,
     &has_symbol::HAS_SYMBOL,
     &close::CLOSE,
+    &clear_cache::CLEAR_CACHE,
 ];

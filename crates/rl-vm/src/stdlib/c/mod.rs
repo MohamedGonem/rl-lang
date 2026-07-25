@@ -4,6 +4,7 @@ use crate::native::Module;
 use libloading::Library;
 
 mod call;
+mod clear_cache;
 mod close;
 mod common;
 mod compile;
@@ -22,4 +23,5 @@ pub fn module() -> Module {
         .with_function("call", call::std_call)
         .with_function("has_symbol", has_symbol::std_has_symbol)
         .with_function("close", close::std_close)
+        .with_function("clear_cache", clear_cache::std_clear_cache)
 }
