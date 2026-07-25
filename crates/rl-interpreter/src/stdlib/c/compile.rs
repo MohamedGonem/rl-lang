@@ -23,3 +23,7 @@ fn compiler_command(compiler: &str, src: &PathBuf, out: &PathBuf) -> Command {
     cmd
 }
 
+fn find_compiler() -> String {
+    std::env::var("CC").unwrap_or_else(|_| "cc".to_string())
+}
+
