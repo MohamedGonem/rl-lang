@@ -70,6 +70,54 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
                     };
                 sym()
             }
+            1 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0])
+            }
+            2 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0], args[1])
+            }
+            3 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0], args[1], args[2])
+            }
+            4 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0], args[1], args[2], args[3])
+            }
+            5 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64, i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0], args[1], args[2], args[3], args[4])
+            }
+            6 => {
+                let sym: Symbol<'_, unsafe extern "C" fn(i64, i64, i64, i64, i64, i64) -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym(args[0], args[1], args[2], args[3], args[4], args[5])
+            }
             _ => unreachable!("checked above"),
         }
     };
