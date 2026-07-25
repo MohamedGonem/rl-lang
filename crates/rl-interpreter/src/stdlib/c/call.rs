@@ -56,6 +56,27 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
         Some(h) => h,
         None => return verr!(vs!(format!("call: unknown handle {}", handle_id))),
     };
+
+    // SAFETY: the caller-declared signature (all-i64, fixed arity) must match
+    // the real C function's signature. Getting this wrong is UB - same
+    // contract as any FFI call.
+    let result = unsafe {
+        match args.len() {
+            0 => {
+                let sym: Symbol<'_, unsafe extern "C" fn() -> i64> =
+                    match lib.get(fn_name.as_bytes()) {
+                        Ok(s) => s,
+                        Err(e) => return sym_err(&fn_name, e),
+                    };
+                sym()
+            }
+            _ => unreachable!("checked above"),
+        }
+    };
+
+    vok!(vi!(result))
+}
+
 fn sym_err(fn_name: &str, e: libloading::Error) -> Value {
     verr!(vs!(format!(
         "call: symbol \"{}\" not found: {}",
