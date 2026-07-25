@@ -3,6 +3,7 @@
 use crate::native::Module;
 use libloading::Library;
 
+mod call;
 mod close;
 mod common;
 mod compile;
@@ -17,5 +18,6 @@ pub fn module() -> Module {
     Module::new("c")
         .with_function("compile", compile::std_compile)
         .with_function("load", load::std_load)
+        .with_function("call", call::std_call)
         .with_function("close", close::std_close)
 }
