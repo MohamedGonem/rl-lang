@@ -6,7 +6,7 @@ use std::process::Command;
 use crate::{
     evaluator::Evaluator,
     stdlib::{
-        c::{CHandle, common::insert_handle},
+        c::{CHandle, common::{cache_dir, insert_handle}},
         common::{extract_string, verr, vi, vok, vs},
     },
     values::Value,
@@ -39,10 +39,6 @@ fn compiler_command(compiler: &str, src: &PathBuf, out: &PathBuf) -> Command {
 
 fn find_compiler() -> String {
     std::env::var("CC").unwrap_or_else(|_| "cc".to_string())
-}
-
-fn cache_dir() -> PathBuf {
-    std::env::temp_dir().join("rl_std_c_cache")
 }
 
 pub fn func(eval: &mut Evaluator, source: Value) -> Value {

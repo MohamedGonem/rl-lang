@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::Vm;
 use crate::stdlib::c::CHandle;
 
@@ -7,4 +9,13 @@ pub fn insert_handle(vm: &mut Vm, handle: CHandle) -> i64 {
     vm.c_next_handle += 1;
     vm.c_handles.insert(id, handle);
     id
+}
+
+/// Where `compile` caches built shared libraries by content hash, and what
+/// `clear_cache` empties. Kept here (not duplicated in `compile.rs`) so
+/// there's exactly one place both agree on the path - and deliberately the
+/// *same* path `rl-interpreter`'s `std::c::compile` uses, so switching
+/// between interpreter and VM doesn't force a recompile.
+pub fn cache_dir() -> PathBuf {
+    std::env::temp_dir().join("rl_std_c_cache")
 }
