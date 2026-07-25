@@ -10,5 +10,6 @@ pub enum CHandle {
 
 pub fn module() -> Module {
     Module::new("c")
+        .with_function("compile", compile::func)
         .with_function("call", call::func)
 }
