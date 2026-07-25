@@ -6,7 +6,7 @@ use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, vb, verr, vf, vi, vnl, vok, vs},
+        common::{extract_number, extract_string, vb, vby, verr, vf, vi, vnl, vok, vs},
     },
     values::Value,
 };
@@ -21,9 +21,12 @@ enum CArg {
     F32(f32),
     F64(f64),
     Bool(u8),
+    U8(u8),
+    I16(i16),
     Str { buf: Vec<u8>, ptr: *mut u8 },
 }
 
+/// A parsed `arg_types` entry.
 enum ArgKind {
     Num(&'static str),
     Str(usize),
@@ -134,6 +137,8 @@ pub fn func(
             CArg::F32(v) => arg(v),
             CArg::F64(v) => arg(v),
             CArg::Bool(v) => arg(v),
+            CArg::U8(v) => arg(v),
+            CArg::I16(v) => arg(v),
             CArg::Str { ptr, .. } => arg(ptr),
         })
         .collect();
@@ -169,6 +174,8 @@ pub fn func(
             "f32" => vf!(cif.call::<f32>(code_ptr, &ffi_args) as f64),
             "f64" => vf!(cif.call::<f64>(code_ptr, &ffi_args)),
             "bool" => vb!(cif.call::<u8>(code_ptr, &ffi_args) != 0),
+            "u8" => vby!(cif.call::<u8>(code_ptr, &ffi_args)),
+            "i16" => vi!(cif.call::<i16>(code_ptr, &ffi_args) as i64),
             _ => unreachable!("ret_type validated by parse_ret_type above"),
         }
     };
@@ -203,12 +210,14 @@ pub fn func(
 
 fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
     match name {
-        "i32" | "i64" | "f32" | "f64" | "bool" => Ok(ArgKind::Num(match name {
+        "i32" | "i64" | "f32" | "f64" | "bool" | "u8" | "i16" => Ok(ArgKind::Num(match name {
             "i32" => "i32",
             "i64" => "i64",
             "f32" => "f32",
             "f64" => "f64",
-            _ => "bool",
+            "bool" => "bool",
+            "u8" => "u8",
+            _ => "i16",
         })),
         _ if name.starts_with("str:") => {
             let cap: usize = name["str:".len()..].parse().map_err(|_| {
@@ -231,7 +240,7 @@ fn parse_arg_kind(name: &str) -> Result<ArgKind, Value> {
                 .to_string()
         ))),
         other => Err(verr!(vs!(format!(
-            "call: unsupported arg type \"{}\" (supported: i32, i64, f32, f64, bool, str:N)",
+            "call: unsupported arg type \"{}\" (supported: i32, i64, i16, u8, f32, f64, bool, str:N)",
             other
         )))),
     }
@@ -243,17 +252,22 @@ fn numeric_ffi_type(name: &str) -> Type {
         "i64" => Type::i64(),
         "f32" => Type::f32(),
         "f64" => Type::f64(),
-        _ => Type::u8(), // "bool"
+        "i16" => Type::i16(),
+        "u8" | "bool" => Type::u8(),
+        other => unreachable!(
+            "numeric_ffi_type called with unvalidated name \"{}\"",
+            other
+        ),
     }
 }
 
 fn parse_ret_type(name: &str) -> Result<Type, Value> {
     match name {
         "void" => Ok(Type::void()),
-        "i32" | "i64" | "f32" | "f64" | "bool" => Ok(numeric_ffi_type(name)),
+        "i32" | "i64" | "i16" | "u8" | "f32" | "f64" | "bool" => Ok(numeric_ffi_type(name)),
         other => Err(verr!(vs!(format!(
-            "call: unsupported return type \"{}\" (supported: i32, i64, f32, f64, bool, void - \
-             no \"str\" return: an unmanaged C string's ownership can't be known safely)",
+            "call: unsupported return type \"{}\" (supported: i32, i64, i16, u8, f32, f64, bool, \
+             void - no \"str\" return: an unmanaged C string's ownership can't be known safely)",
             other
         )))),
     }
@@ -268,6 +282,28 @@ fn value_to_carg(value: Value, kind: &ArgKind, index: usize) -> Result<CArg, Val
         (ArgKind::Num("f32"), Value::Float(f)) => Ok(CArg::F32(f as f32)),
         (ArgKind::Num("f64"), Value::Float(f)) => Ok(CArg::F64(f)),
         (ArgKind::Num("bool"), Value::Bool(b)) => Ok(CArg::Bool(u8::from(b))),
+        (ArgKind::Num("u8"), Value::Byte(b)) => Ok(CArg::U8(b)),
+        (ArgKind::Num("u8"), Value::Integer(i)) => {
+            if !(0..=255).contains(&i) {
+                return Err(verr!(vs!(format!(
+                    "call: arg {} is {} but \"u8\" only holds 0..=255",
+                    index, i
+                ))));
+            }
+            Ok(CArg::U8(i as u8))
+        }
+        (ArgKind::Num("i16"), Value::Integer(i)) => {
+            if !(i16::MIN as i64..=i16::MAX as i64).contains(&i) {
+                return Err(verr!(vs!(format!(
+                    "call: arg {} is {} but \"i16\" only holds {}..={}",
+                    index,
+                    i,
+                    i16::MIN,
+                    i16::MAX
+                ))));
+            }
+            Ok(CArg::I16(i as i16))
+        }
         (ArgKind::Num(t), other) => Err(verr!(vs!(format!(
             "call: arg {} declared as \"{}\" but got {}",
             index,
