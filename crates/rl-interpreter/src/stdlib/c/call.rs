@@ -51,4 +51,9 @@ pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value, args: Value) ->
             args.len()
         )));
     }
+
+    let CHandle::Library(lib) = match eval.c_handles.get(&handle_id) {
+        Some(h) => h,
+        None => return verr!(vs!(format!("call: unknown handle {}", handle_id))),
+    };
 }
