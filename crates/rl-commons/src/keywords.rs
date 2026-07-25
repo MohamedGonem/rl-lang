@@ -146,6 +146,10 @@ pub mod net {
     ];
 }
 
+pub mod c {
+    pub const KEYWORDS: &[&str] = &["compile", "call", "close"];
+}
+
 pub mod path {
     pub const KEYWORDS: &[&str] = &[
         "path_exists",

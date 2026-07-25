@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{
     native::{IntoNativeFn, Module},
     stdlib,
-    stdlib::{http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
+    stdlib::{c::CHandle, http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
     values::{FunctionData, MapKey, Value},
 };
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
@@ -82,6 +82,10 @@ pub struct Evaluator {
     pub http_handles: HashMap<i64, HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
     pub http_next_handle: i64,
+    /// Side-table of native C-interop resources (`std::c`), keyed by handle id.
+    pub c_handles: HashMap<i64, CHandle>,
+    /// Next handle id to hand out for `std::c` resources; only ever increments.
+    pub c_next_handle: i64,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
@@ -122,6 +126,8 @@ impl Evaluator {
             net_next_handle: 1,
             http_handles: HashMap::new(),
             http_next_handle: 1,
+            c_handles: HashMap::new(),
+            c_next_handle: 1,
             records: HashMap::new(),
             tags: HashMap::new(),
             impl_methods: HashMap::new(),
@@ -177,7 +183,8 @@ impl Evaluator {
                 .with_module(stdlib::debug::module())
                 .with_module(stdlib::net::module())
                 .with_module(stdlib::http::module())
-                .with_module(stdlib::collections::module()),
+                .with_module(stdlib::collections::module())
+                .with_module(stdlib::c::module()),
         )
     }
 
@@ -1124,6 +1131,7 @@ impl Evaluator {
                 .chain(stdlib::net::KEYWORDS)
                 .chain(stdlib::http::KEYWORDS)
                 .chain(stdlib::collections::KEYWORDS)
+                .chain(stdlib::c::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));

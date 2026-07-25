@@ -133,4 +133,5 @@ pub fn stdlib_names() -> ModuleNames {
         .with_module(stdlib_signatures::net::module())
         .with_module(stdlib_signatures::http::module())
         .with_module(stdlib_signatures::collections::module())
+        .with_module(stdlib_signatures::c::module())
 }
