@@ -2,6 +2,7 @@
 
 pub mod array;
 pub mod bitwise;
+pub mod c;
 pub mod collections;
 mod common;
 pub mod debug;
