@@ -10,6 +10,10 @@ use crate::{
     values::Value,
 };
 
+/// One argument's value, converted from its rl-lang `Value` into the exact
+/// Rust type its declared C type requires. Kept as an owned value (rather
+/// than immediately building an `Arg`) so it has somewhere to live while the
+/// `Arg`s that borrow from it are assembled and passed to `Cif::call`.
 enum CArg {
     I32(i32),
     I64(i64),
