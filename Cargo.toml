@@ -64,6 +64,9 @@ cranelift-codegen = "0.116"
 cranelift-frontend = "0.116"
 target-lexicon = "0.13"
 zstd = "0.13"
+rodio = { version = "0.22.2", default-features = false, features = ["playback", "symphonia-all"] }
+cpal = "0.17"
+symphonia = { version = "0.5", features = ["all"] }
 
 [profile.release]
 opt-level = 3
