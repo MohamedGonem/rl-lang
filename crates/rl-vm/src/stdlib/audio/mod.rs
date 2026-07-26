@@ -6,6 +6,7 @@ mod beep;
 mod common;
 mod play_file;
 mod play_file_async;
+mod set_master_volume;
 
 pub struct AudioHandle {
     pub sink: rodio::Player,
