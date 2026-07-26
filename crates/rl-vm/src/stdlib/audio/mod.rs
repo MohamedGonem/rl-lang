@@ -4,9 +4,11 @@ mod audio_duration;
 mod audio_file_info;
 mod beep;
 mod common;
+mod list_output_devices;
 mod play_file;
 mod play_file_async;
 mod set_master_volume;
+mod set_output_device;
 
 pub struct AudioHandle {
     pub sink: rodio::Player,
