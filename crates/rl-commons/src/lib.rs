@@ -115,6 +115,7 @@ impl ModuleNames {
 
 pub fn stdlib_names() -> ModuleNames {
     ModuleNames::new("std")
+        .with_module(stdlib_signatures::audio::module())
         .with_module(stdlib_signatures::math::module())
         .with_module(stdlib_signatures::io::module())
         .with_module(stdlib_signatures::bitwise::module())
