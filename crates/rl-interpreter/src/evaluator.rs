@@ -8,7 +8,10 @@ use std::sync::Arc;
 use crate::{
     native::{IntoNativeFn, Module},
     stdlib,
-    stdlib::{c::CHandle, audio::AudioHandle, http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
+    stdlib::{
+        audio::AudioHandle, c::CHandle, http::HttpHandle, net::NetHandle,
+        random::xoshiro::Xoshiro256,
+    },
     values::{FunctionData, MapKey, Value},
 };
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
@@ -230,6 +233,13 @@ impl Evaluator {
                     TypeAnnotation::Int
                 }
             }
+            Value::UInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CUInt
+                } else {
+                    TypeAnnotation::UInt
+                }
+            }
             Value::Float(_) => {
                 if is_const {
                     TypeAnnotation::CFloat
@@ -425,6 +435,7 @@ impl Evaluator {
         match &self.resolver.ast_arena.exprs.get(id).kind {
             ExpressionKind::Null => Ok(Value::Null),
             ExpressionKind::Integer(i) => Ok(Value::Integer(*i)),
+            ExpressionKind::UInt(u) => Ok(Value::UInteger(*u)),
             ExpressionKind::Byte(b) => Ok(Value::Byte(*b)),
             ExpressionKind::Bool(b) => Ok(Value::Bool(*b)),
             ExpressionKind::Float(f) => Ok(Value::Float(*f)),
@@ -801,6 +812,7 @@ impl Evaluator {
                 match (&val, &target_type) {
                     (Value::Integer(n), TypeAnnotation::Float) => Ok(Value::Float(*n as f64)),
                     (Value::Integer(n), TypeAnnotation::Byte) => Ok(Value::Byte(*n as u8)),
+                    (Value::Integer(n), TypeAnnotation::UInt) => Ok(Value::UInteger(*n as u64)),
                     (Value::Integer(_), TypeAnnotation::Int) => Ok(val),
                     (Value::Float(f), TypeAnnotation::Int) => Ok(Value::Integer(*f as i64)),
                     (Value::Float(f), TypeAnnotation::Byte) => Ok(Value::Byte(*f as u8)),

@@ -198,9 +198,15 @@ impl Vm {
                     self.stack.push(val);
                 }
 
-                OpCode::Add => self.binary_numeric(|a, b| a + b, |a, b| a + b)?,
-                OpCode::Sub => self.binary_numeric(|a, b| a - b, |a, b| a - b)?,
-                OpCode::Mul => self.binary_numeric(|a, b| a * b, |a, b| a * b)?,
+                OpCode::Add => {
+                    self.binary_numeric(|a, b| a + b, |a, b| a + b, |a, b| a + b, |a, b| a + b)?
+                }
+                OpCode::Sub => {
+                    self.binary_numeric(|a, b| a - b, |a, b| a - b, |a, b| a - b, |a, b| a - b)?
+                }
+                OpCode::Mul => {
+                    self.binary_numeric(|a, b| a * b, |a, b| a * b, |a, b| a * b, |a, b| a * b)?
+                }
                 OpCode::Div => self.binary_div()?,
 
                 OpCode::Negate => {
@@ -726,8 +732,12 @@ impl Vm {
 
     fn index_as_usize(&self, index: &VmValue, len: usize) -> Result<usize, VmError> {
         let i = match index {
-            VmValue::Int(n) => *n,
-            VmValue::Byte(b) => *b as i64,
+            VmValue::Int(n) if *n < 0_i64 => {
+                return Err(self.err(format!("array index must be postive int, got {}", n)));
+            }
+            VmValue::Int(n) => *n as usize,
+            VmValue::Byte(b) => *b as usize,
+            VmValue::UInt(u) => *u as usize,
             other => {
                 return Err(self.err(format!(
                     "array index must be int or byte, got {}",
@@ -735,10 +745,10 @@ impl Vm {
                 )));
             }
         };
-        if i < 0 || i as usize >= len {
+        if i >= len {
             return Err(self.err(format!("array index out of bounds: {i} (len {len})")));
         }
-        Ok(i as usize)
+        Ok(i)
     }
 
     fn index_get(&self, arr: &VmValue, index: &VmValue) -> Result<VmValue, VmError> {
@@ -814,20 +824,19 @@ impl Vm {
 
     /// Helper function for arth operations
     /// handles +, -, *
-    /// currently promotes int to float
     fn binary_numeric(
         &mut self,
         int_op: fn(i64, i64) -> i64,
         float_op: fn(f64, f64) -> f64,
+        uint_op: fn(u64, u64) -> u64,
+        byte_op: fn(u8, u8) -> u8,
     ) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
         let out = match (a, b) {
             (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(int_op(a, b)),
             (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(float_op(a, b)),
-            // for now int promoted to float
-            // should disable later after wiring `as` Cast keyword
-            (VmValue::Int(a), VmValue::Float(b)) => VmValue::Float(float_op(a as f64, b)),
-            (VmValue::Float(a), VmValue::Int(b)) => VmValue::Float(float_op(a, b as f64)),
+            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(uint_op(a, b)),
+            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(byte_op(a, b)),
             (a, b) => {
                 return Err(self.err(format!("cannot apply arithmetic op to {a:?} and {b:?}")));
             }
@@ -838,17 +847,18 @@ impl Vm {
 
     /// Helper function for arth operations
     /// handles /
-    /// currently promotes int to float
     fn binary_div(&mut self) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
         let out = match (a, b) {
-            (VmValue::Int(_), VmValue::Int(0)) => {
+            (VmValue::Int(_), VmValue::Int(0))
+            | (VmValue::UInt(_), VmValue::UInt(0))
+            | (VmValue::Byte(_), VmValue::Byte(0)) => {
                 return Err(self.err("division by zero"));
             }
             (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(a / b),
+            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(a / b),
+            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(a / b),
             (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(a / b),
-            (VmValue::Int(a), VmValue::Float(b)) => VmValue::Float(a as f64 / b),
-            (VmValue::Float(a), VmValue::Int(b)) => VmValue::Float(a / b as f64),
             (a, b) => return Err(self.err(format!("cannot divide {a:?} by {b:?}"))),
         };
         self.stack.push(out);
@@ -856,15 +866,15 @@ impl Vm {
     }
 
     /// Helper function for comparsion operations
-    /// accepts float/float, int/int and promotes int to float
+    /// accepts float/float, int/int, byte/byte, uint/uint
     /// handles >, <, >=, <=
     fn binary_cmp(&mut self, pred: fn(std::cmp::Ordering) -> bool) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
         let ord = match (&a, &b) {
             (VmValue::Int(a), VmValue::Int(b)) => a.partial_cmp(b),
+            (VmValue::UInt(a), VmValue::UInt(b)) => a.partial_cmp(b),
+            (VmValue::Byte(a), VmValue::Byte(b)) => a.partial_cmp(b),
             (VmValue::Float(a), VmValue::Float(b)) => a.partial_cmp(b),
-            (VmValue::Int(a), VmValue::Float(b)) => (*a as f64).partial_cmp(b),
-            (VmValue::Float(a), VmValue::Int(b)) => a.partial_cmp(&(*b as f64)),
             _ => return Err(self.err(format!("cannot compare {a:?} and {b:?}"))),
         }
         .ok_or_else(|| self.err("comparison produced no ordering (NaN?)"))?;

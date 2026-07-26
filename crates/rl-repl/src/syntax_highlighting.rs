@@ -56,6 +56,7 @@ fn token_color(tt: &TokenType) -> Style {
 
         // types light blue italic
         TokenType::Int
+        | TokenType::UInt
         | TokenType::Float
         | TokenType::Bool
         | TokenType::String

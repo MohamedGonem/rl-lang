@@ -104,6 +104,8 @@ impl Evaluator {
                 return Err(self.err(format!("index cannot be negative: {}", i), span));
             }
             indices.push(i as usize);
+        } else if let Value::UInteger(u) = idx {
+            indices.push(u as usize);
         } else if let Value::Byte(b) = idx {
             indices.push(b as usize);
         } else {

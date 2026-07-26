@@ -89,6 +89,7 @@ fn remap_expr_kind(kind: &mut ExpressionKind, offset: u32, target_arena_id: u32)
     match kind {
         Null
         | Integer(_)
+        | UInt(_)
         | Byte(_)
         | String(_)
         | Bool(_)

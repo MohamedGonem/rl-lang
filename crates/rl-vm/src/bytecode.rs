@@ -312,6 +312,7 @@ fn collect_strings_value(value: &VmValue, pool: &mut StringPoolBuilder) {
         }
         VmValue::Null
         | VmValue::Int(_)
+        | VmValue::UInt(_)
         | VmValue::Float(_)
         | VmValue::Bool(_)
         | VmValue::Byte(_)
@@ -425,6 +426,10 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
         VmValue::Int(i) => {
             out.push(1);
             write_ivarint(*i, out);
+        }
+        VmValue::UInt(u) => {
+            out.push(19);
+            write_uvarint(*u, out);
         }
         VmValue::Float(f) => {
             out.push(2);
@@ -762,6 +767,7 @@ fn read_value(
                 capture_start,
             }
         }
+        19 => VmValue::UInt(cursor.uvarint()?),
         other => {
             return Err(BytecodeError(format!(
                 "corrupt .rlc file: unknown constant tag {other}"

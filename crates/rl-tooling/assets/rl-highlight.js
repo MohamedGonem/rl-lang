@@ -34,6 +34,7 @@
     "arr",
     "error",
     "result",
+    "uint",
   ];
 
   var LITERALS = ["true", "false", "ok", "err"];
@@ -43,7 +44,10 @@
   var LITERAL_SET = new Set(LITERALS);
 
   var TOKEN_PATTERNS = [
+    { name: "doccomment", regex: /^\/\/\/[^\n]*/ },
     { name: "comment", regex: /^\/\/[^\n]*/ },
+    { name: "blockcomment", regex: /^\/\*[\s\S]*?\*\// },
+    { name: "blockcomment", regex: /^\/\*[\s\S]*/ },
     { name: "string", regex: /^"(?:[^"\\]|\\.)*"/ },
     { name: "char", regex: /^'(?:[^'\\]|\\.)*'/ },
     { name: "number", regex: /^\d+\.\d+|^\d+/ },

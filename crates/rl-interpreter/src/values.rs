@@ -14,6 +14,8 @@ use std::{
 pub enum Value {
     /// A 64-bit signed integer.
     Integer(i64),
+    /// A 64-bit Unsigned integer.
+    UInteger(u64),
     /// A 64-bit float.
     Float(f64),
     /// A UTF-8 string.
@@ -112,6 +114,7 @@ impl Value {
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Integer(_) => "int",
+            Value::UInteger(_) => "uint",
             Value::Float(_) => "float",
             Value::String(_) => "string",
             Value::Bool(_) => "bool",
@@ -143,6 +146,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Integer(i) => write!(f, "{}", i),
+            Value::UInteger(u) => write!(f, "{}", u),
             Value::Float(fl) => write!(f, "{}", fl),
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),

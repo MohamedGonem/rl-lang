@@ -134,8 +134,9 @@ impl<'a> Compiler<'a> {
 
             StatementKind::ResolvedImplBlock { record, methods } => {
                 for m in methods {
-                    let StatementKind::ResolvedFunctionDeclaration { name, params, body, .. } =
-                        &m.kind
+                    let StatementKind::ResolvedFunctionDeclaration {
+                        name, params, body, ..
+                    } = &m.kind
                     else {
                         continue;
                     };
@@ -152,7 +153,9 @@ impl<'a> Compiler<'a> {
                     }));
                     let func_idx = self.chunk.add_constant(func);
                     let key = format!("{record}::{name}");
-                    let key_idx = self.chunk.add_constant(VmValue::Str(Rc::from(key.as_str())));
+                    let key_idx = self
+                        .chunk
+                        .add_constant(VmValue::Str(Rc::from(key.as_str())));
 
                     self.chunk.write_op(OpCode::RegisterMethod, span);
                     self.chunk.write_u16(key_idx, span);
@@ -596,6 +599,7 @@ impl<'a> Compiler<'a> {
         match &expr.kind {
             ExpressionKind::Null => self.emit_const(VmValue::Null, span),
             ExpressionKind::Integer(v) => self.emit_const(VmValue::Int(*v), span),
+            ExpressionKind::UInt(v) => self.emit_const(VmValue::UInt(*v), span),
             ExpressionKind::Float(v) => self.emit_const(VmValue::Float(*v), span),
             ExpressionKind::Bool(v) => self.emit_const(VmValue::Bool(*v), span),
             ExpressionKind::Byte(v) => self.emit_const(VmValue::Byte(*v), span),
@@ -686,8 +690,9 @@ impl<'a> Compiler<'a> {
                         // the `impl_methods` table (see `LookupAssoc`),
                         // since the compiler doesn't track record impls.
                         let key = format!("{}::{}", path[0], path[1]);
-                        let key_idx =
-                            self.chunk.add_constant(VmValue::Str(Rc::from(key.as_str())));
+                        let key_idx = self
+                            .chunk
+                            .add_constant(VmValue::Str(Rc::from(key.as_str())));
                         self.chunk.write_op(OpCode::LookupAssoc, span);
                         self.chunk.write_u16(key_idx, span);
                     }

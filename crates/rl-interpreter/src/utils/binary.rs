@@ -33,6 +33,7 @@ impl Evaluator {
         let v = match operator {
             TokenType::Plus => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a + b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::UInteger(a + b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a + b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Byte(a + b),
 
@@ -44,6 +45,7 @@ impl Evaluator {
             },
             TokenType::Minus => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a - b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::UInteger(a - b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a - b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Byte(a - b),
 
@@ -55,6 +57,7 @@ impl Evaluator {
             },
             TokenType::Star => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a * b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::UInteger(a * b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a * b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Byte(a * b),
 
@@ -70,6 +73,12 @@ impl Evaluator {
                         return Err(self.err("division by zero", span));
                     }
                     Value::Integer(a / b)
+                }
+                (Value::UInteger(a), Value::UInteger(b)) => {
+                    if *b == 0 {
+                        return Err(self.err("division by zero", span));
+                    }
+                    Value::UInteger(a / b)
                 }
                 (Value::Float(a), Value::Float(b)) => Value::Float(a / b),
                 (Value::Byte(a), Value::Byte(b)) => {
@@ -87,6 +96,7 @@ impl Evaluator {
             },
             TokenType::Less => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a < b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a < b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a < b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a < b),
                 _ => {
@@ -97,6 +107,7 @@ impl Evaluator {
             },
             TokenType::Greater => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a > b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a > b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a > b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a > b),
                 _ => {
@@ -107,6 +118,7 @@ impl Evaluator {
             },
             TokenType::LessEqual => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a <= b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a <= b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a <= b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a <= b),
                 _ => {
@@ -117,6 +129,7 @@ impl Evaluator {
             },
             TokenType::GreaterEqual => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a >= b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a >= b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a >= b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a >= b),
                 _ => {
@@ -127,6 +140,7 @@ impl Evaluator {
             },
             TokenType::BangEqual => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a != b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a != b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a != b),
                 (Value::String(a), Value::String(b)) => Value::Bool(a != b),
                 (Value::Char(a), Value::Char(b)) => Value::Bool(a != b),
@@ -150,6 +164,7 @@ impl Evaluator {
             },
             TokenType::Compare => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a == b),
+                (Value::UInteger(a), Value::UInteger(b)) => Value::Bool(a == b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a == b),
                 (Value::String(a), Value::String(b)) => Value::Bool(a == b),
                 (Value::Char(a), Value::Char(b)) => Value::Bool(a == b),
