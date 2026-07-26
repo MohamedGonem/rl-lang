@@ -48,6 +48,7 @@ pub fn get_indices_as_vec(
                     }
                     indices.push(i as usize);
                 }
+                Value::UInteger(u) => indices.push(u as usize),
                 Value::Byte(b) => indices.push(b as usize),
                 other => {
                     return Err(evaluator.err(
@@ -108,6 +109,21 @@ impl Evaluator {
                 }
                 Ok(items[i_usize].clone())
             }
+            (Value::Values { items, .. }, Value::UInteger(u)) => {
+                let u_usize = *u as usize;
+                if u_usize >= items.len() {
+                    return Err(self
+                        .err(
+                            format!("index {} out of bounds (len {})", u, items.len()),
+                            span,
+                        )
+                        .with_label(
+                            target_span,
+                            format!("this array has length {}", items.len()),
+                        ));
+                }
+                Ok(items[u_usize].clone())
+            }
             (Value::Values { items, .. }, Value::Byte(b)) => {
                 let b_usize = *b as usize;
                 if b_usize >= items.len() {
@@ -137,6 +153,21 @@ impl Evaluator {
                         ));
                 }
                 Ok(items[i_usize].clone())
+            }
+            (Value::Tuple(items), Value::UInteger(u)) => {
+                let u_usize = *u as usize;
+                if u_usize >= items.len() {
+                    return Err(self
+                        .err(
+                            format!("tuple index {} out of bounds (len {})", u, items.len()),
+                            span,
+                        )
+                        .with_label(
+                            target_span,
+                            format!("this tuple has {} elements", items.len()),
+                        ));
+                }
+                Ok(items[u_usize].clone())
             }
             (Value::Tuple(items), Value::Byte(b)) => {
                 let b_usize = *b as usize;
