@@ -6,6 +6,7 @@
 //! variants or `FromValue`/`IntoValue` impls first.
 
 mod array;
+pub(crate) mod audio;
 pub(crate) mod c;
 mod collections;
 pub mod common;

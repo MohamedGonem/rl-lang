@@ -1,6 +1,7 @@
 //! The rl standard library - all built-in modules registered under `std::*`.
 
 pub mod array;
+pub mod audio;
 pub mod bitwise;
 pub mod c;
 pub mod collections;

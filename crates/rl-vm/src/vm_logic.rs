@@ -67,6 +67,16 @@ pub struct Vm {
     pub(crate) c_handles: HashMap<i64, crate::stdlib::c::CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
     pub(crate) c_next_handle: i64,
+    /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
+    pub(crate) audio_handles: HashMap<i64, crate::stdlib::audio::AudioHandle>,
+    /// Next handle id to hand out for `std::audio` resources; only ever increments.
+    pub(crate) audio_next_handle: i64,
+    /// Output device selected via `std::audio::set_output_device`, if any;
+    /// `None` means the system default device.
+    pub(crate) audio_output_device: Option<String>,
+    /// Global volume scalar set via `std::audio::set_master_volume`, applied
+    /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
+    pub(crate) audio_master_volume: f32,
 }
 
 impl Vm {
@@ -82,6 +92,10 @@ impl Vm {
             impl_methods: HashMap::new(),
             c_handles: HashMap::new(),
             c_next_handle: 1,
+            audio_handles: HashMap::new(),
+            audio_next_handle: 1,
+            audio_output_device: None,
+            audio_master_volume: 1.0,
         }
     }
 
