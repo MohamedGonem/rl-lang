@@ -308,3 +308,111 @@ fn path_extension_and_str_to_lower_share_the_string_to_string_shape() {
         .expect("to_lower should resolve");
     assert_eq!(str_fn.signatures, expected);
 }
+
+#[test]
+fn audio_resolves() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "play_file".to_string()];
+    assert!(tree.resolve(&path).is_some());
+}
+
+#[test]
+fn audio_play_file_takes_string_returns_result_null() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "play_file".to_string()];
+    let f = tree.resolve(&path).expect("play_file should resolve");
+    assert_eq!(
+        f.signatures,
+        vec![(
+            params(vec![TypeAnnotation::String]),
+            TypeAnnotation::Result(Box::new(TypeAnnotation::Null))
+        )]
+    );
+}
+
+#[test]
+fn audio_play_file_async_returns_result_int_handle() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "play_file_async".to_string()];
+    let f = tree.resolve(&path).expect("play_file_async should resolve");
+    assert_eq!(
+        f.signatures,
+        vec![(
+            params(vec![TypeAnnotation::String]),
+            TypeAnnotation::Result(Box::new(TypeAnnotation::Int))
+        )]
+    );
+}
+
+#[test]
+fn audio_sound_pause_has_int_and_byte_handle_overloads() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "sound_pause".to_string()];
+    let f = tree.resolve(&path).expect("sound_pause should resolve");
+    assert_eq!(f.signatures.len(), 2);
+}
+
+#[test]
+fn audio_sound_set_volume_has_handle_times_float_overloads() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "sound_set_volume".to_string()];
+    let f = tree
+        .resolve(&path)
+        .expect("sound_set_volume should resolve");
+    assert_eq!(f.signatures.len(), 2);
+    assert!(
+        f.signatures
+            .iter()
+            .all(|(_, ret)| *ret == TypeAnnotation::Result(Box::new(TypeAnnotation::Null)))
+    );
+}
+
+#[test]
+fn audio_sound_is_paused_returns_result_bool() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "sound_is_paused".to_string()];
+    let f = tree.resolve(&path).expect("sound_is_paused should resolve");
+    assert!(
+        f.signatures
+            .iter()
+            .all(|(_, ret)| *ret == TypeAnnotation::Result(Box::new(TypeAnnotation::Bool)))
+    );
+}
+
+#[test]
+fn audio_list_output_devices_takes_no_args_returns_result_string_array() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "list_output_devices".to_string()];
+    let f = tree
+        .resolve(&path)
+        .expect("list_output_devices should resolve");
+    assert_eq!(
+        f.signatures,
+        vec![(
+            params(vec![]),
+            TypeAnnotation::Result(Box::new(TypeAnnotation::Array(Box::new(
+                TypeAnnotation::String
+            ))))
+        )]
+    );
+}
+
+#[test]
+fn audio_file_info_returns_result_tuple_of_int_int_int_string() {
+    let tree = stdlib_names();
+    let path = vec!["audio".to_string(), "audio_file_info".to_string()];
+    let f = tree.resolve(&path).expect("audio_file_info should resolve");
+    let expected_tuple = TypeAnnotation::Tuple(std::rc::Rc::new(vec![
+        TypeAnnotation::Int,
+        TypeAnnotation::Int,
+        TypeAnnotation::Int,
+        TypeAnnotation::String,
+    ]));
+    assert_eq!(
+        f.signatures,
+        vec![(
+            params(vec![TypeAnnotation::String]),
+            TypeAnnotation::Result(Box::new(expected_tuple))
+        )]
+    );
+}
