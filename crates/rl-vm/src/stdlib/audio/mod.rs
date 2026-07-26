@@ -14,6 +14,8 @@ mod sound_is_finished;
 mod sound_is_paused;
 mod sound_pause;
 mod sound_resume;
+mod sound_seek;
+mod sound_set_speed;
 mod sound_set_volume;
 mod sound_stop;
 mod sound_wait;
