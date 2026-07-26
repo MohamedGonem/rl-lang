@@ -1,5 +1,6 @@
 //! Standard library documentation entries, one module per file.
 pub mod array;
+pub mod audio;
 pub mod bitwise;
 pub mod c;
 pub mod collections;

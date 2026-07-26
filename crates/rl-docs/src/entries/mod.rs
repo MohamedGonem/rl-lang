@@ -9,6 +9,7 @@ mod tutorial;
 /// Returns all stdlib module entries in display order.
 pub fn stdlib_entries() -> Vec<&'static StdEntry> {
     vec![
+        &stdlib::audio::AUDIO,
         &stdlib::math::MATH,
         &stdlib::math_consts::MATH_CONSTS,
         &stdlib::io::IO,
