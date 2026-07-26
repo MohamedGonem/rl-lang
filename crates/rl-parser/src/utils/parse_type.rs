@@ -30,6 +30,10 @@ impl Parser {
                     self.advance();
                     TypeAnnotation::Int
                 }
+                TokenType::UInt => {
+                    self.advance();
+                    TypeAnnotation::UInt
+                }
                 TokenType::Float => {
                     self.advance();
                     TypeAnnotation::Float
@@ -130,6 +134,10 @@ impl Parser {
                 TokenType::Int => {
                     self.advance();
                     TypeAnnotation::CInt
+                }
+                TokenType::UInt => {
+                    self.advance();
+                    TypeAnnotation::CUInt
                 }
                 TokenType::Float => {
                     self.advance();
