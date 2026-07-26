@@ -54,6 +54,16 @@ impl Parser {
         self.tokens[self.current].token.clone()
     }
 
+    /// Returns the [`TokenType`] one position past the read head, without
+    /// consuming anything. Returns [`TokenType::Eof`] if that would run past
+    /// the end of the token stream.
+    pub fn peek_next(&self) -> TokenType {
+        self.tokens
+            .get(self.current + 1)
+            .map(|t| t.token.clone())
+            .unwrap_or(TokenType::Eof)
+    }
+
     /// Returns the [`TokenType`] of the most recently consumed token.
     ///
     /// # Panics
@@ -76,6 +86,7 @@ impl Parser {
         let current = self.peek();
         match (token_type, &current) {
             (TokenType::NumberLiteral(_), TokenType::NumberLiteral(_)) => true,
+            (TokenType::SignedLiteral(_), TokenType::SignedLiteral(_)) => true,
             (TokenType::ByteLiteral(_), TokenType::ByteLiteral(_)) => true,
             (TokenType::StringLiteral(_), TokenType::StringLiteral(_)) => true,
             (TokenType::FloatLiteral(_), TokenType::FloatLiteral(_)) => true,
