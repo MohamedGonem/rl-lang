@@ -10,6 +10,7 @@ mod play_file_async;
 mod set_master_volume;
 mod set_output_device;
 mod sound_get_volume;
+mod sound_is_finished;
 mod sound_is_paused;
 mod sound_pause;
 mod sound_resume;
