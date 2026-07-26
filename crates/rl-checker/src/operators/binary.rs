@@ -5,12 +5,19 @@
 //! | Operator          | Left / Right                    | Result  |
 //! |-------------------|---------------------------------|---------|
 //! | `+` `-` `*` `/`  | int + int                       | int     |
+//! | `+` `-` `*` `/`  | uint + uint                     | uint    |
 //! | `+` `-` `*` `/`  | float + float                   | float   |
 //! | `+` `-` `*` `/`  | byte + byte                     | byte    |
 //! | `+` `-` `*` `/`  | byte + int (or int + byte)      | int     |
 //! | `<` `>` `<=` `>=`| int/byte pairs                  | bool    |
+//! | `<` `>` `<=` `>=`| uint/uint pairs                 | bool    |
 //! | `<` `>` `<=` `>=`| float + float                   | bool    |
 //! | `==` `!=`         | matching primitive types        | bool    |
+//!
+//! `uint` does not mix with `int` or `byte` in arithmetic/comparison - both
+//! sides must be `uint` (mirroring how `byte` is already strict about not
+//! mixing with `int`, despite the table above's aspirational `byte + int`
+//! row which isn't actually implemented below either).
 //!
 //! Any side being `Unknown` short-circuits to `Unknown` to suppress cascading errors.
 
@@ -43,6 +50,10 @@ impl TypeChecker {
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                     ) => CheckType::Known(TypeAnnotation::Int),
+                    (
+                        CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
+                        CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
+                    ) => CheckType::Known(TypeAnnotation::UInt),
                     (
                         CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat),
                         CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat),
@@ -81,6 +92,10 @@ impl TypeChecker {
                     CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat),
                 ) => CheckType::Known(TypeAnnotation::Bool),
                 (
+                    CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
+                    CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
+                ) => CheckType::Known(TypeAnnotation::Bool),
+                (
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                 ) => CheckType::Known(TypeAnnotation::Bool),
@@ -106,6 +121,9 @@ impl TypeChecker {
                     (
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
+                    ) | (
+                        CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
+                        CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
                     ) | (
                         CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                         CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
