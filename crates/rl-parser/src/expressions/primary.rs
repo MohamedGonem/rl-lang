@@ -394,6 +394,90 @@ impl Parser {
         }
 
         // ---- numbers start ----
+        // --- signed integer ---
+        if self.match_type(&[TokenType::SignedLiteral(0)]) {
+            #[cfg(feature = "debug")]
+            log::debug!("found number <signed integer>");
+            let span = self.previous_span();
+            if let TokenType::SignedLiteral(n) = self.previous() {
+                // ---- cast start ----
+                if self.match_type(&[TokenType::As]) {
+                    // a signed literal already carries a sign, so it can only ever
+                    // be an `int` - casting it to `uint` would silently discard
+                    // information (or be meaningless for negative values)
+                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                        match self.previous() {
+                            TokenType::Int => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc Integer expr (from signed number, cast to int): {} @ {:?}",
+                                    n,
+                                    span
+                                );
+                                let expr =
+                                    self.ast_arena.alloc_expr(ExpressionKind::Integer(n), span);
+                                return self.parse_postfix(expr, start);
+                            }
+
+                            TokenType::Float => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc Float expr (from signed number, cast to float): {} @ {:?}",
+                                    n as f64,
+                                    span
+                                );
+                                let expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::Float(n as f64), span);
+                                return self.parse_postfix(expr, start);
+                            }
+
+                            TokenType::Byte => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc Byte expr (from signed number, cast to byte): {} @ {:?}",
+                                    n as u8,
+                                    span
+                                );
+                                if !(0..=255).contains(&n) {
+                                    return Err(self
+                                        .err(format!("value {} is too large for byte", n), span));
+                                }
+                                let expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::Byte(n as u8), span);
+                                return self.parse_postfix(expr, start);
+                            }
+
+                            other => {
+                                return Err(self.err(
+                                    format!("expected int/byte/float types found {:?}", other),
+                                    span,
+                                ));
+                            }
+                        }
+                    }
+                    if self.match_type(&[TokenType::UInt]) {
+                        return Err(
+                            self.err(format!("cannot cast signed value {} to uint", n), span)
+                        );
+                    }
+                    return Err(self.err("expected type after `as`", self.previous_span()));
+                }
+                // ---- cast end ----
+
+                // no cast logic - a signed literal is always `int`
+                #[cfg(feature = "debug")]
+                log::trace!(
+                    "alloc Integer expr (plain signed literal): {} @ {:?}",
+                    n,
+                    span
+                );
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::Integer(n), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+
         // --- integer ---
         if self.match_type(&[TokenType::NumberLiteral(0)]) {
             #[cfg(feature = "debug")]
@@ -403,7 +487,12 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from integer to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[
+                        TokenType::Int,
+                        TokenType::Byte,
+                        TokenType::Float,
+                        TokenType::UInt,
+                    ]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -413,9 +502,33 @@ impl Parser {
                                     span
                                 );
 
-                                let int_expr =
-                                    self.ast_arena.alloc_expr(ExpressionKind::Integer(n), span);
+                                let Ok(as_i64) = i64::try_from(n) else {
+                                    return Err(self.err(
+                                        format!(
+                                            "value {} is out of range for int ({}..={}) - use `as uint`",
+                                            n,
+                                            i64::MIN,
+                                            i64::MAX
+                                        ),
+                                        span,
+                                    ));
+                                };
+                                let int_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::Integer(as_i64), span);
                                 return self.parse_postfix(int_expr, start);
+                            }
+
+                            TokenType::UInt => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc UInt expr (from number, cast to uint): {} @ {:?}",
+                                    n,
+                                    span
+                                );
+                                let uint_expr =
+                                    self.ast_arena.alloc_expr(ExpressionKind::UInt(n), span);
+                                return self.parse_postfix(uint_expr, start);
                             }
 
                             TokenType::Float => {
@@ -450,7 +563,7 @@ impl Parser {
 
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/uint types found {:?}", other),
                                     span,
                                 ));
                             }
@@ -460,14 +573,27 @@ impl Parser {
                 }
                 // ---- cast end ----
 
-                // no cast logic
+                // no cast logic - defaults to `int`, so the same i64 bound applies
+                let Ok(as_i64) = i64::try_from(n) else {
+                    return Err(self.err(
+                        format!(
+                            "value {} is out of range for int ({}..={}) - use `as uint`",
+                            n,
+                            i64::MIN,
+                            i64::MAX
+                        ),
+                        span,
+                    ));
+                };
                 #[cfg(feature = "debug")]
                 log::trace!(
                     "alloc Integer expr (plain number literal): {} @ {:?}",
-                    n,
+                    as_i64,
                     span
                 );
-                let expr = self.ast_arena.alloc_expr(ExpressionKind::Integer(n), span);
+                let expr = self
+                    .ast_arena
+                    .alloc_expr(ExpressionKind::Integer(as_i64), span);
                 return self.parse_postfix(expr, start);
             }
         }
@@ -481,7 +607,12 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from float to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[
+                        TokenType::Int,
+                        TokenType::Byte,
+                        TokenType::Float,
+                        TokenType::UInt,
+                    ]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -493,6 +624,25 @@ impl Parser {
                                 let float_expr = self
                                     .ast_arena
                                     .alloc_expr(ExpressionKind::Integer(f as i64), span);
+                                return self.parse_postfix(float_expr, start);
+                            }
+
+                            TokenType::UInt => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc UInt expr (from float, cast to uint): {} @ {:?}",
+                                    f as u64,
+                                    span
+                                );
+                                if f < 0.0 {
+                                    return Err(self.err(
+                                        format!("value {} is negative, cannot cast to uint", f),
+                                        span,
+                                    ));
+                                }
+                                let float_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::UInt(f as u64), span);
                                 return self.parse_postfix(float_expr, start);
                             }
 
@@ -527,7 +677,7 @@ impl Parser {
 
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/uint types found {:?}", other),
                                     span,
                                 ));
                             }
@@ -556,7 +706,12 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from byte to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[
+                        TokenType::Int,
+                        TokenType::Byte,
+                        TokenType::Float,
+                        TokenType::UInt,
+                    ]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -568,6 +723,20 @@ impl Parser {
                                 let byte_expr = self
                                     .ast_arena
                                     .alloc_expr(ExpressionKind::Integer(b as i64), span);
+                                return self.parse_postfix(byte_expr, start);
+                            }
+
+                            TokenType::UInt => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc UInt expr (from byte, cast to uint): {} @ {:?}",
+                                    b as u64,
+                                    span
+                                );
+                                // a byte is 0..=255, always a valid uint - no bounds check needed
+                                let byte_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::UInt(b as u64), span);
                                 return self.parse_postfix(byte_expr, start);
                             }
 
@@ -604,7 +773,7 @@ impl Parser {
 
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/uint types found {:?}", other),
                                     span,
                                 ));
                             }
