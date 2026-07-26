@@ -1,6 +1,7 @@
 //! `std::audio` - audio playback built on `rodio`.
 
 mod audio_duration;
+mod audio_file_info;
 mod common;
 
 pub struct AudioHandle {
