@@ -1,5 +1,28 @@
 //! Static name lists for every `std::*` stdlib module.
 
+pub mod audio {
+    pub const KEYWORDS: &[&str] = &[
+        "play_file",
+        "play_file_async",
+        "beep",
+        "sound_pause",
+        "sound_resume",
+        "sound_stop",
+        "sound_is_paused",
+        "sound_set_volume",
+        "sound_get_volume",
+        "sound_set_speed",
+        "sound_seek",
+        "sound_is_finished",
+        "sound_wait",
+        "list_output_devices",
+        "set_output_device",
+        "set_master_volume",
+        "audio_duration",
+        "audio_file_info",
+    ];
+}
+
 pub mod array {
     pub const KEYWORDS: &[&str] = &[
         "arr_push",

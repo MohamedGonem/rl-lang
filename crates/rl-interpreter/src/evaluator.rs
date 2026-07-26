@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::{
     native::{IntoNativeFn, Module},
     stdlib,
-    stdlib::{c::CHandle, http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
+    stdlib::{c::CHandle, audio::AudioHandle, http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
     values::{FunctionData, MapKey, Value},
 };
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
@@ -86,6 +86,16 @@ pub struct Evaluator {
     pub c_handles: HashMap<i64, CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
     pub c_next_handle: i64,
+    /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
+    pub audio_handles: HashMap<i64, AudioHandle>,
+    /// Next handle id to hand out for `std::audio` resources; only ever increments.
+    pub audio_next_handle: i64,
+    /// Output device selected via `std::audio::set_output_device`, if any;
+    /// `None` means the system default device.
+    pub audio_output_device: Option<String>,
+    /// Global volume scalar set via `std::audio::set_master_volume`, applied
+    /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
+    pub audio_master_volume: f32,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
@@ -128,6 +138,10 @@ impl Evaluator {
             http_next_handle: 1,
             c_handles: HashMap::new(),
             c_next_handle: 1,
+            audio_handles: HashMap::new(),
+            audio_next_handle: 1,
+            audio_output_device: None,
+            audio_master_volume: 1.0,
             records: HashMap::new(),
             tags: HashMap::new(),
             impl_methods: HashMap::new(),
@@ -166,6 +180,7 @@ impl Evaluator {
     pub fn with_stdlib(self) -> Self {
         self.with_module(
             Module::new("std")
+                .with_module(stdlib::audio::module())
                 .with_module(stdlib::math::module())
                 .with_module(stdlib::io::module())
                 .with_module(stdlib::bitwise::module())

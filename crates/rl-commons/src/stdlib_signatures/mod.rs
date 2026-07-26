@@ -11,6 +11,7 @@ use rl_ast::statements::TypeAnnotation as T;
 use std::rc::Rc;
 
 pub mod array;
+pub mod audio;
 pub mod bitwise;
 pub mod c;
 pub mod collections;
