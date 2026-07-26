@@ -35,6 +35,8 @@ pub enum ExpressionKind {
     Null,
     /// A 64-bit signed integer literal.
     Integer(i64),
+    /// A 64-bit Unsigned integer literal.
+    UInt(u64),
     /// A byte literal (`u8`).
     Byte(u8),
     /// A binary operation: `left operator right`.

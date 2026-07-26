@@ -322,6 +322,8 @@ pub enum FunctionAttribute {
 pub enum TypeAnnotation {
     /// Mutable 64-bit signed integer.
     Int,
+    /// Mutable 64-bit unsigned integer.
+    UInt,
     /// Mutable 64-bit float.
     Float,
     /// Mutable boolean.
@@ -338,6 +340,8 @@ pub enum TypeAnnotation {
     Set(Box<TypeAnnotation>),
     /// Constant 64-bit signed integer.
     CInt,
+    /// Constant 64-bit Unsigned integer.
+    CUInt,
     /// Constant 64-bit float.
     CFloat,
     /// Constant boolean.
