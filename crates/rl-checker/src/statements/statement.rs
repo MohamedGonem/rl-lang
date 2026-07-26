@@ -539,6 +539,9 @@ impl TypeChecker {
                         (
                             TypeAnnotation::Int | TypeAnnotation::CInt,
                             CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte)
+                        ) | (
+                            TypeAnnotation::UInt | TypeAnnotation::CUInt,
+                            CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte)
                         )
                     );
                     if expected != TypeAnnotation::Null {
