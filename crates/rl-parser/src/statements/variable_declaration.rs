@@ -90,6 +90,7 @@ impl Parser {
         if matches!(
             self.peek(),
             TokenType::Int
+                | TokenType::UInt
                 | TokenType::Float
                 | TokenType::Bool
                 | TokenType::String
