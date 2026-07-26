@@ -10,6 +10,7 @@ use crate::native::NativeFn;
 pub enum VmValue {
     Null,
     Int(i64),
+    UInt(u64),
     Float(f64),
     Bool(bool),
     Byte(u8),
@@ -123,6 +124,7 @@ impl fmt::Display for VmValue {
         match self {
             VmValue::Null => write!(f, "null"),
             VmValue::Int(i) => write!(f, "{}", i),
+            VmValue::UInt(u) => write!(f, "{}", u),
             VmValue::Float(fl) => write!(f, "{}", fl),
             VmValue::Bool(b) => write!(f, "{}", b),
             VmValue::Byte(b) => write!(f, "{}", b),
@@ -195,6 +197,7 @@ impl VmValue {
         match self {
             VmValue::Null => "null",
             VmValue::Int(_) => "int",
+            VmValue::UInt(_) => "uint",
             VmValue::Float(_) => "float",
             VmValue::Bool(_) => "bool",
             VmValue::Byte(_) => "byte",
