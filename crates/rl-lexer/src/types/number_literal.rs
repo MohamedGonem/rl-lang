@@ -37,7 +37,7 @@ impl Tokenizer {
             let parsed_value: f64 = value.parse().unwrap();
             self.add_token(TokenType::FloatLiteral(parsed_value));
         } else {
-            let parsed_value: i64 = value.parse().unwrap();
+            let parsed_value: u64 = value.parse().unwrap();
             self.add_token(TokenType::NumberLiteral(parsed_value));
         }
     }

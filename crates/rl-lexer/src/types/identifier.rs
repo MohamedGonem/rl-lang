@@ -70,6 +70,7 @@ impl Tokenizer {
             "set" => self.add_token(TokenType::Set),
             "loop" => self.add_token(TokenType::Loop),
             "_" => self.add_token(TokenType::Wildcard),
+            "uint" => self.add_token(TokenType::UInt),
 
             &_ => self.add_token(TokenType::Identifier(value)),
         }

@@ -69,8 +69,10 @@ pub enum TokenType {
     Wildcard,
 
     // -- literals --
-    /// A 64-bit signed integer e.g. `1000`
-    NumberLiteral(i64),
+    /// A 64-bit unsigned integer e.g. `1000`
+    NumberLiteral(u64),
+    /// A 64-bit signed integer e.g. `-1000`
+    SignedLiteral(i64),
     /// A single byte (u8) e.g. `1`
     ByteLiteral(u8),
     /// A UTF-8 string e.g. `"hello"`
@@ -112,6 +114,7 @@ pub enum TokenType {
 
     // -- type keywords --
     Int,
+    UInt,
     Float,
     Bool,
     String,
