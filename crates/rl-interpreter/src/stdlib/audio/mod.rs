@@ -2,6 +2,7 @@
 
 mod audio_duration;
 mod audio_file_info;
+mod beep;
 mod common;
 
 pub struct AudioHandle {
