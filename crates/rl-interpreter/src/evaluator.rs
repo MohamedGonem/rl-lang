@@ -180,6 +180,7 @@ impl Evaluator {
     pub fn with_stdlib(self) -> Self {
         self.with_module(
             Module::new("std")
+                .with_module(stdlib::audio::module())
                 .with_module(stdlib::math::module())
                 .with_module(stdlib::io::module())
                 .with_module(stdlib::bitwise::module())

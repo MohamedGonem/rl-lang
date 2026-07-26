@@ -1,9 +1,9 @@
 //! The VM's standard library - built-in modules registered under `std::*`.
 //!
-//! `io`, `collections`, `array`, and `c` exist so far. Everything else in
-//! `rl-interpreter`'s stdlib (math, string, fs, net, http, process, ...)
-//! hasn't been ported yet - most of it needs `VmValue` to grow more
-//! variants or `FromValue`/`IntoValue` impls first.
+//! `io`, `collections`, `array`, `c`, and `audio` exist so far. Everything
+//! else in `rl-interpreter`'s stdlib (math, string, fs, net, http,
+//! process, ...) hasn't been ported yet - most of it needs `VmValue` to
+//! grow more variants or `FromValue`/`IntoValue` impls first.
 
 mod array;
 pub(crate) mod audio;
@@ -24,6 +24,7 @@ pub fn root() -> Module {
             .with_module(io::module())
             .with_module(collections::module())
             .with_module(array::module())
-            .with_module(c::module()),
+            .with_module(c::module())
+            .with_module(audio::module()),
     )
 }
