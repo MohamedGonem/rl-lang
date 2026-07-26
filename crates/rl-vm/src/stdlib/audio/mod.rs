@@ -9,6 +9,8 @@ mod play_file;
 mod play_file_async;
 mod set_master_volume;
 mod set_output_device;
+mod sound_get_volume;
+mod sound_set_volume;
 
 pub struct AudioHandle {
     pub sink: rodio::Player,
