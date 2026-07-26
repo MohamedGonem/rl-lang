@@ -14,6 +14,8 @@ mod sound_is_paused;
 mod sound_pause;
 mod sound_resume;
 mod sound_set_volume;
+mod sound_stop;
+mod sound_wait;
 
 pub struct AudioHandle {
     pub sink: rodio::Player,
