@@ -157,6 +157,7 @@ fn null_map_elision(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {
 fn const_variant(ty: TypeAnnotation) -> TypeAnnotation {
     match ty {
         TypeAnnotation::Int => TypeAnnotation::CInt,
+        TypeAnnotation::UInt => TypeAnnotation::CUInt,
         TypeAnnotation::Float => TypeAnnotation::CFloat,
         TypeAnnotation::Bool => TypeAnnotation::CBool,
         TypeAnnotation::String => TypeAnnotation::CString,
@@ -208,6 +209,7 @@ fn const_matches(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {
         (a, b),
         (TypeAnnotation::CString, TypeAnnotation::String)
             | (TypeAnnotation::CInt, TypeAnnotation::Int)
+            | (TypeAnnotation::CUInt, TypeAnnotation::UInt)
             | (TypeAnnotation::CFloat, TypeAnnotation::Float)
             | (TypeAnnotation::CBool, TypeAnnotation::Bool)
             | (TypeAnnotation::CByte, TypeAnnotation::Byte)
