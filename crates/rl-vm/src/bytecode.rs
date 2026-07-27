@@ -233,6 +233,7 @@ fn collect_strings_value(value: &VmValue, pool: &mut StringPoolBuilder) {
         | VmValue::Float(_)
         | VmValue::Bool(_)
         | VmValue::Byte(_)
+        | VmValue::UInt16(_)
         | VmValue::Char(_) => {}
 
         VmValue::Arr(items) | VmValue::Tuple(items) => {
@@ -352,6 +353,10 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
         VmValue::Byte(b) => {
             out.push(4);
             out.push(*b);
+        }
+        VmValue::UInt16(v) => {
+            out.push(19);
+            write_uvarint(*v as u64, out);
         }
         VmValue::Char(c) => {
             out.push(5);
@@ -559,6 +564,7 @@ fn read_value(
         2 => VmValue::Float(cursor.f64()?),
         3 => VmValue::Bool(cursor.u8()? != 0),
         4 => VmValue::Byte(cursor.u8()?),
+        19 => VmValue::UInt16(cursor.uvarint()? as u16),
         5 => {
             let code_point = cursor.uvarint()? as u32;
             let c = char::from_u32(code_point)

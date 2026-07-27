@@ -13,6 +13,7 @@ pub enum VmValue {
     Float(f64),
     Bool(bool),
     Byte(u8),
+    UInt16(u16),
     Char(char),
     Str(Rc<str>),
     /// user defined function call
@@ -93,6 +94,7 @@ pub enum VmMapKey {
     Str(Rc<str>),
     Bool(bool),
     Byte(u8),
+    UInt16(u16),
     Char(char),
 }
 
@@ -103,6 +105,7 @@ impl VmMapKey {
             VmValue::Str(s) => Some(VmMapKey::Str(s.clone())),
             VmValue::Bool(b) => Some(VmMapKey::Bool(*b)),
             VmValue::Byte(b) => Some(VmMapKey::Byte(*b)),
+            VmValue::UInt16(v) => Some(VmMapKey::UInt16(*v)),
             VmValue::Char(c) => Some(VmMapKey::Char(*c)),
             _ => None,
         }
@@ -113,6 +116,7 @@ impl VmMapKey {
             VmMapKey::Str(s) => VmValue::Str(s),
             VmMapKey::Bool(b) => VmValue::Bool(b),
             VmMapKey::Byte(b) => VmValue::Byte(b),
+            VmMapKey::UInt16(v) => VmValue::UInt16(v),
             VmMapKey::Char(c) => VmValue::Char(c),
         }
     }
@@ -126,6 +130,7 @@ impl fmt::Display for VmValue {
             VmValue::Float(fl) => write!(f, "{}", fl),
             VmValue::Bool(b) => write!(f, "{}", b),
             VmValue::Byte(b) => write!(f, "{}", b),
+            VmValue::UInt16(v) => write!(f, "{}", v),
             VmValue::Char(c) => write!(f, "'{}'", c),
             VmValue::Str(s) => write!(f, "{}", s),
             VmValue::Function(func) => write!(f, "<fn {}/{}>", func.name, func.arity),
@@ -198,6 +203,7 @@ impl VmValue {
             VmValue::Float(_) => "float",
             VmValue::Bool(_) => "bool",
             VmValue::Byte(_) => "byte",
+            VmValue::UInt16(_) => "u16",
             VmValue::Char(_) => "char",
             VmValue::Str(_) => "string",
             VmValue::Function(_) => "function",

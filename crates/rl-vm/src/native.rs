@@ -103,7 +103,18 @@ impl FromValue for i64 {
         match v {
             VmValue::Int(i) => Ok(i),
             VmValue::Byte(b) => Ok(b as i64),
+            VmValue::UInt16(v) => Ok(v as i64),
             other => Err(VmError(format!("expected int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::UInt16(v) => Ok(v),
+            VmValue::Byte(b) => Ok(b as u16),
+            other => Err(VmError(format!("expected u16, got {other:?}"))),
         }
     }
 }
@@ -164,6 +175,12 @@ impl IntoValue for () {
 impl IntoValue for i64 {
     fn into_value(self) -> VmValue {
         VmValue::Int(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> VmValue {
+        VmValue::UInt16(self)
     }
 }
 

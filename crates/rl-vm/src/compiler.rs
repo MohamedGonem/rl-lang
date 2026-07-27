@@ -308,6 +308,7 @@ impl<'a> Compiler<'a> {
             ExpressionKind::Float(v) => self.emit_const(VmValue::Float(*v), line),
             ExpressionKind::Bool(v) => self.emit_const(VmValue::Bool(*v), line),
             ExpressionKind::Byte(v) => self.emit_const(VmValue::Byte(*v), line),
+            ExpressionKind::U16(v) => self.emit_const(VmValue::UInt16(*v), line),
             ExpressionKind::Character(v) => self.emit_const(VmValue::Char(*v), line),
             ExpressionKind::String(v) => self.emit_const(VmValue::Str(Rc::from(v.as_str())), line),
 
