@@ -50,6 +50,10 @@ impl Parser {
                     self.advance();
                     TypeAnnotation::Char
                 }
+                TokenType::U16 => {
+                    self.advance();
+                    TypeAnnotation::U16
+                }
                 TokenType::Fn => {
                     self.advance();
                     TypeAnnotation::Fn
@@ -150,6 +154,10 @@ impl Parser {
                 TokenType::Char => {
                     self.advance();
                     TypeAnnotation::CChar
+                }
+                TokenType::U16 => {
+                    self.advance();
+                    TypeAnnotation::CU16
                 }
                 TokenType::Fn => {
                     self.advance();

@@ -399,7 +399,7 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from integer to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float, TokenType::U16]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -444,9 +444,26 @@ impl Parser {
                                 return self.parse_postfix(int_expr, start);
                             }
 
+                            TokenType::U16 => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc U16 expr (from number, cast to u16): {} @ {:?}",
+                                    n as u16,
+                                    span
+                                );
+                                if !(0..=65535).contains(&n) {
+                                    return Err(self
+                                        .err(format!("value {} is too large for u16", n), span));
+                                }
+                                let int_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::U16(n as u16), span);
+                                return self.parse_postfix(int_expr, start);
+                            }
+
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/u16 types found {:?}", other),
                                     span,
                                 ));
                             }
@@ -477,7 +494,7 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from float to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float, TokenType::U16]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -521,9 +538,26 @@ impl Parser {
                                 return self.parse_postfix(float_expr, start);
                             }
 
+                            TokenType::U16 => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc U16 expr (from float, cast to u16): {} @ {:?}",
+                                    f as u16,
+                                    span
+                                );
+                                if !(0.0..=65535.0).contains(&f) {
+                                    return Err(self
+                                        .err(format!("value {} is too large for u16", f), span));
+                                }
+                                let float_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::U16(f as u16), span);
+                                return self.parse_postfix(float_expr, start);
+                            }
+
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/u16 types found {:?}", other),
                                     span,
                                 ));
                             }
@@ -552,7 +586,7 @@ impl Parser {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
                     // from byte to T
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float, TokenType::U16]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -598,9 +632,22 @@ impl Parser {
                                 return self.parse_postfix(byte_expr, start);
                             }
 
+                            TokenType::U16 => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc U16 expr (from byte, cast to u16): {} @ {:?}",
+                                    b as u16,
+                                    span
+                                );
+                                let byte_expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::U16(b as u16), span);
+                                return self.parse_postfix(byte_expr, start);
+                            }
+
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/u16 types found {:?}", other),
                                     span,
                                 ));
                             }

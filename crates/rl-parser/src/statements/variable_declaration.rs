@@ -95,6 +95,7 @@ impl Parser {
                 | TokenType::String
                 | TokenType::Byte
                 | TokenType::Char
+                | TokenType::U16
                 | TokenType::Fn
                 | TokenType::Error
                 | TokenType::Array
