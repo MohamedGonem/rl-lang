@@ -871,6 +871,24 @@ impl TypeChecker {
                     self.tags.insert(name.clone(), variants.clone());
                 }
 
+                StatementKind::ImplBlock { record, methods } if wanted(record) => {
+                    for m in methods {
+                        if let StatementKind::FunctionDeclaration {
+                            name,
+                            params,
+                            return_type,
+                            ..
+                        } = &m.kind
+                        {
+                            let fn_type = CheckType::Function {
+                                params: params.iter().map(|p| p.param_type.clone()).collect(),
+                                return_type: return_type.clone(),
+                            };
+                            self.methods.insert((record.clone(), name.clone()), fn_type);
+                        }
+                    }
+                }
+
                 StatementKind::ImportFile { path: nested } => {
                     self.import_module(nested, None, stmt.span);
                 }

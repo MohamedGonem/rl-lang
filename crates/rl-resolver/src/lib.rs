@@ -12,7 +12,9 @@
 //! Function and lambda bodies are resolved in their own pushed scope.
 //! Import statements are read from disk, lexed, parsed, and resolved inline.
 
-use rl_ast::Ast;
+use rl_ast::{Ast, statements::Statement};
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 
 mod expressions;
 mod statements;
@@ -24,6 +26,20 @@ pub struct Resolver {
     scopes: Vec<Vec<String>>,
     pub current_dir: std::path::PathBuf,
     pub ast_arena: Ast,
+    /// Canonical paths of files currently being resolved, from the entry
+    /// file down to whatever `get` statement is on the stack right now.
+    /// Guards against `A imports B imports A` recursing forever - each
+    /// `ImportFile`/`ImportFileNamed` pushes its canonical path before
+    /// recursing into the body and pops it after. Reporting the cycle as
+    /// an error is the checker's job; the resolver just needs to not
+    /// blow the stack, so a repeat here silently stops the recursion.
+    importing: HashSet<PathBuf>,
+    /// Caches the merged (parsed + arena-remapped, but not yet slot-resolved)
+    /// statements for each canonical file path, so a module imported from
+    /// several call sites is only read/lexed/parsed/merged once. Each call
+    /// site still clones its own copy and resolves it independently, since
+    /// slot numbers depend on the importing scope, not the file.
+    import_cache: HashMap<PathBuf, Vec<Statement>>,
 }
 
 impl Default for Resolver {
@@ -39,6 +55,8 @@ impl Resolver {
             scopes: vec![vec![]],
             current_dir: std::path::PathBuf::new(),
             ast_arena: Ast::new(),
+            importing: HashSet::new(),
+            import_cache: HashMap::new(),
         }
     }
 
