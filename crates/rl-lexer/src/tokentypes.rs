@@ -115,6 +115,7 @@ pub enum TokenType {
     String,
     Byte,
     Char,
+    U16,
     Array,
     Error,
     Result,

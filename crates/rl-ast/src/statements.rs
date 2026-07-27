@@ -307,6 +307,8 @@ pub enum TypeAnnotation {
     Byte,
     /// Mutable character.
     Char,
+    /// Mutable 16-bit unsigned integer.
+    U16,
     /// Mutable array with a typed element.
     Array(Box<TypeAnnotation>),
     Map(Box<TypeAnnotation>, Box<TypeAnnotation>),
@@ -323,6 +325,8 @@ pub enum TypeAnnotation {
     CByte,
     /// Constant character.
     CChar,
+    /// Constant 16-bit unsigned integer.
+    CU16,
     /// Constant array with a typed element.
     CArray(Box<TypeAnnotation>),
     CMap(Box<TypeAnnotation>, Box<TypeAnnotation>),

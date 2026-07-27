@@ -51,6 +51,7 @@ impl Tokenizer {
             "string" => self.add_token(TokenType::String),
             "byte" => self.add_token(TokenType::Byte),
             "char" => self.add_token(TokenType::Char),
+            "u16" => self.add_token(TokenType::U16),
             "true" => self.add_token(TokenType::BoolLiteral(true)),
             "false" => self.add_token(TokenType::BoolLiteral(false)),
             "dec" => self.add_token(TokenType::Dec),

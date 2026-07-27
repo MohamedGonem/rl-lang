@@ -37,6 +37,8 @@ pub enum ExpressionKind {
     Integer(i64),
     /// A byte literal (`u8`).
     Byte(u8),
+    /// A 16-bit unsigned integer literal.
+    U16(u16),
     /// A binary operation: `left operator right`.
     Binary {
         left: ExprId,
