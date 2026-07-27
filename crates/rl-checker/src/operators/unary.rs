@@ -41,6 +41,9 @@ impl TypeChecker {
                 CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat) => {
                     CheckType::Known(TypeAnnotation::Float)
                 }
+                CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16) => {
+                    CheckType::Known(TypeAnnotation::U16)
+                }
                 _ => {
                     self.error(
                         format!("type mismatch on unary -: got {}", operand.info()),

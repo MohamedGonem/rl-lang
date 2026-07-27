@@ -330,16 +330,18 @@ impl TypeChecker {
                     CheckType::Known(
                         TypeAnnotation::CInt
                             | TypeAnnotation::CByte
+                            | TypeAnnotation::CU16
                             | TypeAnnotation::CFloat
                             | TypeAnnotation::Float
                             | TypeAnnotation::Int
                             | TypeAnnotation::Byte
+                            | TypeAnnotation::U16
                     ) | CheckType::Unknown
                 );
 
                 let valid_target = matches!(
                     target_type,
-                    TypeAnnotation::Int | TypeAnnotation::Float | TypeAnnotation::Byte
+                    TypeAnnotation::Int | TypeAnnotation::Float | TypeAnnotation::Byte | TypeAnnotation::U16
                 );
 
                 if !castable || !valid_target {

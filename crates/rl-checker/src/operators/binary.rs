@@ -51,6 +51,10 @@ impl TypeChecker {
                         CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                         CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                     ) => CheckType::Known(TypeAnnotation::Byte),
+                    (
+                        CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
+                        CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
+                    ) => CheckType::Known(TypeAnnotation::U16),
 
                     _ => {
                         self.error(
@@ -83,6 +87,10 @@ impl TypeChecker {
                 (
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
+                ) => CheckType::Known(TypeAnnotation::Bool),
+                (
+                    CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
+                    CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
                 ) => CheckType::Known(TypeAnnotation::Bool),
 
                 _ => {
@@ -118,9 +126,12 @@ impl TypeChecker {
                     ) | (
                         CheckType::Known(TypeAnnotation::Char | TypeAnnotation::CChar),
                         CheckType::Known(TypeAnnotation::Char | TypeAnnotation::CChar),
+                    )                     | (
+                        CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool),
+                        CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool),
                     ) | (
-                        CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool),
-                        CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool),
+                        CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
+                        CheckType::Known(TypeAnnotation::U16 | TypeAnnotation::CU16),
                     ) | (
                         CheckType::Known(TypeAnnotation::Enum(_) | TypeAnnotation::CEnum(_)),
                         CheckType::Known(TypeAnnotation::Enum(_) | TypeAnnotation::CEnum(_)),

@@ -154,6 +154,7 @@ fn const_variant(ty: TypeAnnotation) -> TypeAnnotation {
         TypeAnnotation::String => TypeAnnotation::CString,
         TypeAnnotation::Byte => TypeAnnotation::CByte,
         TypeAnnotation::Char => TypeAnnotation::CChar,
+        TypeAnnotation::U16 => TypeAnnotation::CU16,
         TypeAnnotation::Array(inner) => TypeAnnotation::CArray(inner),
         TypeAnnotation::Map(key, value) => TypeAnnotation::CMap(key, value),
         TypeAnnotation::Tuple(inner) => TypeAnnotation::CTuple(inner),
@@ -204,6 +205,8 @@ fn const_matches(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {
             | (TypeAnnotation::CBool, TypeAnnotation::Bool)
             | (TypeAnnotation::CByte, TypeAnnotation::Byte)
             | (TypeAnnotation::CChar, TypeAnnotation::Char)
+            | (TypeAnnotation::CU16, TypeAnnotation::U16)
+            | (TypeAnnotation::U16, TypeAnnotation::CU16)
             | (TypeAnnotation::CTuple(_), TypeAnnotation::Tuple(_))
             | (TypeAnnotation::Tuple(_), TypeAnnotation::CTuple(_))
             | (TypeAnnotation::CError, TypeAnnotation::Error)
