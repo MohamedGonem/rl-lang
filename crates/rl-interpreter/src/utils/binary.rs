@@ -34,7 +34,8 @@ impl Evaluator {
             TokenType::Plus => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a + b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a + b),
-                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a + b),
+                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a.wrapping_add(*b)),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::UInt16(a.wrapping_add(*b)),
 
                 _ => {
                     return Err(
@@ -45,7 +46,8 @@ impl Evaluator {
             TokenType::Minus => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a - b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a - b),
-                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a - b),
+                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a.wrapping_sub(*b)),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::UInt16(a.wrapping_sub(*b)),
 
                 _ => {
                     return Err(
@@ -56,7 +58,8 @@ impl Evaluator {
             TokenType::Star => match (&left, &right) {
                 (Value::Integer(a), Value::Integer(b)) => Value::Integer(a * b),
                 (Value::Float(a), Value::Float(b)) => Value::Float(a * b),
-                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a * b),
+                (Value::Byte(a), Value::Byte(b)) => Value::Byte(a.wrapping_mul(*b)),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::UInt16(a.wrapping_mul(*b)),
 
                 _ => {
                     return Err(
@@ -78,6 +81,12 @@ impl Evaluator {
                     }
                     Value::Byte(a / b)
                 }
+                (Value::UInt16(a), Value::UInt16(b)) => {
+                    if *b == 0 {
+                        return Err(self.err("division by zero", span));
+                    }
+                    Value::UInt16(a / b)
+                }
 
                 _ => {
                     return Err(
@@ -89,6 +98,7 @@ impl Evaluator {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a < b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a < b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a < b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a < b),
                 _ => {
                     return Err(
                         self.type_mismatch_binary("<", &left, left_span, &right, right_span, span)
@@ -99,6 +109,7 @@ impl Evaluator {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a > b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a > b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a > b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a > b),
                 _ => {
                     return Err(
                         self.type_mismatch_binary(">", &left, left_span, &right, right_span, span)
@@ -109,6 +120,7 @@ impl Evaluator {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a <= b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a <= b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a <= b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a <= b),
                 _ => {
                     return Err(
                         self.type_mismatch_binary("<=", &left, left_span, &right, right_span, span)
@@ -119,6 +131,7 @@ impl Evaluator {
                 (Value::Integer(a), Value::Integer(b)) => Value::Bool(a >= b),
                 (Value::Float(a), Value::Float(b)) => Value::Bool(a >= b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a >= b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a >= b),
                 _ => {
                     return Err(
                         self.type_mismatch_binary(">=", &left, left_span, &right, right_span, span)
@@ -132,6 +145,7 @@ impl Evaluator {
                 (Value::Char(a), Value::Char(b)) => Value::Bool(a != b),
                 (Value::Bool(a), Value::Bool(b)) => Value::Bool(a != b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a != b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a != b),
                 (
                     Value::Enum {
                         name: a_name,
@@ -155,6 +169,7 @@ impl Evaluator {
                 (Value::Char(a), Value::Char(b)) => Value::Bool(a == b),
                 (Value::Bool(a), Value::Bool(b)) => Value::Bool(a == b),
                 (Value::Byte(a), Value::Byte(b)) => Value::Bool(a == b),
+                (Value::UInt16(a), Value::UInt16(b)) => Value::Bool(a == b),
                 (
                     Value::Enum {
                         name: a_name,

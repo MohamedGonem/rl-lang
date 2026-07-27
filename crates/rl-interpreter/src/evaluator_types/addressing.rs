@@ -49,6 +49,7 @@ pub fn get_indices_as_vec(
                     indices.push(i as usize);
                 }
                 Value::Byte(b) => indices.push(b as usize),
+                Value::UInt16(v) => indices.push(v as usize),
                 other => {
                     return Err(evaluator.err(
                         format!("invalid index operation: index is {}", other.type_name()),
@@ -123,6 +124,21 @@ impl Evaluator {
                 }
                 Ok(items[b_usize].clone())
             }
+            (Value::Values { items, .. }, Value::UInt16(v)) => {
+                let v_usize = *v as usize;
+                if v_usize >= items.len() {
+                    return Err(self
+                        .err(
+                            format!("index {} out of bounds (len {})", v, items.len()),
+                            span,
+                        )
+                        .with_label(
+                            target_span,
+                            format!("this array has length {}", items.len()),
+                        ));
+                }
+                Ok(items[v_usize].clone())
+            }
             (Value::Tuple(items), Value::Integer(i)) => {
                 let i_usize = *i as usize;
                 if i_usize >= items.len() {
@@ -152,6 +168,21 @@ impl Evaluator {
                         ));
                 }
                 Ok(items[b_usize].clone())
+            }
+            (Value::Tuple(items), Value::UInt16(v)) => {
+                let v_usize = *v as usize;
+                if v_usize >= items.len() {
+                    return Err(self
+                        .err(
+                            format!("tuple index {} out of bounds (len {})", v, items.len()),
+                            span,
+                        )
+                        .with_label(
+                            target_span,
+                            format!("this tuple has {} elements", items.len()),
+                        ));
+                }
+                Ok(items[v_usize].clone())
             }
             (Value::Map { entries, .. }, key) => {
                 let map_key = MapKey::from_value(key).ok_or_else(|| {

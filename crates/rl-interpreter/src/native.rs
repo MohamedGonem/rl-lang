@@ -127,6 +127,12 @@ impl ValueType for char {
     }
 }
 
+impl ValueType for u16 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::U16
+    }
+}
+
 impl<T: ValueType> ValueType for Vec<T> {
     fn type_annotation() -> TypeAnnotation {
         TypeAnnotation::Array(Box::new(T::type_annotation()))
@@ -211,6 +217,20 @@ impl FromValue for char {
     }
 }
 
+impl FromValue for u16 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::UInt16(v) => Ok(v),
+            Value::Byte(b) => Ok(b as u16),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected u16, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
 impl<T: FromValue> FromValue for Vec<T> {
     fn from_value(v: Value, span: Span) -> Result<Self, Error> {
         match v {
@@ -272,6 +292,12 @@ impl IntoValue for bool {
 impl IntoValue for char {
     fn into_value(self) -> Value {
         Value::Char(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> Value {
+        Value::UInt16(self)
     }
 }
 

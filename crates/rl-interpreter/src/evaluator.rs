@@ -228,6 +228,13 @@ impl Evaluator {
                     TypeAnnotation::Byte
                 }
             }
+            Value::UInt16(_) => {
+                if is_const {
+                    TypeAnnotation::CU16
+                } else {
+                    TypeAnnotation::U16
+                }
+            }
             Value::Char(_) => {
                 if is_const {
                     TypeAnnotation::CChar
@@ -396,6 +403,7 @@ impl Evaluator {
             ExpressionKind::Null => Ok(Value::Null),
             ExpressionKind::Integer(i) => Ok(Value::Integer(*i)),
             ExpressionKind::Byte(b) => Ok(Value::Byte(*b)),
+            ExpressionKind::U16(v) => Ok(Value::UInt16(*v)),
             ExpressionKind::Bool(b) => Ok(Value::Bool(*b)),
             ExpressionKind::Float(f) => Ok(Value::Float(*f)),
             ExpressionKind::Character(c) => Ok(Value::Char(*c)),
@@ -426,6 +434,9 @@ impl Evaluator {
                         }
                         Value::Byte(b) => {
                             return self.index_read(depth, slot, &[b as usize], span);
+                        }
+                        Value::UInt16(v) => {
+                            return self.index_read(depth, slot, &[v as usize], span);
                         }
                         _ => {
                             let arr = self.evaluate(target)?;
@@ -761,13 +772,20 @@ impl Evaluator {
                 match (&val, &target_type) {
                     (Value::Integer(n), TypeAnnotation::Float) => Ok(Value::Float(*n as f64)),
                     (Value::Integer(n), TypeAnnotation::Byte) => Ok(Value::Byte(*n as u8)),
+                    (Value::Integer(n), TypeAnnotation::U16) => Ok(Value::UInt16(*n as u16)),
                     (Value::Integer(_), TypeAnnotation::Int) => Ok(val),
                     (Value::Float(f), TypeAnnotation::Int) => Ok(Value::Integer(*f as i64)),
                     (Value::Float(f), TypeAnnotation::Byte) => Ok(Value::Byte(*f as u8)),
+                    (Value::Float(f), TypeAnnotation::U16) => Ok(Value::UInt16(*f as u16)),
                     (Value::Float(_), TypeAnnotation::Float) => Ok(val),
                     (Value::Byte(b), TypeAnnotation::Float) => Ok(Value::Float(*b as f64)),
                     (Value::Byte(b), TypeAnnotation::Int) => Ok(Value::Integer(*b as i64)),
+                    (Value::Byte(b), TypeAnnotation::U16) => Ok(Value::UInt16(*b as u16)),
                     (Value::Byte(_), TypeAnnotation::Byte) => Ok(val),
+                    (Value::UInt16(v), TypeAnnotation::Int) => Ok(Value::Integer(*v as i64)),
+                    (Value::UInt16(v), TypeAnnotation::Float) => Ok(Value::Float(*v as f64)),
+                    (Value::UInt16(v), TypeAnnotation::Byte) => Ok(Value::Byte(*v as u8)),
+                    (Value::UInt16(_), TypeAnnotation::U16) => Ok(val),
                     _ => Err(self.err(
                         format!(
                             "invalid cast: cannot cast {} to {:?}",

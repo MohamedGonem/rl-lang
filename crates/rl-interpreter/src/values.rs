@@ -22,6 +22,8 @@ pub enum Value {
     Bool(bool),
     /// A single unsigned byte (`u8`).
     Byte(u8),
+    /// A 16-bit unsigned integer.
+    UInt16(u16),
     /// A single Unicode character.
     Char(char),
     /// A homogeneous array of values with a tracked element type.
@@ -81,6 +83,7 @@ pub enum MapKey {
     String(String),
     Bool(bool),
     Byte(u8),
+    UInt16(u16),
     Char(char),
 }
 
@@ -91,6 +94,7 @@ impl MapKey {
             Value::String(s) => Some(MapKey::String(s.clone())),
             Value::Bool(b) => Some(MapKey::Bool(*b)),
             Value::Byte(b) => Some(MapKey::Byte(*b)),
+            Value::UInt16(v) => Some(MapKey::UInt16(*v)),
             Value::Char(c) => Some(MapKey::Char(*c)),
             _ => None,
         }
@@ -102,6 +106,7 @@ impl MapKey {
             MapKey::String(s) => Value::String(s),
             MapKey::Bool(b) => Value::Bool(b),
             MapKey::Byte(b) => Value::Byte(b),
+            MapKey::UInt16(v) => Value::UInt16(v),
             MapKey::Char(c) => Value::Char(c),
         }
     }
@@ -116,6 +121,7 @@ impl Value {
             Value::String(_) => "string",
             Value::Bool(_) => "bool",
             Value::Byte(_) => "byte",
+            Value::UInt16(_) => "u16",
             Value::Char(_) => "char",
             Value::Values { .. } => "array",
             Value::Map { .. } => "map",
@@ -147,6 +153,7 @@ impl fmt::Display for Value {
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Byte(b) => write!(f, "{}", b),
+            Value::UInt16(v) => write!(f, "{}", v),
             Value::Char(c) => write!(f, "'{}'", c),
             Value::Values { items, .. } => {
                 let formatted: Vec<String> = items.iter().map(|v| v.to_string()).collect();

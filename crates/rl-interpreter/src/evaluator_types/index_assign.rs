@@ -106,6 +106,8 @@ impl Evaluator {
             indices.push(i as usize);
         } else if let Value::Byte(b) = idx {
             indices.push(b as usize);
+        } else if let Value::UInt16(v) = idx {
+            indices.push(v as usize);
         } else {
             return Err(self.err(
                 format!("invalid index operation: index is {}", idx.type_name()),
