@@ -50,6 +50,42 @@ impl Parser {
                     self.advance();
                     TypeAnnotation::Byte
                 }
+                TokenType::SByte => {
+                    self.advance();
+                    TypeAnnotation::SByte
+                }
+                TokenType::Big => {
+                    self.advance();
+                    match self.peek() {
+                        TokenType::Byte => {
+                            self.advance();
+                            TypeAnnotation::BByte
+                        }
+                        TokenType::SByte => {
+                            self.advance();
+                            TypeAnnotation::BSByte
+                        }
+                        _ => return Err(self.err("`big` only applies to byte types", span)),
+                    }
+                }
+                TokenType::Small => {
+                    self.advance();
+                    match self.peek() {
+                        TokenType::Int => {
+                            self.advance();
+                            TypeAnnotation::SInt
+                        }
+                        TokenType::UInt => {
+                            self.advance();
+                            TypeAnnotation::SUInt
+                        }
+                        TokenType::Float => {
+                            self.advance();
+                            TypeAnnotation::SFloat
+                        }
+                        _ => return Err(self.err("`small` only applies to int/float types", span)),
+                    }
+                }
                 TokenType::Char => {
                     self.advance();
                     TypeAnnotation::Char
@@ -154,6 +190,42 @@ impl Parser {
                 TokenType::Byte => {
                     self.advance();
                     TypeAnnotation::CByte
+                }
+                TokenType::SByte => {
+                    self.advance();
+                    TypeAnnotation::CSByte
+                }
+                TokenType::Big => {
+                    self.advance();
+                    match self.peek() {
+                        TokenType::Byte => {
+                            self.advance();
+                            TypeAnnotation::CBByte
+                        }
+                        TokenType::SByte => {
+                            self.advance();
+                            TypeAnnotation::CBSByte
+                        }
+                        _ => return Err(self.err("`big` only applies to byte types", span)),
+                    }
+                }
+                TokenType::Small => {
+                    self.advance();
+                    match self.peek() {
+                        TokenType::Int => {
+                            self.advance();
+                            TypeAnnotation::CSInt
+                        }
+                        TokenType::UInt => {
+                            self.advance();
+                            TypeAnnotation::CSUInt
+                        }
+                        TokenType::Float => {
+                            self.advance();
+                            TypeAnnotation::CSFloat
+                        }
+                        _ => return Err(self.err("`small` only applies to int/float types", span)),
+                    }
                 }
                 TokenType::Char => {
                     self.advance();
