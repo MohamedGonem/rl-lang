@@ -324,32 +324,44 @@ pub enum TypeAnnotation {
     Int,
     /// Mutable 64-bit unsigned integer.
     UInt,
+    SInt,
+    SUInt,
     /// Mutable 64-bit float.
     Float,
+    SFloat,
     /// Mutable boolean.
     Bool,
     /// Mutable string.
     String,
     /// Mutable byte (`u8`).
     Byte,
+    SByte,
+    BByte,
+    BSByte,
     /// Mutable character.
     Char,
     /// Mutable array with a typed element.
     Array(Box<TypeAnnotation>),
     Map(Box<TypeAnnotation>, Box<TypeAnnotation>),
     Set(Box<TypeAnnotation>),
+    CSInt,
+    CSUInt,
     /// Constant 64-bit signed integer.
     CInt,
     /// Constant 64-bit Unsigned integer.
     CUInt,
     /// Constant 64-bit float.
     CFloat,
+    CSFloat,
     /// Constant boolean.
     CBool,
     /// Constant string.
     CString,
     /// Constant byte.
     CByte,
+    CSByte,
+    CBByte,
+    CBSByte,
     /// Constant character.
     CChar,
     /// Constant array with a typed element.
