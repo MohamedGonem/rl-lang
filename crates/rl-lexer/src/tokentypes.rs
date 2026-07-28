@@ -119,12 +119,17 @@ pub enum TokenType {
     Bool,
     String,
     Byte,
+    SByte,
     Char,
     Array,
     Error,
     Result,
     Map,
     Set,
+
+    // -- type modifiers --
+    Big,
+    Small,
 
     // -- special --
     /// Emitted for each newline in the source
