@@ -233,7 +233,7 @@ impl Parser {
                         self.advance();
                         Ok(TypeAnnotation::BSByte)
                     }
-                    _ => return Err(self.err("`big` only applies to byte types", self.peek_span())),
+                    _ => Err(self.err("`big` only applies to byte types", self.peek_span())),
                 }
             }
             TokenType::Small => {
@@ -252,9 +252,9 @@ impl Parser {
                         Ok(TypeAnnotation::SFloat)
                     }
                     _ => {
-                        return Err(
+                        Err(
                             self.err("`small` only applies to int/float types", self.peek_span())
-                        );
+                        )
                     }
                 }
             }

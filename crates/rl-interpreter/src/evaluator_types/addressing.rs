@@ -52,7 +52,7 @@ pub fn get_indices_as_vec(
                 Value::SByte(b) if b >= 0 => indices.push(b as usize),
 
                 Value::Integer(_) | Value::SInteger(_) | Value::BSByte(_) | Value::SByte(_) => {
-                    return Err(evaluator.err(format!("index cannot be negative"), span));
+                    return Err(evaluator.err("index cannot be negative".to_string(), span));
                 }
 
                 other => {

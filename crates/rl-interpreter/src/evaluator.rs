@@ -535,7 +535,7 @@ impl Evaluator {
                             | Value::SInteger(_)
                             | Value::SByte(_)
                             | Value::BSByte(_) => {
-                                return Err(self.err(format!("index cannot be negative"), span));
+                                return Err(self.err("index cannot be negative".to_string(), span));
                             }
                             _ => {}
                         }

@@ -24,16 +24,14 @@ impl Evaluator {
     fn error_binary(
         &self,
         op: &str,
-        left: &Value,
-        left_span: Span,
-        right: &Value,
-        right_span: Span,
+        left: (&Value, Span),
+        right: (&Value, Span),
         span: Span,
         result: &str,
     ) -> Error {
         self.err(format!("cannot apply operator: {}", op), span)
-            .with_label(left_span, format!("this is {}", left.type_name()))
-            .with_label(right_span, format!("this is {}", right.type_name()))
+            .with_label(left.1, format!("this is {}", left.0.type_name()))
+            .with_label(right.1, format!("this is {}", right.0.type_name()))
             .with_label(span, format!("the result would be {}", result))
     }
 
@@ -70,10 +68,10 @@ impl Evaluator {
                                 Value::$int_ty(a.$check(*b).ok_or_else(|| {
                                     self.error_binary(
                                         $op_str,
-                                        &left,
-                                        left_span,
-                                        &right,
-                                        right_span,
+                                        (&left,
+                                        left_span),
+                                        (&right,
+                                        right_span),
                                         span,
                                         &a.$wrap(*b).to_string(),
                                     )
@@ -106,10 +104,10 @@ impl Evaluator {
                                 Value::$int_ty(a.checked_div(*b).ok_or_else(|| {
                                     self.error_binary(
                                         $op_str,
-                                        &left,
-                                        left_span,
-                                        &right,
-                                        right_span,
+                                        (&left,
+                                        left_span),
+                                        (&right,
+                                        right_span),
                                         span,
                                         &a.wrapping_div(*b).to_string(),
                                     )

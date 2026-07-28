@@ -107,7 +107,7 @@ impl Evaluator {
             Value::SByte(b) if b >= 0 => indices.push(b as usize),
 
             Value::Integer(_) | Value::SInteger(_) | Value::BSByte(_) | Value::SByte(_) => {
-                return Err(self.err(format!("index cannot be negative"), span));
+                return Err(self.err("index cannot be negative".to_string(), span));
             }
 
             Value::UInteger(u) => indices.push(u as usize),
