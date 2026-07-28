@@ -214,6 +214,51 @@ impl Parser {
                 }
             }
 
+            TokenType::UInt => {
+                self.advance();
+                Ok(TypeAnnotation::UInt)
+            }
+            TokenType::SByte => {
+                self.advance();
+                Ok(TypeAnnotation::SByte)
+            }
+            TokenType::Big => {
+                self.advance();
+                match self.peek() {
+                    TokenType::Byte => {
+                        self.advance();
+                        Ok(TypeAnnotation::BByte)
+                    }
+                    TokenType::SByte => {
+                        self.advance();
+                        Ok(TypeAnnotation::BSByte)
+                    }
+                    _ => return Err(self.err("`big` only applies to byte types", self.peek_span())),
+                }
+            }
+            TokenType::Small => {
+                self.advance();
+                match self.peek() {
+                    TokenType::Int => {
+                        self.advance();
+                        Ok(TypeAnnotation::SInt)
+                    }
+                    TokenType::UInt => {
+                        self.advance();
+                        Ok(TypeAnnotation::SUInt)
+                    }
+                    TokenType::Float => {
+                        self.advance();
+                        Ok(TypeAnnotation::SFloat)
+                    }
+                    _ => {
+                        return Err(
+                            self.err("`small` only applies to int/float types", self.peek_span())
+                        );
+                    }
+                }
+            }
+
             _ => Err(self.err("expected type", self.peek_span())),
         }
     }
