@@ -99,20 +99,28 @@ impl Evaluator {
         let val = self.evaluate(value)?;
         let (depth, slot) = get_root_addr(target, &self.resolver.ast_arena);
         let mut indices = get_indices_as_vec(target, self, span)?;
-        if let Value::Integer(i) = idx {
-            if i < 0 {
-                return Err(self.err(format!("index cannot be negative: {}", i), span));
+
+        match idx {
+            Value::Integer(i) if i >= 0 => indices.push(i as usize),
+            Value::SInteger(i) if i >= 0 => indices.push(i as usize),
+            Value::BSByte(b) if b >= 0 => indices.push(b as usize),
+            Value::SByte(b) if b >= 0 => indices.push(b as usize),
+
+            Value::Integer(_) | Value::SInteger(_) | Value::BSByte(_) | Value::SByte(_) => {
+                return Err(self.err(format!("index cannot be negative"), span));
             }
-            indices.push(i as usize);
-        } else if let Value::UInteger(u) = idx {
-            indices.push(u as usize);
-        } else if let Value::Byte(b) = idx {
-            indices.push(b as usize);
-        } else {
-            return Err(self.err(
-                format!("invalid index operation: index is {}", idx.type_name()),
-                span,
-            ));
+
+            Value::UInteger(u) => indices.push(u as usize),
+            Value::SUInteger(u) => indices.push(u as usize),
+            Value::BByte(b) => indices.push(b as usize),
+            Value::Byte(b) => indices.push(b as usize),
+
+            _ => {
+                return Err(self.err(
+                    format!("invalid index operation: index is {}", idx.type_name()),
+                    span,
+                ));
+            }
         }
 
         let index_error = self.err("index assignment requires at least one index", span);
