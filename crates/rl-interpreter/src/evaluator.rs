@@ -240,11 +240,32 @@ impl Evaluator {
                     TypeAnnotation::UInt
                 }
             }
+            Value::SInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CSInt
+                } else {
+                    TypeAnnotation::SInt
+                }
+            }
+            Value::SUInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CSUInt
+                } else {
+                    TypeAnnotation::SUInt
+                }
+            }
             Value::Float(_) => {
                 if is_const {
                     TypeAnnotation::CFloat
                 } else {
                     TypeAnnotation::Float
+                }
+            }
+            Value::SFloat(_) => {
+                if is_const {
+                    TypeAnnotation::CSFloat
+                } else {
+                    TypeAnnotation::SFloat
                 }
             }
             Value::String(_) => {
@@ -266,6 +287,27 @@ impl Evaluator {
                     TypeAnnotation::CByte
                 } else {
                     TypeAnnotation::Byte
+                }
+            }
+            Value::SByte(_) => {
+                if is_const {
+                    TypeAnnotation::CSByte
+                } else {
+                    TypeAnnotation::SByte
+                }
+            }
+            Value::BByte(_) => {
+                if is_const {
+                    TypeAnnotation::CBByte
+                } else {
+                    TypeAnnotation::BByte
+                }
+            }
+            Value::BSByte(_) => {
+                if is_const {
+                    TypeAnnotation::CBSByte
+                } else {
+                    TypeAnnotation::BSByte
                 }
             }
             Value::Char(_) => {
@@ -436,9 +478,15 @@ impl Evaluator {
             ExpressionKind::Null => Ok(Value::Null),
             ExpressionKind::Integer(i) => Ok(Value::Integer(*i)),
             ExpressionKind::UInt(u) => Ok(Value::UInteger(*u)),
+            ExpressionKind::SInt(i) => Ok(Value::SInteger(*i)),
+            ExpressionKind::SUInt(u) => Ok(Value::SUInteger(*u)),
             ExpressionKind::Byte(b) => Ok(Value::Byte(*b)),
+            ExpressionKind::SByte(b) => Ok(Value::SByte(*b)),
+            ExpressionKind::BByte(b) => Ok(Value::BByte(*b)),
+            ExpressionKind::BSByte(b) => Ok(Value::BSByte(*b)),
             ExpressionKind::Bool(b) => Ok(Value::Bool(*b)),
             ExpressionKind::Float(f) => Ok(Value::Float(*f)),
+            ExpressionKind::SFloat(f) => Ok(Value::SFloat(*f)),
             ExpressionKind::Character(c) => Ok(Value::Char(*c)),
             ExpressionKind::String(s) => {
                 let s = s.clone();
@@ -462,16 +510,32 @@ impl Evaluator {
                     self.check_not_null(&idx, index_span)?;
                     if !is_map {
                         match idx {
-                            Value::Integer(i) => {
-                                if i < 0 {
-                                    return Err(
-                                        self.err(format!("index cannot be negative: {}", i), span)
-                                    );
-                                }
+                            Value::Integer(i) if i >= 0 => {
                                 return self.index_read(depth, slot, &[i as usize], span);
+                            }
+                            Value::SInteger(i) if i >= 0 => {
+                                return self.index_read(depth, slot, &[i as usize], span);
+                            }
+                            Value::SByte(b) if b >= 0 => {
+                                return self.index_read(depth, slot, &[b as usize], span);
+                            }
+                            Value::BSByte(b) if b >= 0 => {
+                                return self.index_read(depth, slot, &[b as usize], span);
                             }
                             Value::Byte(b) => {
                                 return self.index_read(depth, slot, &[b as usize], span);
+                            }
+                            Value::UInteger(u) => {
+                                return self.index_read(depth, slot, &[u as usize], span);
+                            }
+                            Value::SUInteger(u) => {
+                                return self.index_read(depth, slot, &[u as usize], span);
+                            }
+                            Value::Integer(_)
+                            | Value::SInteger(_)
+                            | Value::SByte(_)
+                            | Value::BSByte(_) => {
+                                return Err(self.err("index cannot be negative".to_string(), span));
                             }
                             _ => {}
                         }
@@ -809,25 +873,121 @@ impl Evaluator {
                 let value_span = self.resolver.ast_arena.exprs.get(value).span;
                 let val = self.evaluate(value)?;
                 self.check_not_null(&val, value_span)?;
-                match (&val, &target_type) {
-                    (Value::Integer(n), TypeAnnotation::Float) => Ok(Value::Float(*n as f64)),
-                    (Value::Integer(n), TypeAnnotation::Byte) => Ok(Value::Byte(*n as u8)),
-                    (Value::Integer(n), TypeAnnotation::UInt) => Ok(Value::UInteger(*n as u64)),
-                    (Value::Integer(_), TypeAnnotation::Int) => Ok(val),
-                    (Value::Float(f), TypeAnnotation::Int) => Ok(Value::Integer(*f as i64)),
-                    (Value::Float(f), TypeAnnotation::Byte) => Ok(Value::Byte(*f as u8)),
-                    (Value::Float(_), TypeAnnotation::Float) => Ok(val),
-                    (Value::Byte(b), TypeAnnotation::Float) => Ok(Value::Float(*b as f64)),
-                    (Value::Byte(b), TypeAnnotation::Int) => Ok(Value::Integer(*b as i64)),
-                    (Value::Byte(_), TypeAnnotation::Byte) => Ok(val),
-                    _ => Err(self.err(
+
+                // Widen any numeric Value into i128 / f64 so we only need one arm per TARGET type.
+                fn as_i128(v: &Value) -> Option<i128> {
+                    match v {
+                        Value::Integer(n) => Some(*n as i128),
+                        Value::SInteger(n) => Some(*n as i128),
+                        Value::SUInteger(n) => Some(*n as i128),
+                        Value::Byte(n) => Some(*n as i128),
+                        Value::SByte(n) => Some(*n as i128),
+                        Value::BByte(n) => Some(*n as i128),
+                        Value::BSByte(n) => Some(*n as i128),
+                        Value::Float(f) => Some(*f as i128),
+                        Value::SFloat(f) => Some(*f as i128),
+                        _ => None,
+                    }
+                }
+
+                fn as_f64(v: &Value) -> Option<f64> {
+                    match v {
+                        Value::Integer(n) => Some(*n as f64),
+                        Value::SInteger(n) => Some(*n as f64),
+                        Value::SUInteger(n) => Some(*n as f64),
+                        Value::Byte(n) => Some(*n as f64),
+                        Value::SByte(n) => Some(*n as f64),
+                        Value::BByte(n) => Some(*n as f64),
+                        Value::BSByte(n) => Some(*n as f64),
+                        Value::Float(f) => Some(*f),
+                        Value::SFloat(f) => Some(*f as f64),
+                        _ => None,
+                    }
+                }
+
+                let bad_cast = |v: &Value| {
+                    self.err(
                         format!(
-                            "invalid cast: cannot cast {} to {:?}",
-                            val.type_name(),
+                            "invalid cast: cannot cast {}:{} to {:?}",
+                            v.type_name(),
+                            v,
                             target_type
                         ),
                         span,
-                    )),
+                    )
+                };
+
+                match &target_type {
+                    // -> i64
+                    TypeAnnotation::Int => as_i128(&val)
+                        .map(|n| Value::Integer(n as i64))
+                        .ok_or_else(|| bad_cast(&val)),
+
+                    // -> f64
+                    TypeAnnotation::Float => {
+                        as_f64(&val).map(Value::Float).ok_or_else(|| bad_cast(&val))
+                    }
+
+                    // -> u64
+                    TypeAnnotation::UInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u64::try_from(n)
+                            .map(Value::UInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> f32
+                    TypeAnnotation::SFloat => as_f64(&val)
+                        .map(|f| Value::SFloat(f as f32))
+                        .ok_or_else(|| bad_cast(&val)),
+
+                    // -> u32
+                    TypeAnnotation::SUInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u32::try_from(n)
+                            .map(Value::SUInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i32
+                    TypeAnnotation::SInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i32::try_from(n)
+                            .map(Value::SInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> u16
+                    TypeAnnotation::BByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u16::try_from(n)
+                            .map(Value::BByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i16
+                    TypeAnnotation::BSByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i16::try_from(n)
+                            .map(Value::BSByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> u8
+                    TypeAnnotation::Byte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u8::try_from(n).map(Value::Byte).map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i8
+                    TypeAnnotation::SByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i8::try_from(n)
+                            .map(Value::SByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    _ => Err(bad_cast(&val)),
                 }
             }
 

@@ -128,10 +128,73 @@ impl FromValue for u64 {
     }
 }
 
+impl FromValue for i32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SUInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small uint, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BSByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big byte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::Byte(b) => Ok(b),
+            other => Err(rt_err(format!("expected byte, got {other:?}"))),
+        }
+    }
+}
+
 impl FromValue for f64 {
     fn from_value(v: VmValue) -> Result<Self, VmError> {
         match v {
             VmValue::Float(f) => Ok(f),
+            other => Err(rt_err(format!("expected float, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SFloat(f) => Ok(f),
             other => Err(rt_err(format!("expected float, got {other:?}"))),
         }
     }
@@ -193,9 +256,51 @@ impl IntoValue for u64 {
     }
 }
 
+impl IntoValue for i32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SInt(self)
+    }
+}
+
+impl IntoValue for u32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SUInt(self)
+    }
+}
+
+impl IntoValue for i16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BSByte(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BByte(self)
+    }
+}
+
+impl IntoValue for i8 {
+    fn into_value(self) -> VmValue {
+        VmValue::SByte(self)
+    }
+}
+
+impl IntoValue for u8 {
+    fn into_value(self) -> VmValue {
+        VmValue::Byte(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> VmValue {
         VmValue::Float(self)
+    }
+}
+
+impl IntoValue for f32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SFloat(self)
     }
 }
 

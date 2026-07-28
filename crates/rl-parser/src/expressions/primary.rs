@@ -402,10 +402,15 @@ impl Parser {
             if let TokenType::SignedLiteral(n) = self.previous() {
                 // ---- cast start ----
                 if self.match_type(&[TokenType::As]) {
-                    // a signed literal already carries a sign, so it can only ever
-                    // be an `int` - casting it to `uint` would silently discard
-                    // information (or be meaningless for negative values)
-                    if self.match_type(&[TokenType::Int, TokenType::Byte, TokenType::Float]) {
+                    if self.match_type(&[
+                        TokenType::Int,
+                        TokenType::Byte,
+                        TokenType::Float,
+                        TokenType::UInt,
+                        TokenType::Small,
+                        TokenType::Big,
+                        TokenType::SByte,
+                    ]) {
                         match self.previous() {
                             TokenType::Int => {
                                 #[cfg(feature = "debug")]
@@ -417,6 +422,78 @@ impl Parser {
                                 let expr =
                                     self.ast_arena.alloc_expr(ExpressionKind::Integer(n), span);
                                 return self.parse_postfix(expr, start);
+                            }
+                            TokenType::UInt => {
+                                let expr = match u64::try_from(n) {
+                                    Ok(u) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::UInt(u), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
+                                return self.parse_postfix(expr, start);
+                            }
+                            TokenType::Small => {
+                                if self.match_type(&[TokenType::Float]) {
+                                    let expr = match i32::try_from(n) {
+                                        Ok(f) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::SFloat(f as f32), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::Int]) {
+                                    let expr = match i32::try_from(n) {
+                                        Ok(f) => {
+                                            self.ast_arena.alloc_expr(ExpressionKind::SInt(f), span)
+                                        }
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::UInt]) {
+                                    let expr = match u32::try_from(n) {
+                                        Ok(u) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::SUInt(u), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'small'", span));
+                            }
+                            TokenType::Big => {
+                                if self.match_type(&[TokenType::Byte]) {
+                                    let expr = match u16::try_from(n) {
+                                        Ok(b) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::BByte(b), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::SByte]) {
+                                    let expr = match i16::try_from(n) {
+                                        Ok(b) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::BSByte(b), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'big'", span));
                             }
 
                             TokenType::Float => {
@@ -439,19 +516,37 @@ impl Parser {
                                     n as u8,
                                     span
                                 );
-                                if !(0..=255).contains(&n) {
-                                    return Err(self
-                                        .err(format!("value {} is too large for byte", n), span));
-                                }
-                                let expr = self
-                                    .ast_arena
-                                    .alloc_expr(ExpressionKind::Byte(n as u8), span);
+                                let expr = match u8::try_from(n) {
+                                    Ok(b) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::Byte(b), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
+                                return self.parse_postfix(expr, start);
+                            }
+                            TokenType::SByte => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc Byte expr (from signed number, cast to sbyte): {} @ {:?}",
+                                    n as u8,
+                                    span
+                                );
+                                let expr = match i8::try_from(n) {
+                                    Ok(b) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::SByte(b), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
                                 return self.parse_postfix(expr, start);
                             }
 
                             other => {
                                 return Err(self.err(
-                                    format!("expected int/byte/float types found {:?}", other),
+                                    format!("expected int/byte/float/uint types found {:?}", other),
                                     span,
                                 ));
                             }
@@ -492,6 +587,9 @@ impl Parser {
                         TokenType::Byte,
                         TokenType::Float,
                         TokenType::UInt,
+                        TokenType::Small,
+                        TokenType::Big,
+                        TokenType::SByte,
                     ]) {
                         match self.previous() {
                             TokenType::Int => {
@@ -502,7 +600,7 @@ impl Parser {
                                     span
                                 );
 
-                                let Ok(as_i64) = i64::try_from(n) else {
+                                let Ok(v) = i64::try_from(n) else {
                                     return Err(self.err(
                                         format!(
                                             "value {} is out of range for int ({}..={}) - use `as uint`",
@@ -513,10 +611,9 @@ impl Parser {
                                         span,
                                     ));
                                 };
-                                let int_expr = self
-                                    .ast_arena
-                                    .alloc_expr(ExpressionKind::Integer(as_i64), span);
-                                return self.parse_postfix(int_expr, start);
+                                let expr =
+                                    self.ast_arena.alloc_expr(ExpressionKind::Integer(v), span);
+                                return self.parse_postfix(expr, start);
                             }
 
                             TokenType::UInt => {
@@ -526,9 +623,8 @@ impl Parser {
                                     n,
                                     span
                                 );
-                                let uint_expr =
-                                    self.ast_arena.alloc_expr(ExpressionKind::UInt(n), span);
-                                return self.parse_postfix(uint_expr, start);
+                                let expr = self.ast_arena.alloc_expr(ExpressionKind::UInt(n), span);
+                                return self.parse_postfix(expr, start);
                             }
 
                             TokenType::Float => {
@@ -538,10 +634,72 @@ impl Parser {
                                     n as f64,
                                     span
                                 );
-                                let int_expr = self
+                                let expr = self
                                     .ast_arena
                                     .alloc_expr(ExpressionKind::Float(n as f64), span);
-                                return self.parse_postfix(int_expr, start);
+                                return self.parse_postfix(expr, start);
+                            }
+                            TokenType::Small => {
+                                if self.match_type(&[TokenType::Float]) {
+                                    let expr = match i32::try_from(n) {
+                                        Ok(f) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::SFloat(f as f32), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::Int]) {
+                                    let expr = match i32::try_from(n) {
+                                        Ok(f) => {
+                                            self.ast_arena.alloc_expr(ExpressionKind::SInt(f), span)
+                                        }
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::UInt]) {
+                                    let expr = match u32::try_from(n) {
+                                        Ok(u) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::SUInt(u), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'small'", span));
+                            }
+
+                            TokenType::Big => {
+                                if self.match_type(&[TokenType::Byte]) {
+                                    let expr = match u16::try_from(n) {
+                                        Ok(b) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::BByte(b), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::SByte]) {
+                                    let expr = match i16::try_from(n) {
+                                        Ok(b) => self
+                                            .ast_arena
+                                            .alloc_expr(ExpressionKind::BSByte(b), span),
+                                        Err(e) => {
+                                            return Err(self.err(e.to_string(), span));
+                                        }
+                                    };
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'big'", span));
                             }
 
                             TokenType::Byte => {
@@ -551,14 +709,32 @@ impl Parser {
                                     n as u8,
                                     span
                                 );
-                                if !(0..=255).contains(&n) {
-                                    return Err(self
-                                        .err(format!("value {} is too large for byte", n), span));
-                                }
-                                let int_expr = self
-                                    .ast_arena
-                                    .alloc_expr(ExpressionKind::Byte(n as u8), span);
-                                return self.parse_postfix(int_expr, start);
+                                let expr = match u8::try_from(n) {
+                                    Ok(b) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::Byte(b), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
+                                return self.parse_postfix(expr, start);
+                            }
+                            TokenType::SByte => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc SByte expr (from number, cast to sbyte): {} @ {:?}",
+                                    n as i8,
+                                    span
+                                );
+                                let expr = match i8::try_from(n) {
+                                    Ok(b) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::SByte(b), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
+                                return self.parse_postfix(expr, start);
                             }
 
                             other => {
@@ -612,6 +788,9 @@ impl Parser {
                         TokenType::Byte,
                         TokenType::Float,
                         TokenType::UInt,
+                        TokenType::Small,
+                        TokenType::Big,
+                        TokenType::SByte,
                     ]) {
                         match self.previous() {
                             TokenType::Int => {
@@ -625,6 +804,115 @@ impl Parser {
                                     .ast_arena
                                     .alloc_expr(ExpressionKind::Integer(f as i64), span);
                                 return self.parse_postfix(float_expr, start);
+                            }
+
+                            TokenType::Small => {
+                                if self.match_type(&[TokenType::Float]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SFloat expr (from float, cast to small float): {} @ {:?}",
+                                        f as f32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SFloat(f as f32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::Int]) {
+                                    if !((i32::MIN as f64)..=(i32::MAX as f64)).contains(&f) {
+                                        return Err(self.err(
+                                            format!("value {} is out of range for small int", f),
+                                            span,
+                                        ));
+                                    }
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SInt expr (from float, cast to small int): {} @ {:?}",
+                                        f as i32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SInt(f as i32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::UInt]) {
+                                    if f < 0.0 || f > u32::MAX as f64 {
+                                        return Err(self.err(
+                                            format!("value {} is out of range for small uint", f),
+                                            span,
+                                        ));
+                                    }
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SUInt expr (from float, cast to small uint): {} @ {:?}",
+                                        f as u32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SUInt(f as u32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'small'", span));
+                            }
+
+                            TokenType::Big => {
+                                if self.match_type(&[TokenType::Byte]) {
+                                    if !(0.0..=(u16::MAX as f64)).contains(&f) {
+                                        return Err(self.err(
+                                            format!("value {} is out of range for big byte", f),
+                                            span,
+                                        ));
+                                    }
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc BByte expr (from float, cast to big byte): {} @ {:?}",
+                                        f as u16,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::BByte(f as u16), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::SByte]) {
+                                    if !((i16::MIN as f64)..=(i16::MAX as f64)).contains(&f) {
+                                        return Err(self.err(
+                                            format!("value {} is out of range for big sbyte", f),
+                                            span,
+                                        ));
+                                    }
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc BSByte expr (from float, cast to big sbyte): {} @ {:?}",
+                                        f as i16,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::BSByte(f as i16), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'big'", span));
+                            }
+
+                            TokenType::SByte => {
+                                if !((i8::MIN as f64)..=(i8::MAX as f64)).contains(&f) {
+                                    return Err(self
+                                        .err(format!("value {} is too large for sbyte", f), span));
+                                }
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc SByte expr (from float, cast to sbyte): {} @ {:?}",
+                                    f as i8,
+                                    span
+                                );
+                                let expr = self
+                                    .ast_arena
+                                    .alloc_expr(ExpressionKind::SByte(f as i8), span);
+                                return self.parse_postfix(expr, start);
                             }
 
                             TokenType::UInt => {
@@ -711,6 +999,9 @@ impl Parser {
                         TokenType::Byte,
                         TokenType::Float,
                         TokenType::UInt,
+                        TokenType::Small,
+                        TokenType::Big,
+                        TokenType::SByte,
                     ]) {
                         match self.previous() {
                             TokenType::Int => {
@@ -724,6 +1015,92 @@ impl Parser {
                                     .ast_arena
                                     .alloc_expr(ExpressionKind::Integer(b as i64), span);
                                 return self.parse_postfix(byte_expr, start);
+                            }
+
+                            TokenType::Small => {
+                                if self.match_type(&[TokenType::Float]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SFloat expr (from byte, cast to small float): {} @ {:?}",
+                                        b as f32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SFloat(b as f32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::Int]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SInt expr (from byte, cast to small int): {} @ {:?}",
+                                        b as i32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SInt(b as i32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::UInt]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc SUInt expr (from byte, cast to small uint): {} @ {:?}",
+                                        b as u32,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::SUInt(b as u32), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'small'", span));
+                            }
+
+                            TokenType::Big => {
+                                if self.match_type(&[TokenType::Byte]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc BByte expr (from byte, cast to big byte): {} @ {:?}",
+                                        b as u16,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::BByte(b as u16), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                if self.match_type(&[TokenType::SByte]) {
+                                    #[cfg(feature = "debug")]
+                                    log::trace!(
+                                        "alloc BSByte expr (from byte, cast to big sbyte): {} @ {:?}",
+                                        b as i16,
+                                        span
+                                    );
+                                    let expr = self
+                                        .ast_arena
+                                        .alloc_expr(ExpressionKind::BSByte(b as i16), span);
+                                    return self.parse_postfix(expr, start);
+                                }
+                                return Err(self.err("expected valid type after 'big'", span));
+                            }
+
+                            TokenType::SByte => {
+                                #[cfg(feature = "debug")]
+                                log::trace!(
+                                    "alloc SByte expr (from byte, cast to sbyte): {} @ {:?}",
+                                    b,
+                                    span
+                                );
+                                let expr = match i8::try_from(b) {
+                                    Ok(sb) => {
+                                        self.ast_arena.alloc_expr(ExpressionKind::SByte(sb), span)
+                                    }
+                                    Err(e) => {
+                                        return Err(self.err(e.to_string(), span));
+                                    }
+                                };
+                                return self.parse_postfix(expr, start);
                             }
 
                             TokenType::UInt => {

@@ -88,11 +88,17 @@ fn remap_expr_kind(kind: &mut ExpressionKind, offset: u32, target_arena_id: u32)
     use ExpressionKind::*;
     match kind {
         Null
+        | SInt(_)
+        | SUInt(_)
         | Integer(_)
         | UInt(_)
         | Byte(_)
+        | SByte(_)
+        | BByte(_)
+        | BSByte(_)
         | String(_)
         | Bool(_)
+        | SFloat(_)
         | Float(_)
         | Character(_)
         | Identifier(_)

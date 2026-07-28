@@ -35,10 +35,15 @@ pub enum ExpressionKind {
     Null,
     /// A 64-bit signed integer literal.
     Integer(i64),
+    SInt(i32),
     /// A 64-bit Unsigned integer literal.
     UInt(u64),
+    SUInt(u32),
     /// A byte literal (`u8`).
     Byte(u8),
+    SByte(i8),
+    BByte(u16),
+    BSByte(i16),
     /// A binary operation: `left operator right`.
     Binary {
         left: ExprId,
@@ -58,6 +63,7 @@ pub enum ExpressionKind {
     Bool(bool),
     /// A 64-bit float literal.
     Float(f64),
+    SFloat(f32),
     /// A character literal.
     Character(char),
     /// An unresolved variable or function reference by name.

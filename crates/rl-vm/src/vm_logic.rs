@@ -17,6 +17,47 @@ use rl_utils::span::Span;
 /// instruction's [`Span`].
 pub type VmError = Error;
 
+/// Shared arithmetic-op expansion for `+`, `-`, `*`e.
+macro_rules! binary_arith {
+    ($self:expr, $checked:ident, $float_op:tt, $op_str:literal) => {{
+        let (a, b) = $self.pop_two_unchecked();
+        let out = match (a, b) {
+            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SInt(a), VmValue::SInt(b)) => VmValue::SInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => VmValue::SUInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::BByte(a), VmValue::BByte(b)) => VmValue::BByte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => {
+                VmValue::BSByte(a.$checked(b).ok_or_else(|| {
+                    $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+                })?)
+            }
+            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SByte(a), VmValue::SByte(b)) => VmValue::SByte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(a $float_op b),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => VmValue::SFloat(a $float_op b),
+            (a, b) => {
+                return Err($self.err(format!("cannot apply arithmetic op to {a:?} and {b:?}")));
+            }
+        };
+        $self.stack.push(out);
+    }};
+}
+
 enum FrameSource<'a> {
     Top(&'a Chunk),
     Func(Rc<VmFunction>),
@@ -198,22 +239,20 @@ impl Vm {
                     self.stack.push(val);
                 }
 
-                OpCode::Add => {
-                    self.binary_numeric(|a, b| a + b, |a, b| a + b, |a, b| a + b, |a, b| a + b)?
-                }
-                OpCode::Sub => {
-                    self.binary_numeric(|a, b| a - b, |a, b| a - b, |a, b| a - b, |a, b| a - b)?
-                }
-                OpCode::Mul => {
-                    self.binary_numeric(|a, b| a * b, |a, b| a * b, |a, b| a * b, |a, b| a * b)?
-                }
+                OpCode::Add => binary_arith!(self, checked_add, +, "+"),
+                OpCode::Sub => binary_arith!(self, checked_sub, -, "-"),
+                OpCode::Mul => binary_arith!(self, checked_mul, *, "*"),
                 OpCode::Div => self.binary_div()?,
 
                 OpCode::Negate => {
                     let v = self.pop()?;
                     let out = match v {
                         VmValue::Int(n) => VmValue::Int(-n),
+                        VmValue::SInt(n) => VmValue::SInt(-n),
+                        VmValue::BSByte(n) => VmValue::BSByte(-n),
+                        VmValue::SByte(n) => VmValue::SByte(-n),
                         VmValue::Float(n) => VmValue::Float(-n),
+                        VmValue::SFloat(n) => VmValue::SFloat(-n),
                         other => return Err(self.err(format!("cannot negate {other:?}"))),
                     };
                     self.stack.push(out);
@@ -823,42 +862,31 @@ impl Vm {
     }
 
     /// Helper function for arth operations
-    /// handles +, -, *
-    fn binary_numeric(
-        &mut self,
-        int_op: fn(i64, i64) -> i64,
-        float_op: fn(f64, f64) -> f64,
-        uint_op: fn(u64, u64) -> u64,
-        byte_op: fn(u8, u8) -> u8,
-    ) -> Result<(), VmError> {
-        let (a, b) = self.pop_two_unchecked();
-        let out = match (a, b) {
-            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(int_op(a, b)),
-            (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(float_op(a, b)),
-            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(uint_op(a, b)),
-            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(byte_op(a, b)),
-            (a, b) => {
-                return Err(self.err(format!("cannot apply arithmetic op to {a:?} and {b:?}")));
-            }
-        };
-        self.stack.push(out);
-        Ok(())
-    }
-
-    /// Helper function for arth operations
     /// handles /
     fn binary_div(&mut self) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
+        macro_rules! int_div {
+            ($self:expr, $variant:ident, $a:expr, $b:expr) => {{
+                if $b == 0 {
+                    return Err($self.err("division by zero"));
+                }
+                VmValue::$variant(
+                    $a.checked_div($b)
+                        .ok_or_else(|| $self.err(format!("integer overflow: {} / {}", $a, $b)))?,
+                )
+            }};
+        }
         let out = match (a, b) {
-            (VmValue::Int(_), VmValue::Int(0))
-            | (VmValue::UInt(_), VmValue::UInt(0))
-            | (VmValue::Byte(_), VmValue::Byte(0)) => {
-                return Err(self.err("division by zero"));
-            }
-            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(a / b),
-            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(a / b),
-            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(a / b),
+            (VmValue::Int(a), VmValue::Int(b)) => int_div!(self, Int, a, b),
+            (VmValue::UInt(a), VmValue::UInt(b)) => int_div!(self, UInt, a, b),
+            (VmValue::SInt(a), VmValue::SInt(b)) => int_div!(self, SInt, a, b),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => int_div!(self, SUInt, a, b),
+            (VmValue::BByte(a), VmValue::BByte(b)) => int_div!(self, BByte, a, b),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => int_div!(self, BSByte, a, b),
+            (VmValue::Byte(a), VmValue::Byte(b)) => int_div!(self, Byte, a, b),
+            (VmValue::SByte(a), VmValue::SByte(b)) => int_div!(self, SByte, a, b),
             (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(a / b),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => VmValue::SFloat(a / b),
             (a, b) => return Err(self.err(format!("cannot divide {a:?} by {b:?}"))),
         };
         self.stack.push(out);
@@ -866,15 +894,23 @@ impl Vm {
     }
 
     /// Helper function for comparsion operations
-    /// accepts float/float, int/int, byte/byte, uint/uint
+    /// accepts every numeric VmValue variant (mirrors rl-interpreter's
+    /// `cmp_op!` macro: ints [Int, UInt, SInt, SUInt, BByte, BSByte,
+    /// Byte, SByte], floats [Float, SFloat])
     /// handles >, <, >=, <=
     fn binary_cmp(&mut self, pred: fn(std::cmp::Ordering) -> bool) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
         let ord = match (&a, &b) {
             (VmValue::Int(a), VmValue::Int(b)) => a.partial_cmp(b),
             (VmValue::UInt(a), VmValue::UInt(b)) => a.partial_cmp(b),
+            (VmValue::SInt(a), VmValue::SInt(b)) => a.partial_cmp(b),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => a.partial_cmp(b),
+            (VmValue::BByte(a), VmValue::BByte(b)) => a.partial_cmp(b),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => a.partial_cmp(b),
             (VmValue::Byte(a), VmValue::Byte(b)) => a.partial_cmp(b),
+            (VmValue::SByte(a), VmValue::SByte(b)) => a.partial_cmp(b),
             (VmValue::Float(a), VmValue::Float(b)) => a.partial_cmp(b),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => a.partial_cmp(b),
             _ => return Err(self.err(format!("cannot compare {a:?} and {b:?}"))),
         }
         .ok_or_else(|| self.err("comparison produced no ordering (NaN?)"))?;

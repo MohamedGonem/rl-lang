@@ -16,14 +16,20 @@ pub enum Value {
     Integer(i64),
     /// A 64-bit Unsigned integer.
     UInteger(u64),
+    SInteger(i32),
+    SUInteger(u32),
     /// A 64-bit float.
     Float(f64),
+    SFloat(f32),
     /// A UTF-8 string.
     String(String),
     /// A boolean.
     Bool(bool),
     /// A single unsigned byte (`u8`).
     Byte(u8),
+    SByte(i8),
+    BByte(u16),
+    BSByte(i16),
     /// A single Unicode character.
     Char(char),
     /// A homogeneous array of values with a tracked element type.
@@ -80,9 +86,15 @@ pub struct FunctionData {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MapKey {
     Integer(i64),
+    UInteger(u64),
+    SInteger(i32),
+    SUInteger(u32),
+    BByte(u16),
+    BSByte(i16),
+    Byte(u8),
+    SByte(i8),
     String(String),
     Bool(bool),
-    Byte(u8),
     Char(char),
 }
 
@@ -90,9 +102,15 @@ impl MapKey {
     pub fn from_value(value: &Value) -> Option<MapKey> {
         match value {
             Value::Integer(i) => Some(MapKey::Integer(*i)),
+            Value::UInteger(i) => Some(MapKey::UInteger(*i)),
+            Value::SInteger(i) => Some(MapKey::SInteger(*i)),
+            Value::SUInteger(i) => Some(MapKey::SUInteger(*i)),
+            Value::BByte(b) => Some(MapKey::BByte(*b)),
+            Value::BSByte(b) => Some(MapKey::BSByte(*b)),
+            Value::Byte(b) => Some(MapKey::Byte(*b)),
+            Value::SByte(b) => Some(MapKey::SByte(*b)),
             Value::String(s) => Some(MapKey::String(s.clone())),
             Value::Bool(b) => Some(MapKey::Bool(*b)),
-            Value::Byte(b) => Some(MapKey::Byte(*b)),
             Value::Char(c) => Some(MapKey::Char(*c)),
             _ => None,
         }
@@ -101,9 +119,15 @@ impl MapKey {
     pub fn into_value(self) -> Value {
         match self {
             MapKey::Integer(i) => Value::Integer(i),
+            MapKey::UInteger(i) => Value::UInteger(i),
+            MapKey::SInteger(i) => Value::SInteger(i),
+            MapKey::SUInteger(i) => Value::SUInteger(i),
+            MapKey::BByte(b) => Value::BByte(b),
+            MapKey::BSByte(b) => Value::BSByte(b),
+            MapKey::Byte(b) => Value::Byte(b),
+            MapKey::SByte(b) => Value::SByte(b),
             MapKey::String(s) => Value::String(s),
             MapKey::Bool(b) => Value::Bool(b),
-            MapKey::Byte(b) => Value::Byte(b),
             MapKey::Char(c) => Value::Char(c),
         }
     }
@@ -115,10 +139,16 @@ impl Value {
         match self {
             Value::Integer(_) => "int",
             Value::UInteger(_) => "uint",
+            Value::SInteger(_) => "small int",
+            Value::SUInteger(_) => "small uint",
             Value::Float(_) => "float",
+            Value::SFloat(_) => "small float",
             Value::String(_) => "string",
             Value::Bool(_) => "bool",
             Value::Byte(_) => "byte",
+            Value::SByte(_) => "sbyte",
+            Value::BByte(_) => "big byte",
+            Value::BSByte(_) => "big sbyte",
             Value::Char(_) => "char",
             Value::Values { .. } => "array",
             Value::Map { .. } => "map",
@@ -147,11 +177,17 @@ impl fmt::Display for Value {
         match self {
             Value::Integer(i) => write!(f, "{}", i),
             Value::UInteger(u) => write!(f, "{}", u),
+            Value::SInteger(i) => write!(f, "{}", i),
+            Value::SUInteger(u) => write!(f, "{}", u),
             Value::Float(fl) => write!(f, "{}", fl),
+            Value::SFloat(fl) => write!(f, "{}", fl),
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Byte(b) => write!(f, "{}", b),
-            Value::Char(c) => write!(f, "'{}'", c),
+            Value::SByte(b) => write!(f, "{}", b),
+            Value::BByte(b) => write!(f, "{}", b),
+            Value::BSByte(b) => write!(f, "{}", b),
+            Value::Char(c) => write!(f, "{}", c),
             Value::Values { items, .. } => {
                 let formatted: Vec<String> = items.iter().map(|v| v.to_string()).collect();
                 write!(f, "[{}]", formatted.join(", "))

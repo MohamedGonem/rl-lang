@@ -71,6 +71,9 @@ impl Tokenizer {
             "loop" => self.add_token(TokenType::Loop),
             "_" => self.add_token(TokenType::Wildcard),
             "uint" => self.add_token(TokenType::UInt),
+            "big" => self.add_token(TokenType::Big),
+            "small" => self.add_token(TokenType::Small),
+            "sbyte" => self.add_token(TokenType::SByte),
 
             &_ => self.add_token(TokenType::Identifier(value)),
         }

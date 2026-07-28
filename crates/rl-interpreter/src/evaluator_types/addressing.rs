@@ -42,14 +42,19 @@ pub fn get_indices_as_vec(
         ExpressionKind::Index { target, index } => {
             let mut indices = get_indices_as_vec(target, evaluator, span)?;
             match evaluator.evaluate(index)? {
-                Value::Integer(i) => {
-                    if i < 0 {
-                        return Err(evaluator.err(format!("index cannot be negative: {}", i), span));
-                    }
-                    indices.push(i as usize);
-                }
+                Value::Integer(i) if i >= 0 => indices.push(i as usize),
                 Value::UInteger(u) => indices.push(u as usize),
+                Value::SInteger(i) if i >= 0 => indices.push(i as usize),
+                Value::SUInteger(u) => indices.push(u as usize),
+                Value::BByte(b) => indices.push(b as usize),
+                Value::BSByte(b) if b >= 0 => indices.push(b as usize),
                 Value::Byte(b) => indices.push(b as usize),
+                Value::SByte(b) if b >= 0 => indices.push(b as usize),
+
+                Value::Integer(_) | Value::SInteger(_) | Value::BSByte(_) | Value::SByte(_) => {
+                    return Err(evaluator.err("index cannot be negative".to_string(), span));
+                }
+
                 other => {
                     return Err(evaluator.err(
                         format!("invalid index operation: index is {}", other.type_name()),
@@ -93,13 +98,30 @@ impl Evaluator {
         index_span: Span,
         span: Span,
     ) -> Result<Value, Error> {
-        match (arr, idx) {
-            (Value::Values { items, .. }, Value::Integer(i)) => {
-                let i_usize = *i as usize;
-                if i_usize >= items.len() {
+        match arr {
+            Value::Values { items, .. } => {
+                let idx_usize = match idx {
+                    Value::Integer(i) => *i as usize,
+                    Value::UInteger(u) => *u as usize,
+                    Value::SInteger(i) => *i as usize,
+                    Value::SUInteger(u) => *u as usize,
+                    Value::BByte(b) => *b as usize,
+                    Value::BSByte(b) => *b as usize,
+                    Value::Byte(b) => *b as usize,
+                    Value::SByte(b) => *b as usize,
+
+                    _ => {
+                        return Err(self
+                            .err("invalid index operation", span)
+                            .with_label(target_span, format!("this is {}", arr.type_name()))
+                            .with_label(index_span, format!("this is {}", idx.type_name())));
+                    }
+                };
+
+                if idx_usize >= items.len() {
                     return Err(self
                         .err(
-                            format!("index {} out of bounds (len {})", i, items.len()),
+                            format!("index {} out of bounds (len {})", idx_usize, items.len()),
                             span,
                         )
                         .with_label(
@@ -107,44 +129,36 @@ impl Evaluator {
                             format!("this array has length {}", items.len()),
                         ));
                 }
-                Ok(items[i_usize].clone())
+
+                Ok(items[idx_usize].clone())
             }
-            (Value::Values { items, .. }, Value::UInteger(u)) => {
-                let u_usize = *u as usize;
-                if u_usize >= items.len() {
+            Value::Tuple(items) => {
+                let idx_usize = match idx {
+                    Value::Integer(i) => *i as usize,
+                    Value::UInteger(u) => *u as usize,
+                    Value::SInteger(i) => *i as usize,
+                    Value::SUInteger(u) => *u as usize,
+                    Value::BByte(b) => *b as usize,
+                    Value::BSByte(b) => *b as usize,
+                    Value::Byte(b) => *b as usize,
+                    Value::SByte(b) => *b as usize,
+
+                    _ => {
+                        return Err(self
+                            .err("invalid index operation", span)
+                            .with_label(target_span, format!("this is {}", arr.type_name()))
+                            .with_label(index_span, format!("this is {}", idx.type_name())));
+                    }
+                };
+
+                if idx_usize >= items.len() {
                     return Err(self
                         .err(
-                            format!("index {} out of bounds (len {})", u, items.len()),
-                            span,
-                        )
-                        .with_label(
-                            target_span,
-                            format!("this array has length {}", items.len()),
-                        ));
-                }
-                Ok(items[u_usize].clone())
-            }
-            (Value::Values { items, .. }, Value::Byte(b)) => {
-                let b_usize = *b as usize;
-                if b_usize >= items.len() {
-                    return Err(self
-                        .err(
-                            format!("index {} out of bounds (len {})", b, items.len()),
-                            span,
-                        )
-                        .with_label(
-                            target_span,
-                            format!("this array has length {}", items.len()),
-                        ));
-                }
-                Ok(items[b_usize].clone())
-            }
-            (Value::Tuple(items), Value::Integer(i)) => {
-                let i_usize = *i as usize;
-                if i_usize >= items.len() {
-                    return Err(self
-                        .err(
-                            format!("tuple index {} out of bounds (len {})", i, items.len()),
+                            format!(
+                                "tuple index {} out of bounds (len {})",
+                                idx_usize,
+                                items.len()
+                            ),
                             span,
                         )
                         .with_label(
@@ -152,39 +166,11 @@ impl Evaluator {
                             format!("this tuple has {} elements", items.len()),
                         ));
                 }
-                Ok(items[i_usize].clone())
+
+                Ok(items[idx_usize].clone())
             }
-            (Value::Tuple(items), Value::UInteger(u)) => {
-                let u_usize = *u as usize;
-                if u_usize >= items.len() {
-                    return Err(self
-                        .err(
-                            format!("tuple index {} out of bounds (len {})", u, items.len()),
-                            span,
-                        )
-                        .with_label(
-                            target_span,
-                            format!("this tuple has {} elements", items.len()),
-                        ));
-                }
-                Ok(items[u_usize].clone())
-            }
-            (Value::Tuple(items), Value::Byte(b)) => {
-                let b_usize = *b as usize;
-                if b_usize >= items.len() {
-                    return Err(self
-                        .err(
-                            format!("tuple index {} out of bounds (len {})", b, items.len()),
-                            span,
-                        )
-                        .with_label(
-                            target_span,
-                            format!("this tuple has {} elements", items.len()),
-                        ));
-                }
-                Ok(items[b_usize].clone())
-            }
-            (Value::Map { entries, .. }, key) => {
+            Value::Map { entries, .. } => {
+                let key = idx;
                 let map_key = MapKey::from_value(key).ok_or_else(|| {
                     self.err(
                         format!("type {} cannot be used as a map key", key.type_name()),
