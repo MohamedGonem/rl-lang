@@ -99,6 +99,9 @@ impl Parser {
                 | TokenType::Float
                 | TokenType::Bool
                 | TokenType::String
+                | TokenType::Small
+                | TokenType::Big
+                | TokenType::SByte
                 | TokenType::Byte
                 | TokenType::Char
                 | TokenType::Fn
