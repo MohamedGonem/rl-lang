@@ -2,7 +2,7 @@
 
 use super::{fixed, handle, overloads, params, result};
 use crate::{ModuleNames, StdFn};
-use rl_ast::statements::TypeAnnotation as T;
+use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 
 pub fn module() -> ModuleNames {
     ModuleNames::new("c")
@@ -15,11 +15,17 @@ pub fn module() -> ModuleNames {
 }
 
 fn compile() -> StdFn {
-    StdFn::typed("compile", vec![(params(vec![T::String]), result(T::Int))])
+    StdFn::typed(
+        "compile",
+        vec![(params(vec![T::String]), result(T::Handle(HandleKind::C)))],
+    )
 }
 
 fn load() -> StdFn {
-    StdFn::typed("load", vec![(params(vec![T::String]), result(T::Int))])
+    StdFn::typed(
+        "load",
+        vec![(params(vec![T::String]), result(T::Handle(HandleKind::C)))],
+    )
 }
 
 fn call() -> StdFn {
@@ -29,12 +35,18 @@ fn call() -> StdFn {
 fn has_symbol() -> StdFn {
     StdFn::typed(
         "has_symbol",
-        overloads(vec![handle(), fixed(T::String)], result(T::Bool)),
+        overloads(
+            vec![handle(HandleKind::C), fixed(T::String)],
+            result(T::Bool),
+        ),
     )
 }
 
 fn close() -> StdFn {
-    StdFn::typed("close", overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        "close",
+        overloads(vec![handle(HandleKind::C)], result(T::Null)),
+    )
 }
 
 fn clear_cache() -> StdFn {
