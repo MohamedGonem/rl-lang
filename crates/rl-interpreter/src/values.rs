@@ -1,7 +1,7 @@
 //! Runtime value types for the rl interpreter.
 
 use crate::evaluator::EnvironmentItem;
-use rl_ast::statements::{Param, Statement, TypeAnnotation};
+use rl_ast::statements::{HandleKind, Param, Statement, TypeAnnotation};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -69,6 +69,12 @@ pub enum Value {
         /// The declared element type of this set.
         items_type: TypeAnnotation,
         items: Rc<RefCell<HashSet<MapKey>>>,
+    },
+
+    /// An opaque resource id scoped to one stdlib module (`net`, `c`, `http`, ...).
+    Handle {
+        kind: HandleKind,
+        id: u64,
     },
 }
 
@@ -161,6 +167,12 @@ impl Value {
             Value::Struct { .. } => "record",
             Value::Enum { .. } => "tag",
             Value::Set { .. } => "set",
+            Value::Handle { kind, .. } => match kind {
+                HandleKind::C => "c handle",
+                HandleKind::Net => "net handle",
+                HandleKind::Http => "http handle",
+                HandleKind::Audio => "audio handle",
+            },
         }
     }
 
@@ -234,6 +246,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, "}}")
             }
+            Value::Handle { kind, id } => write!(f, "<{:?} handle #{}>", kind, id),
         }
     }
 }
