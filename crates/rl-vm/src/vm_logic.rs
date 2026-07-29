@@ -105,13 +105,13 @@ pub struct Vm {
     /// id. `pub(crate)` (unlike every field above) because, unlike every
     /// other native function so far, `std::c`'s functions need persistent
     /// state across calls, not just their own arguments - see `stdlib::c`.
-    pub(crate) c_handles: HashMap<i64, crate::stdlib::c::CHandle>,
+    pub(crate) c_handles: HashMap<u64, crate::stdlib::c::CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
-    pub(crate) c_next_handle: i64,
+    pub(crate) c_next_handle: u64,
     /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
-    pub(crate) audio_handles: HashMap<i64, crate::stdlib::audio::AudioHandle>,
+    pub(crate) audio_handles: HashMap<u64, crate::stdlib::audio::AudioHandle>,
     /// Next handle id to hand out for `std::audio` resources; only ever increments.
-    pub(crate) audio_next_handle: i64,
+    pub(crate) audio_next_handle: u64,
     /// Output device selected via `std::audio::set_output_device`, if any;
     /// `None` means the system default device.
     pub(crate) audio_output_device: Option<String>,

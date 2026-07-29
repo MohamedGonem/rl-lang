@@ -3,7 +3,7 @@ use crate::{
     stdlib::{
         c::{CHandle, common::insert_handle},
         common::extract_string,
-        macros::{verr, vi, vok, vs},
+        macros::{verr, vok, vs},
     },
     values::VmValue,
 };
@@ -25,6 +25,6 @@ pub fn std_load(vm: &mut Vm, path: VmValue) -> VmValue {
         }
     };
 
-    let id = insert_handle(vm, CHandle::Library(lib));
-    vok!(vi!(id))
+    let handle = insert_handle(vm, CHandle::Library(lib));
+    vok!(handle)
 }

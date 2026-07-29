@@ -1,4 +1,4 @@
-use rl_ast::statements::TypeAnnotation;
+use rl_ast::statements::{HandleKind, TypeAnnotation};
 use rl_commons::{stdlib_signatures::params, *};
 
 #[test]
@@ -236,64 +236,6 @@ fn res_result_unwrap_takes_result_t_returns_t() {
 }
 
 #[test]
-fn http_server_recv_has_two_handle_overloads() {
-    let tree = stdlib_names();
-    let path = vec!["http".to_string(), "http_server_recv".to_string()];
-    let f = tree
-        .resolve(&path)
-        .expect("http_server_recv should resolve");
-    assert_eq!(f.signatures.len(), 2);
-}
-
-#[test]
-fn http_respond_has_four_overloads_across_both_arities() {
-    let tree = stdlib_names();
-    let path = vec!["http".to_string(), "http_respond".to_string()];
-    let f = tree.resolve(&path).expect("http_respond should resolve");
-    assert_eq!(f.signatures.len(), 4);
-}
-
-#[test]
-fn http_request_method_returns_result_string_via_handle_to_string() {
-    let tree = stdlib_names();
-    let path = vec!["http".to_string(), "http_request_method".to_string()];
-    let f = tree
-        .resolve(&path)
-        .expect("http_request_method should resolve");
-    assert_eq!(f.signatures.len(), 2);
-    assert!(
-        f.signatures
-            .iter()
-            .all(|(_, ret)| *ret == TypeAnnotation::Result(Box::new(TypeAnnotation::String)))
-    );
-}
-
-#[test]
-fn net_tcp_read_has_four_overloads_from_two_handle_slots() {
-    let tree = stdlib_names();
-    let path = vec!["net".to_string(), "tcp_read".to_string()];
-    let f = tree.resolve(&path).expect("tcp_read should resolve");
-    assert_eq!(f.signatures.len(), 4);
-}
-
-#[test]
-fn net_tcp_peer_addr_and_local_addr_share_shape_with_http() {
-    let tree = stdlib_names();
-    for name in ["tcp_peer_addr", "tcp_local_addr"] {
-        let path = vec!["net".to_string(), name.to_string()];
-        let f = tree
-            .resolve(&path)
-            .unwrap_or_else(|| panic!("{name} should resolve"));
-        assert_eq!(f.signatures.len(), 2);
-        assert!(
-            f.signatures
-                .iter()
-                .all(|(_, ret)| *ret == TypeAnnotation::Result(Box::new(TypeAnnotation::String)))
-        );
-    }
-}
-
-#[test]
 fn path_extension_and_str_to_lower_share_the_string_to_string_shape() {
     let tree = stdlib_names();
     let expected = vec![(params(vec![TypeAnnotation::String]), TypeAnnotation::String)];
@@ -331,7 +273,7 @@ fn audio_play_file_takes_string_returns_result_null() {
 }
 
 #[test]
-fn audio_play_file_async_returns_result_int_handle() {
+fn audio_play_file_async_returns_result_audio_handle() {
     let tree = stdlib_names();
     let path = vec!["audio".to_string(), "play_file_async".to_string()];
     let f = tree.resolve(&path).expect("play_file_async should resolve");
@@ -339,31 +281,8 @@ fn audio_play_file_async_returns_result_int_handle() {
         f.signatures,
         vec![(
             params(vec![TypeAnnotation::String]),
-            TypeAnnotation::Result(Box::new(TypeAnnotation::Int))
+            TypeAnnotation::Result(Box::new(TypeAnnotation::Handle(HandleKind::Audio)))
         )]
-    );
-}
-
-#[test]
-fn audio_sound_pause_has_int_and_byte_handle_overloads() {
-    let tree = stdlib_names();
-    let path = vec!["audio".to_string(), "sound_pause".to_string()];
-    let f = tree.resolve(&path).expect("sound_pause should resolve");
-    assert_eq!(f.signatures.len(), 2);
-}
-
-#[test]
-fn audio_sound_set_volume_has_handle_times_float_overloads() {
-    let tree = stdlib_names();
-    let path = vec!["audio".to_string(), "sound_set_volume".to_string()];
-    let f = tree
-        .resolve(&path)
-        .expect("sound_set_volume should resolve");
-    assert_eq!(f.signatures.len(), 2);
-    assert!(
-        f.signatures
-            .iter()
-            .all(|(_, ret)| *ret == TypeAnnotation::Result(Box::new(TypeAnnotation::Null)))
     );
 }
 

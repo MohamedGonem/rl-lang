@@ -7,7 +7,7 @@ use crate::{
             AudioHandle,
             common::{insert_handle, new_sink},
         },
-        common::{extract_string, verr, vi, vok, vs},
+        common::{extract_string, verr, vok, vs},
     },
     values::Value,
 };
@@ -43,5 +43,5 @@ pub fn func(eval: &mut Evaluator, path: Value) -> Value {
             base_volume: 1.0,
         },
     );
-    vok!(vi!(id))
+    vok!(id)
 }

@@ -78,21 +78,21 @@ pub struct Evaluator {
     // for diffrent calls
     pub user_args_offset: usize,
     /// Side-table of native networking resources (`std::net`), keyed by handle id.
-    pub net_handles: HashMap<i64, NetHandle>,
+    pub net_handles: HashMap<u64, NetHandle>,
     /// Next handle id to hand out for `std::net` resources; only ever increments.
-    pub net_next_handle: i64,
+    pub net_next_handle: u64,
     /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
-    pub http_handles: HashMap<i64, HttpHandle>,
+    pub http_handles: HashMap<u64, HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
-    pub http_next_handle: i64,
+    pub http_next_handle: u64,
     /// Side-table of native C-interop resources (`std::c`), keyed by handle id.
-    pub c_handles: HashMap<i64, CHandle>,
+    pub c_handles: HashMap<u64, CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
-    pub c_next_handle: i64,
+    pub c_next_handle: u64,
     /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
-    pub audio_handles: HashMap<i64, AudioHandle>,
+    pub audio_handles: HashMap<u64, AudioHandle>,
     /// Next handle id to hand out for `std::audio` resources; only ever increments.
-    pub audio_next_handle: i64,
+    pub audio_next_handle: u64,
     /// Output device selected via `std::audio::set_output_device`, if any;
     /// `None` means the system default device.
     pub audio_output_device: Option<String>,
@@ -392,6 +392,8 @@ impl Evaluator {
                     TypeAnnotation::Result(Box::new(inner_ty))
                 }
             }
+
+            Value::Handle { kind, .. } => TypeAnnotation::Handle(*kind),
         }
     }
 

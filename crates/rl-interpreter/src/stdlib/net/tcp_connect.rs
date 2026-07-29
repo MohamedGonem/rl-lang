@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use crate::{
     evaluator::Evaluator,
     stdlib::{
-        common::{extract_string, verr, vi, vok, vs},
+        common::{extract_string, verr, vok, vs},
         net::{NetHandle, common::insert_handle},
     },
     values::Value,
@@ -14,10 +14,11 @@ pub fn func(eval: &mut Evaluator, address: Value) -> Value {
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("tcp_connect: {} ", e))),
     };
+
     match TcpStream::connect(&addr) {
         Ok(stream) => {
-            let id = insert_handle(eval, NetHandle::TcpStream(stream));
-            vok!(vi!(id))
+            let handle = insert_handle(eval, NetHandle::TcpStream(stream));
+            vok!(handle)
         }
         Err(e) => verr!(vs!(format!("tcp_connect(\"{}\"): {}", addr, e))),
     }

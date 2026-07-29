@@ -88,6 +88,7 @@ impl CheckType {
                     || record_matches(a, b)
                     || enum_matches(a, b)
                     || set_matches(a, b)
+                    || handle_matches(a, b)
             }
 
             _ => false,
@@ -132,6 +133,14 @@ fn null_array_elision(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {
         }),
         _ => false,
     }
+}
+
+/// Returns `true` if `a` and `b` are handles from the same module.
+fn handle_matches(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {
+    matches!(
+        (a, b),
+        (TypeAnnotation::Handle(x), TypeAnnotation::Handle(y)) if x == y
+    )
 }
 
 fn null_map_elision(a: &TypeAnnotation, b: &TypeAnnotation) -> bool {

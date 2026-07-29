@@ -1,17 +1,20 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, vb, verr, vok, vs},
+        common::{extract_handle, extract_string, vb, verr, vok, vs},
     },
     values::Value,
 };
 
 pub fn func(eval: &mut Evaluator, handle: Value, fn_name: Value) -> Value {
-    let handle_id = match extract_number(handle, "has_symbol") {
-        Ok(n) => n as i64,
-        Err(e) => return verr!(vs!(format!("has_symbol: {}", e))),
+    let handle_id = match extract_handle(handle, HandleKind::C, "has_symbol") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
+
     let fn_name = match extract_string(fn_name, "has_symbol") {
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("has_symbol: {}", e))),

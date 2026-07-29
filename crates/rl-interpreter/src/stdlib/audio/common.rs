@@ -1,13 +1,17 @@
 use cpal::traits::{DeviceTrait, HostTrait};
+use rl_ast::statements::HandleKind;
 
 use crate::{evaluator::Evaluator, stdlib::audio::AudioHandle, values::Value};
 
 /// Registers a new handle and returns its id.
-pub fn insert_handle(eval: &mut Evaluator, handle: AudioHandle) -> i64 {
+pub fn insert_handle(eval: &mut Evaluator, handle: AudioHandle) -> Value {
     let id = eval.audio_next_handle;
     eval.audio_next_handle += 1;
     eval.audio_handles.insert(id, handle);
-    id
+    Value::Handle {
+        kind: HandleKind::Audio,
+        id,
+    }
 }
 
 /// Extracts an `f64` from an `int` or `float` [`Value`].

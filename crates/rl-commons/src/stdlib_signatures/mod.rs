@@ -7,7 +7,7 @@
 //! unchecked) in [`crate::stdlib_names`].
 
 use crate::StdFn;
-use rl_ast::statements::TypeAnnotation as T;
+use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 use std::rc::Rc;
 
 pub mod array;
@@ -60,10 +60,9 @@ pub fn arr_t() -> T {
     T::Array(Box::new(t()))
 }
 
-/// A handle-typed argument slot, accepted as either `int` or `byte`.
-/// Shared by `http`/`net`, whose functions take socket/connection handles.
-pub fn handle() -> Vec<T> {
-    vec![T::Int, T::Byte]
+/// A single handle-typed argument slot, scoped to `kind`'s module.
+pub fn handle(kind: HandleKind) -> Vec<T> {
+    vec![T::Handle(kind)]
 }
 
 /// A single fixed-type argument slot, for use alongside [`handle`] in
@@ -100,8 +99,8 @@ pub fn overloads(parts: Vec<Vec<T>>, ret: T) -> Vec<(T, T)> {
 
 /// `handle_arg -> Result[string]` - a handle-only call that yields a
 /// string (e.g. an address, a header value). Shared by `http`/`net`.
-pub fn handle_to_string(name: &'static str) -> StdFn {
-    StdFn::typed(name, overloads(vec![handle()], result(T::String)))
+pub fn handle_to_string(name: &'static str, kind: HandleKind) -> StdFn {
+    StdFn::typed(name, overloads(vec![handle(kind)], result(T::String)))
 }
 
 /// `(string) -> string` - shared by `path` and `str` for their many

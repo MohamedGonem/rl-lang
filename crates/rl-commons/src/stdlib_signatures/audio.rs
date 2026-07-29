@@ -2,7 +2,7 @@
 
 use super::{handle, overloads, params, result};
 use crate::{ModuleNames, StdFn};
-use rl_ast::statements::TypeAnnotation as T;
+use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 
 pub fn module() -> ModuleNames {
     ModuleNames::new("audio")
@@ -36,7 +36,10 @@ fn play_file() -> StdFn {
 fn play_file_async() -> StdFn {
     StdFn::typed(
         "play_file_async",
-        vec![(params(vec![T::String]), result(T::Int))],
+        vec![(
+            params(vec![T::String]),
+            result(T::Handle(HandleKind::Audio)),
+        )],
     )
 }
 
@@ -48,70 +51,88 @@ fn beep() -> StdFn {
 }
 
 fn sound_pause() -> StdFn {
-    StdFn::typed("sound_pause", overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        "sound_pause",
+        overloads(vec![handle(HandleKind::Audio)], result(T::Null)),
+    )
 }
 
 fn sound_resume() -> StdFn {
-    StdFn::typed("sound_resume", overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        "sound_resume",
+        overloads(vec![handle(HandleKind::Audio)], result(T::Null)),
+    )
 }
 
 fn sound_stop() -> StdFn {
-    StdFn::typed("sound_stop", overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        "sound_stop",
+        overloads(vec![handle(HandleKind::Audio)], result(T::Null)),
+    )
 }
 
 fn sound_is_paused() -> StdFn {
     StdFn::typed(
         "sound_is_paused",
-        overloads(vec![handle()], result(T::Bool)),
+        overloads(vec![handle(HandleKind::Audio)], result(T::Bool)),
     )
 }
 
 fn sound_set_volume() -> StdFn {
     StdFn::typed(
         "sound_set_volume",
-        overloads(vec![handle(), vec![T::Float]], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Audio), vec![T::Float]],
+            result(T::Null),
+        ),
     )
 }
 
 fn sound_get_volume() -> StdFn {
     StdFn::typed(
         "sound_get_volume",
-        overloads(vec![handle()], result(T::Float)),
+        overloads(vec![handle(HandleKind::Audio)], result(T::Float)),
     )
 }
 
 fn sound_set_speed() -> StdFn {
     StdFn::typed(
         "sound_set_speed",
-        overloads(vec![handle(), vec![T::Float]], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Audio), vec![T::Float]],
+            result(T::Null),
+        ),
     )
 }
 
 fn sound_seek() -> StdFn {
     StdFn::typed(
         "sound_seek",
-        overloads(vec![handle(), vec![T::Int]], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Audio), vec![T::Int]],
+            result(T::Null),
+        ),
     )
 }
 
 fn sound_is_finished() -> StdFn {
     StdFn::typed(
         "sound_is_finished",
-        overloads(vec![handle()], result(T::Bool)),
+        overloads(vec![handle(HandleKind::Audio)], result(T::Bool)),
     )
 }
 
 fn sound_wait() -> StdFn {
-    StdFn::typed("sound_wait", overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        "sound_wait",
+        overloads(vec![handle(HandleKind::Audio)], result(T::Null)),
+    )
 }
 
 fn list_output_devices() -> StdFn {
     StdFn::typed(
         "list_output_devices",
-        vec![(
-            params(vec![]),
-            result(T::Array(Box::new(T::String))),
-        )],
+        vec![(params(vec![]), result(T::Array(Box::new(T::String))))],
     )
 }
 

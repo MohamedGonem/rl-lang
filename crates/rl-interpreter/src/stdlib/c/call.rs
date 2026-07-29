@@ -1,12 +1,12 @@
 use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
 use libloading::Symbol;
-use rl_ast::statements::TypeAnnotation;
+use rl_ast::statements::{HandleKind, TypeAnnotation};
 
 use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string, vb, vby, verr, vf, vi, vnl, vok, vs},
+        common::{extract_handle, extract_string, vb, vby, verr, vf, vi, vnl, vok, vs},
     },
     values::Value,
 };
@@ -83,10 +83,11 @@ pub fn func(
     arg_types: Value,
     ret_type: Value,
 ) -> Value {
-    let handle_id = match extract_number(handle, "call") {
-        Ok(n) => n as i64,
-        Err(e) => return verr!(vs!(format!("call: {}", e))),
+    let handle_id = match extract_handle(handle, HandleKind::C, "call") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
+
     let fn_name = match extract_string(fn_name, "call") {
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("call: {}", e))),

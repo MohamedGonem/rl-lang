@@ -2,7 +2,7 @@ use crate::{
     evaluator::Evaluator,
     stdlib::{
         c::{CHandle, common::insert_handle},
-        common::{extract_string, verr, vi, vok, vs},
+        common::{extract_string, verr, vok, vs},
     },
     values::Value,
 };
@@ -25,5 +25,5 @@ pub fn func(eval: &mut Evaluator, path: Value) -> Value {
     };
 
     let id = insert_handle(eval, CHandle::Library(lib));
-    vok!(vi!(id))
+    vok!(id)
 }

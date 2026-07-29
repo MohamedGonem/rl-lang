@@ -1,14 +1,20 @@
 use std::path::PathBuf;
 
+use rl_ast::statements::HandleKind;
+
 use crate::Vm;
 use crate::stdlib::c::CHandle;
+use crate::values::VmValue;
 
 /// Registers a new handle and returns its id.
-pub fn insert_handle(vm: &mut Vm, handle: CHandle) -> i64 {
+pub fn insert_handle(vm: &mut Vm, handle: CHandle) -> VmValue {
     let id = vm.c_next_handle;
     vm.c_next_handle += 1;
     vm.c_handles.insert(id, handle);
-    id
+    VmValue::Handle {
+        kind: HandleKind::C,
+        id,
+    }
 }
 
 /// Where `compile` caches built shared libraries by content hash, and what

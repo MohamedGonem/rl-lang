@@ -1,15 +1,17 @@
 use std::time::Duration;
 
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
-    stdlib::common::{extract_number, verr, vnl, vok, vs},
+    stdlib::common::{extract_handle, extract_number, verr, vnl, vok, vs},
     values::Value,
 };
 
 pub fn func(eval: &mut Evaluator, handle: Value, position_ms: Value) -> Value {
-    let id = match extract_number(handle, "sound_seek") {
-        Ok(n) => n as i64,
-        Err(e) => return verr!(vs!(format!("sound_seek: {}", e))),
+    let id = match extract_handle(handle, HandleKind::Audio, "sound_seek") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
     let position_ms = match extract_number(position_ms, "sound_seek") {
         Ok(n) => n,

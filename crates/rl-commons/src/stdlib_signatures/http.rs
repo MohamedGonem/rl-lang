@@ -2,7 +2,7 @@
 
 use super::{fixed, handle, handle_to_string, overloads, params, result};
 use crate::{ModuleNames, StdFn};
-use rl_ast::statements::TypeAnnotation as T;
+use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 use std::rc::Rc;
 
 pub fn module() -> ModuleNames {
@@ -28,41 +28,54 @@ fn status_and_body() -> T {
 fn http_server_start() -> StdFn {
     StdFn::typed(
         "http_server_start",
-        vec![(params(vec![T::String]), result(T::Int))],
+        vec![(params(vec![T::String]), result(T::Handle(HandleKind::Http)))],
     )
 }
 
 fn http_server_recv() -> StdFn {
     StdFn::typed(
         "http_server_recv",
-        overloads(vec![handle()], result(T::Int)),
+        overloads(
+            vec![handle(HandleKind::Http)],
+            result(T::Handle(HandleKind::Http)),
+        ),
     )
 }
 
 fn http_request_method() -> StdFn {
-    handle_to_string("http_request_method")
+    handle_to_string("http_request_method", HandleKind::Http)
 }
+
 fn http_request_url() -> StdFn {
-    handle_to_string("http_request_url")
+    handle_to_string("http_request_url", HandleKind::Http)
 }
+
 fn http_request_body() -> StdFn {
-    handle_to_string("http_request_body")
+    handle_to_string("http_request_body", HandleKind::Http)
 }
 
 fn http_request_header() -> StdFn {
     StdFn::typed(
         "http_request_header",
-        overloads(vec![handle(), fixed(T::String)], result(T::String)),
+        overloads(
+            vec![handle(HandleKind::Http), fixed(T::String)],
+            result(T::String),
+        ),
     )
 }
 
 fn http_respond() -> StdFn {
     let mut signatures = overloads(
-        vec![handle(), fixed(T::Int), fixed(T::String)],
+        vec![handle(HandleKind::Http), fixed(T::Int), fixed(T::String)],
         result(T::Null),
     );
     signatures.extend(overloads(
-        vec![handle(), fixed(T::Int), fixed(T::String), fixed(T::String)],
+        vec![
+            handle(HandleKind::Http),
+            fixed(T::Int),
+            fixed(T::String),
+            fixed(T::String),
+        ],
         result(T::Null),
     ));
     StdFn::typed("http_respond", signatures)
@@ -71,7 +84,7 @@ fn http_respond() -> StdFn {
 fn http_server_stop() -> StdFn {
     StdFn::typed(
         "http_server_stop",
-        overloads(vec![handle()], result(T::Null)),
+        overloads(vec![handle(HandleKind::Http)], result(T::Null)),
     )
 }
 
