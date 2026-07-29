@@ -1,4 +1,5 @@
 use crate::values::Value;
+use rl_ast::statements::HandleKind;
 use rl_utils::{
     errors::{Error, Reason},
     span::Span,
@@ -96,6 +97,25 @@ pub fn extract_number(value: Value, name: &str) -> Result<u64, String> {
         _ => {
             unreachable!()
         }
+    }
+}
+
+/// Unwraps a `Value::Handle` of the expected kind into its raw id.
+/// This is the runtime half of the checker's static rejection - it catches
+/// a wrong-module handle that reached here anyway (e.g. through an `array[?]`
+/// or anything else the static checker can't fully see through).
+pub fn extract_handle(value: Value, expected: HandleKind, name: &str) -> Result<u64, String> {
+    match value {
+        Value::Handle { kind, id } if kind == expected => Ok(id),
+        Value::Handle { kind, .. } => Err(format!(
+            "{}: expected a {:?} handle, got a {:?} handle",
+            name, expected, kind
+        )),
+        other => Err(format!(
+            "{}: expected a handle, got {}",
+            name,
+            other.type_name()
+        )),
     }
 }
 

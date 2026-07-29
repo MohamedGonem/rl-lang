@@ -2,7 +2,7 @@
 
 use super::{fixed, handle, handle_to_string, overloads, params, result};
 use crate::{ModuleNames, StdFn};
-use rl_ast::statements::TypeAnnotation as T;
+use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 use std::rc::Rc;
 
 pub fn module() -> ModuleNames {
@@ -31,69 +31,96 @@ pub fn module() -> ModuleNames {
 fn tcp_listen() -> StdFn {
     StdFn::typed(
         "tcp_listen",
-        vec![(params(vec![T::String]), result(T::Int))],
+        vec![(params(vec![T::String]), result(T::Handle(HandleKind::Net)))],
     )
 }
 
 fn tcp_accept() -> StdFn {
-    StdFn::typed("tcp_accept", overloads(vec![handle()], result(T::Int)))
+    StdFn::typed(
+        "tcp_accept",
+        overloads(
+            vec![handle(HandleKind::Net)],
+            result(T::Handle(HandleKind::Net)),
+        ),
+    )
 }
 
 fn tcp_connect() -> StdFn {
     StdFn::typed(
         "tcp_connect",
-        vec![(params(vec![T::String]), result(T::Int))],
+        vec![(params(vec![T::String]), result(T::Handle(HandleKind::Net)))],
     )
 }
 
 fn tcp_read() -> StdFn {
     StdFn::typed(
         "tcp_read",
-        overloads(vec![handle(), handle()], result(T::String)),
+        overloads(
+            vec![handle(HandleKind::Net), handle(HandleKind::Net)],
+            result(T::String),
+        ),
     )
 }
 
 fn tcp_write() -> StdFn {
     StdFn::typed(
         "tcp_write",
-        overloads(vec![handle(), fixed(T::String)], result(T::Int)),
+        overloads(
+            vec![handle(HandleKind::Net), fixed(T::String)],
+            result(T::Int),
+        ),
     )
 }
 
 fn tcp_peer_addr() -> StdFn {
-    handle_to_string("tcp_peer_addr")
+    handle_to_string("tcp_peer_addr", HandleKind::Net)
 }
+
 fn tcp_local_addr() -> StdFn {
-    handle_to_string("tcp_local_addr")
+    handle_to_string("tcp_local_addr", HandleKind::Net)
 }
 
 fn tcp_set_timeout() -> StdFn {
     StdFn::typed(
         "tcp_set_timeout",
-        overloads(vec![handle(), handle()], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Net), handle(HandleKind::Net)],
+            result(T::Null),
+        ),
     )
 }
 
 fn tcp_set_nonblocking() -> StdFn {
     StdFn::typed(
         "tcp_set_nonblocking",
-        overloads(vec![handle(), fixed(T::Bool)], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Net), fixed(T::Bool)],
+            result(T::Null),
+        ),
     )
 }
 
 fn tcp_shutdown() -> StdFn {
     StdFn::typed(
         "tcp_shutdown",
-        overloads(vec![handle(), fixed(T::String)], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Net), fixed(T::String)],
+            result(T::Null),
+        ),
     )
 }
 
 fn close(name: &'static str) -> StdFn {
-    StdFn::typed(name, overloads(vec![handle()], result(T::Null)))
+    StdFn::typed(
+        name,
+        overloads(vec![handle(HandleKind::Net)], result(T::Null)),
+    )
 }
+
 fn tcp_close() -> StdFn {
     close("tcp_close")
 }
+
 fn udp_close() -> StdFn {
     close("udp_close")
 }
@@ -105,14 +132,20 @@ fn udp_bind() -> StdFn {
 fn udp_connect() -> StdFn {
     StdFn::typed(
         "udp_connect",
-        overloads(vec![handle(), fixed(T::String)], result(T::Null)),
+        overloads(
+            vec![handle(HandleKind::Net), fixed(T::String)],
+            result(T::Null),
+        ),
     )
 }
 
 fn udp_send() -> StdFn {
     StdFn::typed(
         "udp_send",
-        overloads(vec![handle(), fixed(T::String)], result(T::Int)),
+        overloads(
+            vec![handle(HandleKind::Net), fixed(T::String)],
+            result(T::Int),
+        ),
     )
 }
 
@@ -120,7 +153,7 @@ fn udp_send_to() -> StdFn {
     StdFn::typed(
         "udp_send_to",
         overloads(
-            vec![handle(), fixed(T::String), fixed(T::String)],
+            vec![handle(HandleKind::Net), fixed(T::String), fixed(T::String)],
             result(T::Int),
         ),
     )
@@ -129,7 +162,10 @@ fn udp_send_to() -> StdFn {
 fn udp_recv() -> StdFn {
     StdFn::typed(
         "udp_recv",
-        overloads(vec![handle(), handle()], result(T::String)),
+        overloads(
+            vec![handle(HandleKind::Net), handle(HandleKind::Net)],
+            result(T::String),
+        ),
     )
 }
 
@@ -137,7 +173,7 @@ fn udp_recv_from() -> StdFn {
     StdFn::typed(
         "udp_recv_from",
         overloads(
-            vec![handle(), handle()],
+            vec![handle(HandleKind::Net), handle(HandleKind::Net)],
             result(T::Tuple(Rc::new(vec![T::String, T::String]))),
         ),
     )

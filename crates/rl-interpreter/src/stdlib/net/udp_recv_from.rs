@@ -1,22 +1,20 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
     stdlib::{
-        common::{extract_number, verr, vok, vs},
+        common::{extract_handle, extract_number, verr, vok, vs},
         net::NetHandle,
     },
     values::Value,
 };
 
-pub fn func(eval: &mut Evaluator, id: Value, max_bytes: Value) -> Value {
-    let id = match extract_number(id, "udp_recv_from") {
-        Ok(a) if a as i64 >= 0 => a as i64,
-        Ok(_) => {
-            return verr!(vs!(
-                "udp_recv_from: id handle cannot be negative".to_string()
-            ));
-        }
-        Err(e) => return verr!(vs!(format!("{}", e))),
+pub fn func(eval: &mut Evaluator, handle: Value, max_bytes: Value) -> Value {
+    let id = match extract_handle(handle, HandleKind::Net, "udp_recv_from") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
+
     let max_bytes = match extract_number(max_bytes, "udp_recv_from") {
         Ok(a) => a as usize,
         Err(e) => return verr!(vs!(format!("{}", e))),
