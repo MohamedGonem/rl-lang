@@ -1,16 +1,18 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     Vm,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string},
+        common::{extract_handle, extract_string},
         macros::{vb, verr, vok, vs},
     },
     values::VmValue,
 };
 
 pub fn std_has_symbol(vm: &mut Vm, handle: VmValue, fn_name: VmValue) -> VmValue {
-    let handle_id = match extract_number(handle, "has_symbol") {
-        Ok(n) => n as i64,
+    let handle_id = match extract_handle(handle, HandleKind::C, "has_symbol") {
+        Ok(id) => id,
         Err(e) => return verr!(vs!(format!("has_symbol: {}", e))),
     };
     let fn_name = match extract_string(fn_name, "has_symbol") {

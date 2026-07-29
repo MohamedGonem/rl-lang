@@ -1,12 +1,13 @@
 use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
 use libloading::Symbol;
+use rl_ast::statements::HandleKind;
 use std::rc::Rc;
 
 use crate::{
     Vm,
     stdlib::{
         c::CHandle,
-        common::{extract_number, extract_string},
+        common::{extract_handle, extract_string},
         macros::{vb, vby, verr, vf, vi, vnl, vok, vs},
     },
     values::VmValue,
@@ -84,8 +85,8 @@ pub fn std_call(
     arg_types: VmValue,
     ret_type: VmValue,
 ) -> VmValue {
-    let handle_id = match extract_number(handle, "call") {
-        Ok(n) => n as i64,
+    let handle_id = match extract_handle(handle, HandleKind::C, "call") {
+        Ok(id) => id,
         Err(e) => return verr!(vs!(format!("call: {}", e))),
     };
     let fn_name = match extract_string(fn_name, "call") {

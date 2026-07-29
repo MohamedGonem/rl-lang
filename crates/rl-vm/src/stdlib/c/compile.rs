@@ -11,7 +11,7 @@ use crate::{
             common::{cache_dir, insert_handle},
         },
         common::extract_string,
-        macros::{verr, vi, vok, vs},
+        macros::{verr, vok, vs},
     },
     values::VmValue,
 };
@@ -112,6 +112,6 @@ pub fn std_compile(vm: &mut Vm, source: VmValue) -> VmValue {
         }
     };
 
-    let id = insert_handle(vm, CHandle::Library(lib));
-    vok!(vi!(id))
+    let handle = insert_handle(vm, CHandle::Library(lib));
+    vok!(handle)
 }
