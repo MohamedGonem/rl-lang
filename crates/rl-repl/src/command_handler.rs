@@ -11,6 +11,7 @@
 //! | `:load <file>`       | Print a file's contents into the output       |
 //! | `:attach <file>`     | Lex, parse, and evaluate a file into the env  |
 //! | `:detach <file>`     | Remove a file from the attached list          |
+//! | `:clear`             | Clear the output buffer                       |
 //! | `:exit`              | Exit the REPL                                 |
 //!
 //! Note: `:detach` removes the file from the tracked list but does **not**
@@ -60,6 +61,7 @@ pub fn handle_command(
                 (":load", Some(" <file>"), "load and print file"),
                 (":attach", Some(" <file>"), "import file into env"),
                 (":detach", Some(" <file>"), "remove attached file"),
+                (":clear", None, "clear the output buffer"),
                 (":exit", None, "quit  (ctrl+c also works)"),
             ];
             for (command, argument, description) in entries {
@@ -222,6 +224,10 @@ pub fn handle_command(
                     path.display()
                 )));
             }
+        }
+
+        ":clear" => {
+            output.clear();
         }
 
         _ => {
