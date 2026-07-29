@@ -1,13 +1,15 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
-    stdlib::common::{extract_number, verr, vnl, vok, vs},
+    stdlib::common::{extract_handle, verr, vnl, vok, vs},
     values::Value,
 };
 
 pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
-    let id = match extract_number(handle, "sound_stop") {
-        Ok(n) => n as i64,
-        Err(e) => return verr!(vs!(format!("sound_stop: {}", e))),
+    let id = match extract_handle(handle, HandleKind::Audio, "sound_stop") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
 
     match eval.audio_handles.remove(&id) {
