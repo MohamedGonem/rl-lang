@@ -86,8 +86,13 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
 
             // output area
             let out_lines = render_output(&output);
-            let total = out_lines.len();
+            let inner_width = chunks[0].width.saturating_sub(2);
             let visible = chunks[0].height.saturating_sub(2) as usize;
+
+            let total = Paragraph::new(out_lines.clone())
+                .wrap(Wrap { trim: false })
+                .line_count(inner_width);
+
             let max_scroll = total.saturating_sub(visible);
             // scroll_offset=0 means bottom and larger values scroll up
             let scroll = max_scroll.saturating_sub(scroll_offset) as u16;
