@@ -22,10 +22,10 @@
 
 use std::{fs, path::PathBuf};
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use rl_docs::entries;
 
-use crate::{lines_types::OutputLine, utils::push_error};
+use crate::{lines_types::OutputLine, theme, utils::push_error};
 use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
@@ -42,18 +42,18 @@ pub fn handle_command(
     match parts[0] {
         ":help" => {
             let cmd = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let arg = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             output.push(OutputLine::Styled(vec![(
                 "Commands".to_string(),
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(theme::TITLE)
                     .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             )]));
             let entries: &[(&str, Option<&str>, &str)] = &[
@@ -84,16 +84,16 @@ pub fn handle_command(
         }
         ":stdlib" => {
             let header = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::TITLE)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
             let modname = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let sig = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             if parts.len() == 1 {
                 output.push(OutputLine::Styled(vec![(
