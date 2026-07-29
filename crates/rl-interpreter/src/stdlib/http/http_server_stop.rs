@@ -1,21 +1,19 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
     stdlib::{
-        common::{extract_number, verr, vnl, vok, vs},
+        common::{extract_handle, verr, vnl, vok, vs},
         http::HttpHandle,
     },
     values::Value,
 };
-pub fn func(eval: &mut Evaluator, id: Value) -> Value {
-    let id = match extract_number(id, "http_server_stop") {
-        Ok(a) if a as i64 >= 0 => a as i64,
-        Ok(_) => {
-            return verr!(vs!(
-                "http_server_stop: id handle cannot be negative".to_string()
-            ));
-        }
-        Err(e) => return verr!(vs!(format!("{}", e))),
+pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
+    let id = match extract_handle(handle, HandleKind::Http, "http_server_stop") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
     };
+
     match eval.http_handles.get(&id) {
         Some(HttpHandle::Server(_)) => {
             eval.http_handles.remove(&id);

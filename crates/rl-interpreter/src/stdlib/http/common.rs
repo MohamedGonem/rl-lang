@@ -1,3 +1,5 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     evaluator::Evaluator,
     stdlib::{
@@ -24,9 +26,12 @@ pub fn ureq_result_to_value(url: &str, result: Result<ureq::Response, ureq::Erro
     }
 }
 
-pub fn insert_handle(eval: &mut Evaluator, handle: HttpHandle) -> i64 {
+pub fn insert_handle(eval: &mut Evaluator, handle: HttpHandle) -> Value {
     let id = eval.http_next_handle;
     eval.http_next_handle += 1;
     eval.http_handles.insert(id, handle);
-    id
+    Value::Handle {
+        kind: HandleKind::Http,
+        id,
+    }
 }

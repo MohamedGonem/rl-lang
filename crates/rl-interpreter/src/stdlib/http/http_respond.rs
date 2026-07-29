@@ -1,24 +1,20 @@
 use crate::{
     evaluator::Evaluator,
     stdlib::{
-        common::{check_arity_range, extract_number, extract_string, verr, vok, vs},
+        common::{check_arity_range, extract_handle, extract_string, verr, vok, vs},
         http::HttpHandle,
     },
     values::Value,
 };
+use rl_ast::statements::HandleKind;
 use rl_utils::{errors::Error, span::Span};
 
 pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
     check_arity_range(&args, 3, 4, "http_post", span)?;
 
-    let id = match extract_number(args[0].clone(), "http_respond") {
-        Ok(a) if a as i64 >= 0 => a as i64,
-        Ok(_) => {
-            return Ok(verr!(vs!(
-                "http_respond: id handle cannot be negative".to_string()
-            )));
-        }
-        Err(e) => return Ok(verr!(vs!(format!("{}", e)))),
+    let id = match extract_handle(args[0].clone(), HandleKind::Http, "http_respond") {
+        Ok(id) => id,
+        Err(e) => return Ok(verr!(vs!(e))),
     };
 
     let status = match &args[1] {
