@@ -27,6 +27,15 @@ pub struct Statement {
     pub span: Span,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum HandleKind {
+    C = 0,
+    Net = 1,
+    Http = 2,
+    Audio = 3,
+}
+
 impl Statement {
     pub fn new(kind: StatementKind, span: Span) -> Self {
         Self { kind, span }
@@ -396,6 +405,9 @@ pub enum TypeAnnotation {
 
     Generic(String),
     Callback(Vec<TypeAnnotation>, Box<TypeAnnotation>),
+
+    // ---std-specific---
+    Handle(HandleKind),
 }
 
 /// A single function or lambda parameter: a name and its type annotation.
