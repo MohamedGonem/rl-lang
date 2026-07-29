@@ -12,10 +12,13 @@
 //! | `:attach <file>`     | Lex, parse, and evaluate a file into the env  |
 //! | `:detach <file>`     | Remove a file from the attached list          |
 //! | `:clear`             | Clear the output buffer                       |
+//! | `:reset`             | Reset the evaluator to a fresh environment    |
 //! | `:exit`              | Exit the REPL                                 |
 //!
 //! Note: `:detach` removes the file from the tracked list but does **not**
 //! undefine variables or functions already loaded into the evaluator environment.
+//! `:reset` is the stronger operation - it replaces the evaluator entirely,
+//! clearing all defined variables/functions and the attached-files list.
 
 use std::{fs, path::PathBuf};
 
@@ -62,6 +65,7 @@ pub fn handle_command(
                 (":attach", Some(" <file>"), "import file into env"),
                 (":detach", Some(" <file>"), "remove attached file"),
                 (":clear", None, "clear the output buffer"),
+                (":reset", None, "reset evaluator to a fresh env"),
                 (":exit", None, "quit  (ctrl+c also works)"),
             ];
             for (command, argument, description) in entries {
@@ -228,6 +232,13 @@ pub fn handle_command(
 
         ":clear" => {
             output.clear();
+        }
+
+        ":reset" => {
+            *evaluator = Evaluator::default().with_stdlib();
+            attached.clear();
+            output.clear();
+            output.push(OutputLine::Info("environment reset".into()));
         }
 
         _ => {
