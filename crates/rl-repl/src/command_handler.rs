@@ -11,17 +11,21 @@
 //! | `:load <file>`       | Print a file's contents into the output       |
 //! | `:attach <file>`     | Lex, parse, and evaluate a file into the env  |
 //! | `:detach <file>`     | Remove a file from the attached list          |
+//! | `:clear`             | Clear the output buffer                       |
+//! | `:reset`             | Reset the evaluator to a fresh environment    |
 //! | `:exit`              | Exit the REPL                                 |
 //!
 //! Note: `:detach` removes the file from the tracked list but does **not**
 //! undefine variables or functions already loaded into the evaluator environment.
+//! `:reset` is the stronger operation - it replaces the evaluator entirely,
+//! clearing all defined variables/functions and the attached-files list.
 
 use std::{fs, path::PathBuf};
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use rl_docs::entries;
 
-use crate::{lines_types::OutputLine, utils::push_error};
+use crate::{lines_types::OutputLine, theme, utils::push_error};
 use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
@@ -38,18 +42,18 @@ pub fn handle_command(
     match parts[0] {
         ":help" => {
             let cmd = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let arg = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             output.push(OutputLine::Styled(vec![(
                 "Commands".to_string(),
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(theme::TITLE)
                     .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             )]));
             let entries: &[(&str, Option<&str>, &str)] = &[
@@ -60,6 +64,8 @@ pub fn handle_command(
                 (":load", Some(" <file>"), "load and print file"),
                 (":attach", Some(" <file>"), "import file into env"),
                 (":detach", Some(" <file>"), "remove attached file"),
+                (":clear", None, "clear the output buffer"),
+                (":reset", None, "reset evaluator to a fresh env"),
                 (":exit", None, "quit  (ctrl+c also works)"),
             ];
             for (command, argument, description) in entries {
@@ -78,16 +84,16 @@ pub fn handle_command(
         }
         ":stdlib" => {
             let header = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::TITLE)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
             let modname = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let sig = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             if parts.len() == 1 {
                 output.push(OutputLine::Styled(vec![(
@@ -222,6 +228,17 @@ pub fn handle_command(
                     path.display()
                 )));
             }
+        }
+
+        ":clear" => {
+            output.clear();
+        }
+
+        ":reset" => {
+            *evaluator = Evaluator::default().with_stdlib();
+            attached.clear();
+            output.clear();
+            output.push(OutputLine::Info("environment reset".into()));
         }
 
         _ => {

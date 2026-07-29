@@ -7,15 +7,17 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. A TUI REPL 
 ## Layout
 
 ```text
-|---------------------------------|
-|  output area  (scrollable)      |
-|  >> dec int x = 10              |
-|  >> x + 1                       |
-|  11                             |
-|---------------------------------|
-|  >> _  (input bar)              |
-|---------------------------------|
+|-- ✦ rl ------------------------ ● live --|
+|  ❯ dec int x = 10                        |
+|  ❯ x + 1                                 |
+|  11                                       |
+|--------------------------------------------|
+|-- input ---- Tab complete · Shift+↑↓ ... --|
+|  ❯ _                                      |
+|--------------------------------------------|
 ```
+
+A dark, Tokyo-Night-adjacent palette is centralized in `theme.rs` - see that module for the full color list.
 
 ## Key bindings
 
@@ -28,6 +30,7 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. A TUI REPL 
 | `Shift+↑/↓` | Scroll output |
 | `Ctrl+←/→` | Word jump |
 | `Home` / `End` | Line start / end |
+| `Tab` | Complete word at cursor / cycle candidates |
 
 ## Modules
 
@@ -35,11 +38,13 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. A TUI REPL 
 |---|---|
 | `logic_loop` | Main event loop driving the REPL |
 | `command_handler` | Handles REPL meta-commands |
+| `completion` | Tab-completion candidate generation (`:`-commands, keywords, stdlib paths, bound names) |
 | `depth_checker` | Detects unterminated input to trigger multiline continuation |
 | `input_eval` | Feeds submitted input through the lex/parse/resolve/evaluate pipeline |
 | `lines_types` | Types backing the scrollable output/history buffers |
 | `output_render` | Renders evaluation results and errors to the output area |
 | `syntax_highlighting` | Live syntax highlighting of the input bar |
+| `theme` | Centralized color palette used by every widget |
 | `utils` | Shared REPL helpers |
 
 ## Dependencies

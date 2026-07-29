@@ -5,11 +5,11 @@
 //! ```text
 //! |---------------------------------|
 //! |  output area  (scrollable)      |
-//! |  >> dec int x = 10              |
-//! |  >> x + 1                       |
+//! |  ❯ dec int x = 10               |
+//! |  ❯ x + 1                        |
 //! |  11                             |
 //! |---------------------------------|
-//! |  >> _  (input bar)              |
+//! |  ❯ _  (input bar)               |
 //! |---------------------------------|
 //! ```
 //!
@@ -24,14 +24,17 @@
 //! | `Shift+↑/↓`   | Scroll output                 |
 //! | `Ctrl+←/→`    | Word jump                     |
 //! | `Home` / `End` | Line start / end              |
+//! | `Tab`          | Complete / cycle candidates   |
 
 mod command_handler;
+mod completion;
 mod depth_checker;
 mod input_eval;
 mod lines_types;
 mod logic_loop;
 mod output_render;
 mod syntax_highlighting;
+mod theme;
 mod utils;
 
 /// Initializes the ratatui terminal, runs the REPL loop, and restores the
