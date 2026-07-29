@@ -34,6 +34,7 @@ mod lines_types;
 mod logic_loop;
 mod output_render;
 mod syntax_highlighting;
+mod theme;
 mod utils;
 
 /// Initializes the ratatui terminal, runs the REPL loop, and restores the
