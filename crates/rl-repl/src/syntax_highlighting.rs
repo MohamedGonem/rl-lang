@@ -3,28 +3,32 @@
 //! Lexes the input with the real rl lexer and maps each [`TokenType`] to a
 //! ratatui [`Style`]. Gaps between token spans are emitted as unstyled raw spans
 //! to preserve whitespace exactly. On lex failure the entire input is returned
-//! as a single red span.
+//! as a single error-colored span.
 //!
 //! # Color scheme
 //!
-//! | Token group         | Color / modifier         |
-//! |---------------------|--------------------------|
-//! | Control flow        | Cyan bold                |
-//! | Declarations        | Cyan italic              |
-//! | Import keywords     | Cyan dim                 |
-//! | Type keywords       | Light blue italic        |
-//! | Logical operators   | Yellow bold              |
-//! | Number literals     | Magenta                  |
-//! | String literals     | Yellow                   |
-//! | Char literals       | Light yellow             |
-//! | Bool literals       | Magenta italic           |
-//! | `null`              | Dark gray italic         |
-//! | Comparison ops      | Light cyan               |
-//! | Punctuation/braces  | Dark gray                |
-//! | Identifiers         | White                    |
+//! Colors are pulled from [`crate::theme`] so the input bar's highlighting
+//! stays visually consistent with borders, prompts, and output coloring.
+//!
+//! | Token group         | Color / modifier            |
+//! |---------------------|------------------------------|
+//! | Control flow        | `SYN_KEYWORD` bold           |
+//! | Declarations        | `SYN_DECL` italic            |
+//! | Import keywords     | `SYN_IMPORT` dim             |
+//! | Type keywords       | `SYN_TYPE` italic            |
+//! | Logical operators   | `SYN_LOGIC` bold             |
+//! | Number literals     | `SYN_NUMBER`                 |
+//! | String literals     | `SYN_STRING`                 |
+//! | Char literals       | `SYN_CHAR`                   |
+//! | Bool literals       | `SYN_BOOL` italic            |
+//! | `null`              | `SYN_NULL` italic            |
+//! | Comparison ops      | `SYN_COMPARE`                |
+//! | Punctuation/braces  | `SYN_PUNCT`                  |
+//! | Identifiers         | `theme::TEXT`                |
 
+use crate::theme;
 use ratatui::{
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::Span,
 };
 use rl_lexer::{tokenizer::Tokenizer, tokentypes::TokenType};
@@ -33,7 +37,7 @@ use rl_utils::source::SourceFile;
 /// Returns the ratatui [`Style`] for a given [`TokenType`].
 fn token_color(tt: &TokenType) -> Style {
     match tt {
-        // control flow - cyan bold
+        // control flow
         TokenType::If
         | TokenType::Else
         | TokenType::While
@@ -41,20 +45,20 @@ fn token_color(tt: &TokenType) -> Style {
         | TokenType::Break
         | TokenType::Continue
         | TokenType::Return => Style::default()
-            .fg(Color::Cyan)
+            .fg(theme::SYN_KEYWORD)
             .add_modifier(Modifier::BOLD),
 
-        // declarations cyan italic
+        // declarations
         TokenType::Dec | TokenType::Const | TokenType::Fn | TokenType::Array => Style::default()
-            .fg(Color::Cyan)
+            .fg(theme::SYN_DECL)
             .add_modifier(Modifier::ITALIC),
 
-        // import keywords cyan dim
-        TokenType::Get | TokenType::From => {
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::DIM)
-        }
+        // import keywords
+        TokenType::Get | TokenType::From => Style::default()
+            .fg(theme::SYN_IMPORT)
+            .add_modifier(Modifier::DIM),
 
-        // types light blue italic
+        // types
         TokenType::Int
         | TokenType::UInt
         | TokenType::Float
@@ -63,41 +67,39 @@ fn token_color(tt: &TokenType) -> Style {
         | TokenType::Char
         | TokenType::Byte
         | TokenType::Error => Style::default()
-            .fg(Color::LightBlue)
+            .fg(theme::SYN_TYPE)
             .add_modifier(Modifier::ITALIC),
 
-        // logic operators yellow
+        // logic operators
         TokenType::Or | TokenType::And => Style::default()
-            .fg(Color::Yellow)
+            .fg(theme::SYN_LOGIC)
             .add_modifier(Modifier::BOLD),
 
-        // number literals magenta
+        // number literals
         TokenType::NumberLiteral(_) | TokenType::FloatLiteral(_) => {
-            Style::default().fg(Color::Magenta)
+            Style::default().fg(theme::SYN_NUMBER)
         }
 
-        // string literals yellow
-        TokenType::StringLiteral(_) => Style::default().fg(Color::Yellow),
+        // string literals
+        TokenType::StringLiteral(_) => Style::default().fg(theme::SYN_STRING),
 
-        // char literals light yellow
-        TokenType::CharacterLiteral(_) => Style::default().fg(Color::LightYellow),
+        // char literals
+        TokenType::CharacterLiteral(_) => Style::default().fg(theme::SYN_CHAR),
 
-        // bool literals magenta italic
+        // bool literals
         TokenType::BoolLiteral(_) => Style::default()
-            .fg(Color::Magenta)
+            .fg(theme::SYN_BOOL)
             .add_modifier(Modifier::ITALIC),
 
-        // null dark gray italic
+        // null
         TokenType::Null => Style::default()
-            .fg(Color::DarkGray)
+            .fg(theme::SYN_NULL)
             .add_modifier(Modifier::ITALIC),
 
-        // arrow white dim (->)
-        TokenType::Arrow => Style::default()
-            .fg(Color::White)
-            .add_modifier(Modifier::DIM),
+        // arrow, dimmed
+        TokenType::Arrow => Style::default().fg(theme::TEXT).add_modifier(Modifier::DIM),
 
-        // operators white
+        // operators
         TokenType::Plus
         | TokenType::Minus
         | TokenType::Star
@@ -106,20 +108,20 @@ fn token_color(tt: &TokenType) -> Style {
         | TokenType::PlusEqual
         | TokenType::MinusEqual
         | TokenType::StarEqual
-        | TokenType::SlashEqual => Style::default().fg(Color::White),
+        | TokenType::SlashEqual => Style::default().fg(theme::SYN_OPERATOR),
 
-        // comparison operators light cyan
+        // comparison operators
         TokenType::Compare
         | TokenType::BangEqual
         | TokenType::Greater
         | TokenType::GreaterEqual
         | TokenType::Less
-        | TokenType::LessEqual => Style::default().fg(Color::LightCyan),
+        | TokenType::LessEqual => Style::default().fg(theme::SYN_COMPARE),
 
-        // assignment white
-        TokenType::Assign => Style::default().fg(Color::White),
+        // assignment
+        TokenType::Assign => Style::default().fg(theme::SYN_OPERATOR),
 
-        // punctuation dark gray
+        // punctuation
         TokenType::Comma
         | TokenType::Semicolon
         | TokenType::Colon
@@ -127,26 +129,26 @@ fn token_color(tt: &TokenType) -> Style {
         | TokenType::Dot
         | TokenType::DotDot
         | TokenType::Hash
-        | TokenType::BangHash => Style::default().fg(Color::DarkGray),
+        | TokenType::BangHash => Style::default().fg(theme::SYN_PUNCT),
 
-        // braces/parens/brackets dark gray
+        // braces/parens/brackets
         TokenType::LeftBrace
         | TokenType::RightBrace
         | TokenType::LeftParen
         | TokenType::RightParen
         | TokenType::LeftBracket
-        | TokenType::RightBracket => Style::default().fg(Color::DarkGray),
+        | TokenType::RightBracket => Style::default().fg(theme::SYN_PUNCT),
 
-        // identifiers white
-        TokenType::Identifier(_) => Style::default().fg(Color::White),
+        // identifiers
+        TokenType::Identifier(_) => Style::default().fg(theme::TEXT),
 
-        _ => Style::default().fg(Color::White),
+        _ => Style::default().fg(theme::TEXT),
     }
 }
 
 /// Lexes `input` and returns a vec of syntax-highlighted [`Span`]s.
 ///
-/// On lex error returns a single red span containing the raw input.
+/// On lex error returns a single error-colored span containing the raw input.
 pub fn highlight(input: &str) -> Vec<Span<'static>> {
     let source = SourceFile::new("<hl>", input.to_string());
     let tokens = match Tokenizer::lex(source) {
@@ -154,7 +156,7 @@ pub fn highlight(input: &str) -> Vec<Span<'static>> {
         Err(_) => {
             return vec![Span::styled(
                 input.to_string(),
-                Style::default().fg(Color::Red),
+                Style::default().fg(theme::ERROR),
             )];
         }
     };
@@ -173,7 +175,7 @@ pub fn highlight(input: &str) -> Vec<Span<'static>> {
         }
 
         let text: String = chars[start..end].iter().collect();
-        let style = token_color(&tok.token); // ← Style now, not Color
+        let style = token_color(&tok.token);
         spans.push(Span::styled(text, style));
         last = end;
     }
