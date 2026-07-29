@@ -3,6 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::rc::Rc;
 
+use rl_ast::statements::HandleKind;
+
 use crate::Chunk;
 use crate::native::NativeFn;
 
@@ -45,6 +47,11 @@ pub enum VmValue {
         func: Rc<VmFunction>,
         captured: Rc<Vec<VmValue>>,
         capture_start: u16,
+    },
+    /// An opaque resource id scoped to one stdlib module (`c`, `audio`, ...).
+    Handle {
+        kind: HandleKind,
+        id: u64,
     },
 }
 
@@ -217,6 +224,7 @@ impl fmt::Display for VmValue {
             }
             VmValue::Tag { name, variant } => write!(f, "{}.{}", name, variant),
             VmValue::Closure { func, .. } => write!(f, "<closure {}/{}>", func.name, func.arity),
+            VmValue::Handle { kind, id } => write!(f, "<{:?} handle #{}>", kind, id),
         }
     }
 }
@@ -251,6 +259,12 @@ impl VmValue {
             VmValue::Record { .. } => "record",
             VmValue::Tag { .. } => "tag",
             VmValue::Closure { .. } => "closure",
+            VmValue::Handle { kind, .. } => match kind {
+                HandleKind::C => "c handle",
+                HandleKind::Net => "net handle",
+                HandleKind::Http => "http handle",
+                HandleKind::Audio => "audio handle",
+            },
         }
     }
 
