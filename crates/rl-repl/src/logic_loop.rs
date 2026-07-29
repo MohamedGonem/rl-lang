@@ -41,15 +41,19 @@ use super::{
     lines_types::OutputLine,
     output_render::render_output,
     syntax_highlighting::highlight,
+    theme,
     utils::char_to_byte,
 };
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::{
     DefaultTerminal,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
+    layout::{Constraint, Direction, Layout, Margin},
+    style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{
+        Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        Wrap,
+    },
 };
 use rl_interpreter::evaluator::Evaluator;
 use std::path::PathBuf;
@@ -82,7 +86,12 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
     loop {
         // draw
         let is_continuation = !accumulated.is_empty();
-        let prompt = if is_continuation { ".. " } else { ">> " };
+        let prompt = if is_continuation { "· " } else { "❯ " };
+        let prompt_color = if is_continuation {
+            theme::ACCENT2
+        } else {
+            theme::ACCENT
+        };
 
         terminal.draw(|frame| {
             let area = frame.area();
@@ -99,28 +108,57 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
             // scroll_offset=0 means bottom and larger values scroll up
             let scroll = max_scroll.saturating_sub(scroll_offset) as u16;
 
+            let status = if scroll_offset == 0 {
+                Span::styled(" ● live ", Style::default().fg(theme::SUCCESS))
+            } else {
+                let clamped = scroll_offset.min(max_scroll);
+                Span::styled(
+                    format!(" ▲ +{clamped} "),
+                    Style::default().fg(theme::WARNING),
+                )
+            };
+
             let output_widget = Paragraph::new(out_lines)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::DarkGray))
-                        .title(Span::styled(
-                            " rl ",
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(theme::BORDER))
+                        .title(Line::from(Span::styled(
+                            " ✦ rl ",
                             Style::default()
-                                .fg(Color::Cyan)
+                                .fg(theme::TITLE)
                                 .add_modifier(Modifier::BOLD),
-                        )),
+                        )))
+                        .title(Line::from(status).right_aligned()),
                 )
                 .wrap(Wrap { trim: false })
                 .scroll((scroll, 0));
             frame.render_widget(output_widget, chunks[0]);
 
+            // thumb-only scrollbar.
+            if total > visible {
+                let mut scrollbar_state = ScrollbarState::new(total)
+                    .viewport_content_length(visible)
+                    .position(scroll as usize);
+                frame.render_stateful_widget(
+                    Scrollbar::default()
+                        .orientation(ScrollbarOrientation::VerticalRight)
+                        .begin_symbol(None)
+                        .end_symbol(None)
+                        .track_symbol(Some("│"))
+                        .thumb_symbol("┃")
+                        .style(Style::default().fg(theme::TEXT_MUTED))
+                        .thumb_style(Style::default().fg(theme::BORDER_FOCUS)),
+                    chunks[0].inner(Margin {
+                        vertical: 1,
+                        horizontal: 0,
+                    }),
+                    &mut scrollbar_state,
+                );
+            }
+
             // input area
-            let prompt_color = if is_continuation {
-                Color::Yellow
-            } else {
-                Color::Cyan
-            };
             let mut input_spans = vec![Span::styled(
                 prompt,
                 Style::default()
@@ -130,7 +168,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
 
             if input_buf.is_empty() {
                 // blinking style cursor on empty input
-                input_spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
+                input_spans.push(Span::styled("│", Style::default().fg(theme::TEXT_MUTED)));
             } else {
                 // split at char boundary safe for any unicode
                 let before: String = input_buf.chars().take(cursor_pos).collect();
@@ -144,7 +182,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                         // cursor past end of text
                         input_spans.push(Span::styled(
                             " ",
-                            Style::default().bg(Color::Cyan).fg(Color::Black),
+                            Style::default().bg(prompt_color).fg(theme::BG_DARK),
                         ));
                     }
                     Some(c) => {
@@ -152,7 +190,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                         let rest: String = after_chars.collect();
                         input_spans.push(Span::styled(
                             cursor_str,
-                            Style::default().bg(Color::Cyan).fg(Color::Black),
+                            Style::default().bg(prompt_color).fg(theme::BG_DARK),
                         ));
                         let mut hl2 = highlight(&rest);
                         input_spans.append(&mut hl2);
@@ -160,10 +198,27 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                 }
             }
 
+            let mode_label = if is_continuation {
+                " multiline "
+            } else {
+                " input "
+            };
             let input_widget = Paragraph::new(Line::from(input_spans)).block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::DarkGray)),
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(prompt_color))
+                    .title(Line::from(Span::styled(
+                        mode_label,
+                        Style::default().fg(prompt_color),
+                    )))
+                    .title(
+                        Line::from(Span::styled(
+                            " Tab complete · Shift+↑↓ scroll · Ctrl+C exit ",
+                            Style::default().fg(theme::TEXT_MUTED),
+                        ))
+                        .right_aligned(),
+                    ),
             );
             frame.render_widget(input_widget, chunks[1]);
         })?;
