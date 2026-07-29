@@ -84,6 +84,7 @@ use std::rc::Rc;
 use crate::chunk::Chunk;
 use crate::native::Module;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
+use rl_ast::statements::HandleKind;
 use rl_utils::line_index::LineIndex;
 use rl_utils::span::Span;
 
@@ -322,7 +323,8 @@ fn collect_strings_value(value: &VmValue, pool: &mut StringPoolBuilder) {
         | VmValue::Bool(_)
         | VmValue::Byte(_)
         | VmValue::SByte(_)
-        | VmValue::Char(_) => {}
+        | VmValue::Char(_)
+        | VmValue::Handle { .. } => {}
 
         VmValue::Arr(items) | VmValue::Tuple(items) => {
             for item in items.iter() {
@@ -560,6 +562,12 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
             for v in captured.iter() {
                 write_value(v, pool, out);
             }
+        }
+
+        VmValue::Handle { kind, id } => {
+            out.push(26);
+            write_uvarint(*kind as u64, out);
+            write_uvarint(*id, out);
         }
     }
 }
@@ -806,6 +814,22 @@ fn read_value(
         25 => {
             let bits = cursor.take(4)?;
             VmValue::SFloat(f32::from_le_bytes(bits.try_into().unwrap()))
+        }
+        26 => {
+            let kind = match cursor.uvarint()? as u8 {
+                0 => HandleKind::C,
+                1 => HandleKind::Net,
+                2 => HandleKind::Http,
+                3 => HandleKind::Audio,
+                _ => {
+                    return Err(BytecodeError(
+                        "corrupt .rlc: closure template is not a function".into(),
+                    ));
+                }
+            };
+            let id = cursor.uvarint()?;
+
+            VmValue::Handle { kind, id }
         }
         other => {
             return Err(BytecodeError(format!(
