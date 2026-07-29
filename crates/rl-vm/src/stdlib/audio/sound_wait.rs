@@ -1,12 +1,17 @@
+use rl_ast::statements::HandleKind;
+
 use crate::{
     Vm,
-    stdlib::{common::extract_number, macros::{verr, vnl, vok, vs}},
+    stdlib::{
+        common::extract_handle,
+        macros::{verr, vnl, vok, vs},
+    },
     values::VmValue,
 };
 
 pub fn func(vm: &mut Vm, handle: VmValue) -> VmValue {
-    let id = match extract_number(handle, "sound_wait") {
-        Ok(n) => n as i64,
+    let id = match extract_handle(handle, HandleKind::Audio, "sound_wait") {
+        Ok(id) => id,
         Err(e) => return verr!(vs!(format!("sound_wait: {}", e))),
     };
 

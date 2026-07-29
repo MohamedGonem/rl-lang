@@ -8,7 +8,7 @@ use crate::{
             common::{insert_handle, new_sink},
         },
         common::extract_string,
-        macros::{verr, vi, vok, vs},
+        macros::{verr, vok, vs},
     },
     values::VmValue,
 };
@@ -36,7 +36,7 @@ pub fn func(vm: &mut Vm, path: VmValue) -> VmValue {
 
     sink.append(source);
 
-    let id = insert_handle(
+    let handle = insert_handle(
         vm,
         AudioHandle {
             sink,
@@ -44,5 +44,5 @@ pub fn func(vm: &mut Vm, path: VmValue) -> VmValue {
             base_volume: 1.0,
         },
     );
-    vok!(vi!(id))
+    vok!(handle)
 }
