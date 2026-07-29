@@ -11,6 +11,7 @@
 //! | `history_idx`   | Current position in history (`None` = live input)        |
 //! | `attached`      | Files evaluated into the env via `:attach`               |
 //! | `scroll_offset` | Output scroll position (`0` = bottom, higher = older)    |
+//! | `completion_state` | Active `Tab`-cycle, if any (candidates + cursor position) |
 //!
 //! # Multiline input
 //!
@@ -33,8 +34,13 @@
 //!        |- complete --> eval_input --> output buffer
 //! ```
 use super::{
-    command_handler::handle_command, depth_checker::is_complete, input_eval::eval_input,
-    lines_types::OutputLine, output_render::render_output, syntax_highlighting::highlight,
+    command_handler::handle_command,
+    completion::{self, CompletionState},
+    depth_checker::is_complete,
+    input_eval::eval_input,
+    lines_types::OutputLine,
+    output_render::render_output,
+    syntax_highlighting::highlight,
     utils::char_to_byte,
 };
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
@@ -71,6 +77,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
     let mut history_idx: Option<usize> = None;
     let mut attached: Vec<PathBuf> = Vec::new();
     let mut scroll_offset: usize = 0;
+    let mut completion_state: Option<CompletionState> = None;
 
     loop {
         // draw
@@ -86,13 +93,8 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
 
             // output area
             let out_lines = render_output(&output);
-            let inner_width = chunks[0].width.saturating_sub(2);
+            let total = out_lines.len();
             let visible = chunks[0].height.saturating_sub(2) as usize;
-
-            let total = Paragraph::new(out_lines.clone())
-                .wrap(Wrap { trim: false })
-                .line_count(inner_width);
-
             let max_scroll = total.saturating_sub(visible);
             // scroll_offset=0 means bottom and larger values scroll up
             let scroll = max_scroll.saturating_sub(scroll_offset) as u16;
@@ -168,6 +170,10 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
 
         // events
         if let Event::Key(key) = event::read()? {
+            if !matches!(key.code, KeyCode::Tab) {
+                completion_state = None;
+            }
+
             match (key.modifiers, key.code) {
                 // exit
                 (KeyModifiers::CONTROL, KeyCode::Char('c')) => break,
@@ -280,6 +286,33 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                 (_, KeyCode::Home) => cursor_pos = 0,
 
                 (_, KeyCode::End) => cursor_pos = input_buf.chars().count(),
+
+                (_, KeyCode::Tab) => {
+                    if let Some(state) = completion_state.as_mut() {
+                        let candidate = state.next().to_string();
+                        let start_byte = char_to_byte(&input_buf, state.word_start);
+                        let end_byte = char_to_byte(&input_buf, state.word_start + state.word_len);
+                        input_buf.replace_range(start_byte..end_byte, &candidate);
+                        state.word_len = candidate.chars().count();
+                        cursor_pos = state.word_start + state.word_len;
+                    } else {
+                        let (word_start, word) = completion::word_at_cursor(&input_buf, cursor_pos);
+                        let cands = completion::candidates(&word, &evaluator);
+                        if let Some(first) = cands.first().cloned() {
+                            let start_byte = char_to_byte(&input_buf, word_start);
+                            let end_byte = char_to_byte(&input_buf, cursor_pos);
+                            input_buf.replace_range(start_byte..end_byte, &first);
+                            let word_len = first.chars().count();
+                            cursor_pos = word_start + word_len;
+                            completion_state = Some(CompletionState {
+                                candidates: cands,
+                                index: 0,
+                                word_start,
+                                word_len,
+                            });
+                        }
+                    }
+                }
 
                 // scroll output (shift+up/down)
                 (KeyModifiers::SHIFT, KeyCode::Up) => {

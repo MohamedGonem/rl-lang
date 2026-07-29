@@ -24,8 +24,10 @@
 //! | `Shift+↑/↓`   | Scroll output                 |
 //! | `Ctrl+←/→`    | Word jump                     |
 //! | `Home` / `End` | Line start / end              |
+//! | `Tab`          | Complete / cycle candidates   |
 
 mod command_handler;
+mod completion;
 mod depth_checker;
 mod input_eval;
 mod lines_types;
