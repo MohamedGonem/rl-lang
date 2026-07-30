@@ -48,6 +48,11 @@ pub fn assert_expr(ast: &Ast, id: ExprId, kind: ExpressionKind, span: Span) {
     assert_eq!(expr.span, span);
 }
 
+pub fn assert_expr_no_span(ast: &Ast, id: ExprId, kind: ExpressionKind) {
+    let expr = ast.exprs.get(id);
+    assert_eq!(expr.kind, kind);
+}
+
 /// Checks `id` is a `Grouping` wrapping `inner_kind`/`inner_span`, and that
 /// the grouping expression itself spans `outer_span`.
 pub fn assert_grouping(
@@ -65,6 +70,15 @@ pub fn assert_grouping(
     }
 }
 
+#[allow(dead_code)]
+pub fn assert_grouping_no_span(ast: &Ast, id: ExprId, inner_kind: ExpressionKind) {
+    let expr = ast.exprs.get(id);
+    match &expr.kind {
+        ExpressionKind::Grouping(inner_id) => assert_expr_no_span(ast, *inner_id, inner_kind),
+        other => panic!("expected Grouping, got {:?}", other),
+    }
+}
+
 /// Checks `stmt` is a single bare-expression statement wrapping `kind`/`expr_span`.
 pub fn assert_single_expr_stmt(
     stmt: &Statement,
@@ -76,6 +90,14 @@ pub fn assert_single_expr_stmt(
     assert_eq!(stmt.span, stmt_span);
     match &stmt.kind {
         StatementKind::Expression(id) => assert_expr(ast, *id, kind, expr_span),
+        other => panic!("expected Expression statement, got {:?}", other),
+    }
+}
+
+#[allow(dead_code)]
+pub fn assert_single_expr_stmt_no_span(stmt: &Statement, ast: &Ast, kind: ExpressionKind) {
+    match &stmt.kind {
+        StatementKind::Expression(id) => assert_expr_no_span(ast, *id, kind),
         other => panic!("expected Expression statement, got {:?}", other),
     }
 }
@@ -101,6 +123,29 @@ pub fn assert_binary(
             assert_expr(ast, *left, left_kind, left_span);
             assert_eq!(*op, operator);
             assert_expr(ast, *right, right_kind, right_span);
+        }
+        other => panic!("expected Binary, got {:?}", other),
+    }
+}
+
+#[allow(dead_code)]
+pub fn assert_binary_no_span(
+    ast: &Ast,
+    id: ExprId,
+    left_kind: ExpressionKind,
+    operator: TokenType,
+    right_kind: ExpressionKind,
+) {
+    let expr = ast.exprs.get(id);
+    match &expr.kind {
+        ExpressionKind::Binary {
+            left,
+            operator: op,
+            right,
+        } => {
+            assert_expr_no_span(ast, *left, left_kind);
+            assert_eq!(*op, operator);
+            assert_expr_no_span(ast, *right, right_kind);
         }
         other => panic!("expected Binary, got {:?}", other),
     }
@@ -238,6 +283,28 @@ macro_rules! assert_decl {
         }
         assert_eq!(statements[0].span, $stmt_span);
     }};
+    (
+        $source:expr,
+        $variant:path,
+        name: $name:expr,
+        type_annotation: $ty:expr,
+        value: $expr_kind:expr $(,)?
+    ) => {{
+        let (ast, statements) = common::parse($source);
+        assert_eq!(statements.len(), 1, "expected exactly one statement");
+        match &statements[0].kind {
+            $variant {
+                name,
+                type_annotation,
+                value,
+            } => {
+                assert_eq!(name, $name);
+                assert_eq!(*type_annotation, $ty);
+                assert_eq!(ast.exprs.get(*value).kind, $expr_kind);
+            }
+            other => panic!("expected {}, got {:?}", stringify!($variant), other),
+        }
+    }};
 }
 
 #[macro_export]
@@ -247,6 +314,11 @@ macro_rules! assert_stmt {
         assert_eq!(statements.len(), 1, "expected exactly one statement");
         assert_eq!(statements[0].kind, $expected_kind);
         assert_eq!(statements[0].span, $stmt_span);
+    }};
+    ($source:expr, $expected_kind:expr $(,)?) => {{
+        let (_ast, statements) = common::parse($source);
+        assert_eq!(statements.len(), 1, "expected exactly one statement");
+        assert_eq!(statements[0].kind, $expected_kind);
     }};
 }
 
@@ -275,6 +347,22 @@ macro_rules! assert_while {
             other => panic!("expected While, got {:?}", other),
         }
         assert_eq!(statements[0].span, $stmt_span);
+    }};
+    (
+        $source:expr,
+        condition: $cond_kind:expr,
+        body_expr: $body_kind:expr $(,)?
+    ) => {{
+        let (ast, statements) = common::parse($source);
+        assert_eq!(statements.len(), 1, "expected exactly one statement");
+        match &statements[0].kind {
+            rl_ast::statements::StatementKind::While { condition, body } => {
+                common::assert_grouping_no_span(&ast, *condition, $cond_kind);
+                assert_eq!(body.len(), 1, "expected exactly one body statement");
+                common::assert_single_expr_stmt_no_span(&body[0], &ast, $body_kind);
+            }
+            other => panic!("expected While, got {:?}", other),
+        }
     }};
 }
 

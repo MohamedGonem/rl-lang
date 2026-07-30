@@ -24,6 +24,74 @@ fn dec_int_declaration() {
     assert_eq!(tokens[4].lexeme, "1000");
 }
 
+/// `dec small int x = 0 as small int` - checks every token in order
+#[test]
+fn dec_small_int_declaration() {
+    let tokens = common::lex("dec small int x = 1000 as small int");
+    assert_eq!(tokens[0].token, TokenType::Dec);
+    assert_eq!(tokens[0].lexeme, "dec");
+    assert_eq!(tokens[1].token, TokenType::Small);
+    assert_eq!(tokens[1].lexeme, "small");
+    assert_eq!(tokens[2].token, TokenType::Int);
+    assert_eq!(tokens[2].lexeme, "int");
+    assert_eq!(tokens[3].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[3].lexeme, "x");
+    assert_eq!(tokens[4].token, TokenType::Assign);
+    assert_eq!(tokens[4].lexeme, "=");
+    assert_eq!(tokens[5].token, TokenType::NumberLiteral(1000));
+    assert_eq!(tokens[5].lexeme, "1000");
+    assert_eq!(tokens[6].token, TokenType::As);
+    assert_eq!(tokens[6].lexeme, "as");
+    assert_eq!(tokens[7].token, TokenType::Small);
+    assert_eq!(tokens[7].lexeme, "small");
+    assert_eq!(tokens[8].token, TokenType::Int);
+    assert_eq!(tokens[8].lexeme, "int");
+}
+
+/// `dec big sbyte x = 0 as big sbyte` - checks every token in order
+#[test]
+fn dec_big_signed_byte_declaration() {
+    let tokens = common::lex("dec big sbyte x = 1000 as big sbyte");
+    assert_eq!(tokens[0].token, TokenType::Dec);
+    assert_eq!(tokens[0].lexeme, "dec");
+    assert_eq!(tokens[1].token, TokenType::Big);
+    assert_eq!(tokens[1].lexeme, "big");
+    assert_eq!(tokens[2].token, TokenType::SByte);
+    assert_eq!(tokens[2].lexeme, "sbyte");
+    assert_eq!(tokens[3].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[3].lexeme, "x");
+    assert_eq!(tokens[4].token, TokenType::Assign);
+    assert_eq!(tokens[4].lexeme, "=");
+    assert_eq!(tokens[5].token, TokenType::NumberLiteral(1000));
+    assert_eq!(tokens[5].lexeme, "1000");
+    assert_eq!(tokens[6].token, TokenType::As);
+    assert_eq!(tokens[6].lexeme, "as");
+    assert_eq!(tokens[7].token, TokenType::Big);
+    assert_eq!(tokens[7].lexeme, "big");
+    assert_eq!(tokens[8].token, TokenType::SByte);
+    assert_eq!(tokens[8].lexeme, "sbyte");
+}
+
+/// `dec sbyte x = 0 as sbyte` - checks every token in order
+#[test]
+fn dec_signed_byte_declaration() {
+    let tokens = common::lex("dec sbyte x = 100 as sbyte");
+    assert_eq!(tokens[0].token, TokenType::Dec);
+    assert_eq!(tokens[0].lexeme, "dec");
+    assert_eq!(tokens[1].token, TokenType::SByte);
+    assert_eq!(tokens[1].lexeme, "sbyte");
+    assert_eq!(tokens[2].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[2].lexeme, "x");
+    assert_eq!(tokens[3].token, TokenType::Assign);
+    assert_eq!(tokens[3].lexeme, "=");
+    assert_eq!(tokens[4].token, TokenType::NumberLiteral(100));
+    assert_eq!(tokens[4].lexeme, "100");
+    assert_eq!(tokens[5].token, TokenType::As);
+    assert_eq!(tokens[5].lexeme, "as");
+    assert_eq!(tokens[6].token, TokenType::SByte);
+    assert_eq!(tokens[6].lexeme, "sbyte");
+}
+
 /// `dec float x = 0.0` - checks every token in order
 #[test]
 fn dec_float_declaration() {
@@ -285,6 +353,74 @@ fn const_int_declaration() {
     assert_eq!(tokens[3].lexeme, "=");
     assert_eq!(tokens[4].token, TokenType::NumberLiteral(1000));
     assert_eq!(tokens[4].lexeme, "1000");
+}
+
+/// `CONST small int x = 0 as small int` - checks every token in order
+#[test]
+fn const_small_int_declaration() {
+    let tokens = common::lex("CONST small int x = 1000 as small int");
+    assert_eq!(tokens[0].token, TokenType::Const);
+    assert_eq!(tokens[0].lexeme, "CONST");
+    assert_eq!(tokens[1].token, TokenType::Small);
+    assert_eq!(tokens[1].lexeme, "small");
+    assert_eq!(tokens[2].token, TokenType::Int);
+    assert_eq!(tokens[2].lexeme, "int");
+    assert_eq!(tokens[3].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[3].lexeme, "x");
+    assert_eq!(tokens[4].token, TokenType::Assign);
+    assert_eq!(tokens[4].lexeme, "=");
+    assert_eq!(tokens[5].token, TokenType::NumberLiteral(1000));
+    assert_eq!(tokens[5].lexeme, "1000");
+    assert_eq!(tokens[6].token, TokenType::As);
+    assert_eq!(tokens[6].lexeme, "as");
+    assert_eq!(tokens[7].token, TokenType::Small);
+    assert_eq!(tokens[7].lexeme, "small");
+    assert_eq!(tokens[8].token, TokenType::Int);
+    assert_eq!(tokens[8].lexeme, "int");
+}
+
+/// `CONST big sbyte x = 0 as big sbyte` - checks every token in order
+#[test]
+fn const_big_signed_byte_declaration() {
+    let tokens = common::lex("CONST big sbyte x = 1000 as big sbyte");
+    assert_eq!(tokens[0].token, TokenType::Const);
+    assert_eq!(tokens[0].lexeme, "CONST");
+    assert_eq!(tokens[1].token, TokenType::Big);
+    assert_eq!(tokens[1].lexeme, "big");
+    assert_eq!(tokens[2].token, TokenType::SByte);
+    assert_eq!(tokens[2].lexeme, "sbyte");
+    assert_eq!(tokens[3].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[3].lexeme, "x");
+    assert_eq!(tokens[4].token, TokenType::Assign);
+    assert_eq!(tokens[4].lexeme, "=");
+    assert_eq!(tokens[5].token, TokenType::NumberLiteral(1000));
+    assert_eq!(tokens[5].lexeme, "1000");
+    assert_eq!(tokens[6].token, TokenType::As);
+    assert_eq!(tokens[6].lexeme, "as");
+    assert_eq!(tokens[7].token, TokenType::Big);
+    assert_eq!(tokens[7].lexeme, "big");
+    assert_eq!(tokens[8].token, TokenType::SByte);
+    assert_eq!(tokens[8].lexeme, "sbyte");
+}
+
+/// `CONST sbyte x = 0 as sbyte` - checks every token in order
+#[test]
+fn const_signed_byte_declaration() {
+    let tokens = common::lex("CONST sbyte x = 100 as sbyte");
+    assert_eq!(tokens[0].token, TokenType::Const);
+    assert_eq!(tokens[0].lexeme, "CONST");
+    assert_eq!(tokens[1].token, TokenType::SByte);
+    assert_eq!(tokens[1].lexeme, "sbyte");
+    assert_eq!(tokens[2].token, TokenType::Identifier("x".to_string()));
+    assert_eq!(tokens[2].lexeme, "x");
+    assert_eq!(tokens[3].token, TokenType::Assign);
+    assert_eq!(tokens[3].lexeme, "=");
+    assert_eq!(tokens[4].token, TokenType::NumberLiteral(100));
+    assert_eq!(tokens[4].lexeme, "100");
+    assert_eq!(tokens[5].token, TokenType::As);
+    assert_eq!(tokens[5].lexeme, "as");
+    assert_eq!(tokens[6].token, TokenType::SByte);
+    assert_eq!(tokens[6].lexeme, "sbyte");
 }
 
 /// `CONST float x = 0.0` - checks every token in order
