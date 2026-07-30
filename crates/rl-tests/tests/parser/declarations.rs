@@ -45,6 +45,138 @@ fn dec_float() {
 }
 
 #[test]
+fn dec_uint() {
+    assert_decl!(
+        "dec uint x = 1000 as uint",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::UInt,
+        value: ExpressionKind::UInt(1000),
+    );
+}
+
+#[test]
+fn const_uint() {
+    assert_decl!(
+        "CONST uint x = 1000 as uint",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CUInt,
+        value: ExpressionKind::UInt(1000),
+    );
+}
+
+#[test]
+fn dec_small_int() {
+    assert_decl!(
+        "dec small int x = 1000 as small int",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::SInt,
+        value: ExpressionKind::SInt(1000),
+    );
+}
+
+#[test]
+fn const_small_int() {
+    assert_decl!(
+        "CONST small int x = 1000 as small int",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CSInt,
+        value: ExpressionKind::SInt(1000),
+    );
+}
+
+#[test]
+fn dec_small_uint() {
+    assert_decl!(
+        "dec small uint x = 1000 as small uint",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::SUInt,
+        value: ExpressionKind::SUInt(1000),
+    );
+}
+
+#[test]
+fn const_small_uint() {
+    assert_decl!(
+        "CONST small uint x = 1000 as small uint",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CSUInt,
+        value: ExpressionKind::SUInt(1000),
+    );
+}
+
+#[test]
+fn dec_big_byte() {
+    assert_decl!(
+        "dec big byte x = 1000 as big byte",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::BByte,
+        value: ExpressionKind::BByte(1000),
+    );
+}
+
+#[test]
+fn const_big_byte() {
+    assert_decl!(
+        "CONST big byte x = 1000 as big byte",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CBByte,
+        value: ExpressionKind::BByte(1000),
+    );
+}
+
+#[test]
+fn dec_big_sbyte() {
+    assert_decl!(
+        "dec big sbyte x = 1000 as big sbyte",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::BSByte,
+        value: ExpressionKind::BSByte(1000),
+    );
+}
+
+#[test]
+fn const_big_sbyte() {
+    assert_decl!(
+        "CONST big sbyte x = 1000 as big sbyte",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CBSByte,
+        value: ExpressionKind::BSByte(1000),
+    );
+}
+
+#[test]
+fn dec_sbyte() {
+    assert_decl!(
+        "dec sbyte x = 100 as sbyte",
+        StatementKind::VariableDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::SByte,
+        value: ExpressionKind::SByte(100),
+    );
+}
+
+#[test]
+fn const_sbyte() {
+    assert_decl!(
+        "CONST sbyte x = 100 as sbyte",
+        StatementKind::ConstantDeclaration,
+        name: "x",
+        type_annotation: TypeAnnotation::CSByte,
+        value: ExpressionKind::SByte(100),
+    );
+}
+
+#[test]
 fn const_float() {
     assert_decl!(
         "CONST float x = 1000.0",
