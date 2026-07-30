@@ -238,6 +238,28 @@ macro_rules! assert_decl {
         }
         assert_eq!(statements[0].span, $stmt_span);
     }};
+    (
+        $source:expr,
+        $variant:path,
+        name: $name:expr,
+        type_annotation: $ty:expr,
+        value: $expr_kind:expr,
+    ) => {{
+        let (ast, statements) = common::parse($source);
+        assert_eq!(statements.len(), 1, "expected exactly one statement");
+        match &statements[0].kind {
+            $variant {
+                name,
+                type_annotation,
+                value,
+            } => {
+                assert_eq!(name, $name);
+                assert_eq!(*type_annotation, $ty);
+                assert_eq!(ast.exprs.get(*value).kind, $expr_kind);
+            }
+            other => panic!("expected {}, got {:?}", stringify!($variant), other),
+        }
+    }};
 }
 
 #[macro_export]
