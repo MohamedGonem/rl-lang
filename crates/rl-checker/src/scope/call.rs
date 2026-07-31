@@ -27,7 +27,10 @@ impl TypeChecker {
     ) -> CheckType {
         // `Record::method` associated function, e.g. `Point::new(1, 2)`.
         if path.len() == 2
-            && let Some(sig) = self.methods.get(&(path[0].clone(), path[1].clone())).cloned()
+            && let Some(sig) = self
+                .methods
+                .get(&(path[0].clone(), path[1].clone()))
+                .cloned()
         {
             return self.check_call_value(sig, arg_types, span);
         }
@@ -78,9 +81,12 @@ impl TypeChecker {
     ///
     /// - An empty `f.signatures` means the function isn't typed yet: the call
     ///   passes through unchecked as [`CheckType::Unknown`] (pre-#250 behavior).
-    /// - Otherwise each `(params, return_type)` overload is tried in turn;
-    ///   the first whose param types all `matches()` the call's argument
-    ///   types wins, and its `return_type` is returned as `CheckType::Known`.
+    /// - Otherwise each `(params, return_type)` overload is tried in turn via
+    ///   [`unify_arg`], the first whose param types all unify with the call's
+    ///   argument types wins, and its `return_type` (after substituting any
+    ///   generic bindings) is returned as `CheckType::Known`. This also
+    ///   correctly matches a typed lambda (`CheckType::Function`) against a
+    ///   concrete (non-generic) `Callback` parameters.
     /// - If no overload matches, an error is reported (arity mismatch if the
     ///   argument *count* doesn't match any overload, otherwise a type
     ///   mismatch) and the first overload's return type is used to keep
@@ -101,35 +107,21 @@ impl TypeChecker {
                 continue;
             }
 
-            if expected.iter().any(has_generic) {
-                let mut bindings = HashMap::new();
-                let mut all_match = true;
-                for (expected_type, (actual_type, _)) in expected.iter().zip(arg_types.iter()) {
-                    if !unify_arg(expected_type, actual_type, &mut bindings) {
-                        all_match = false;
-                        break;
-                    }
+            let mut bindings = HashMap::new();
+            let mut all_match = true;
+            for (expected_type, (actual_type, _)) in expected.iter().zip(arg_types.iter()) {
+                if !unify_arg(expected_type, actual_type, &mut bindings) {
+                    all_match = false;
+                    break;
                 }
-                if all_match {
-                    let resolved = substitute(return_type, &bindings);
-                    return if has_generic(&resolved) {
-                        CheckType::Unknown
-                    } else {
-                        CheckType::Known(resolved)
-                    };
-                }
-                continue;
             }
-
-            let all_match =
-                expected
-                    .iter()
-                    .zip(arg_types.iter())
-                    .all(|(expected_type, (actual_type, _))| {
-                        actual_type.matches(&CheckType::Known(expected_type.clone()))
-                    });
             if all_match {
-                return CheckType::Known(return_type.clone());
+                let resolved = substitute(return_type, &bindings);
+                return if has_generic(&resolved) {
+                    CheckType::Unknown
+                } else {
+                    CheckType::Known(resolved)
+                };
             }
         }
 
