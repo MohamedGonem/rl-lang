@@ -88,10 +88,41 @@ impl eframe::App for RlGuiApp<'_> {
             return;
         };
 
-        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(win.visible));
-        ctx.send_viewport_cmd(egui::ViewportCommand::Title(win.title.clone()));
-
+        let visible = win.visible;
+        let title = win.title.clone();
         let background = win.background;
+        let decorated = win.decorated;
+        let icon = win.icon.clone();
+        let pending_size = win.pending_size;
+        let pending_position = win.pending_position;
+        let children = win.children.clone();
+
+        if pending_size.is_some() || pending_position.is_some() {
+            if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&self.window) {
+                w.pending_size = None;
+                w.pending_position = None;
+            }
+        }
+
+        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(visible));
+        ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        ctx.send_viewport_cmd(egui::ViewportCommand::Decorations(decorated));
+        if let Some((width, height)) = pending_size {
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(width, height)));
+        }
+        if let Some((x, y)) = pending_position {
+            ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(x, y)));
+        }
+        if let Some((icon_width, icon_height, rgba)) = icon {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Icon(Some(std::sync::Arc::new(
+                egui::IconData {
+                    rgba,
+                    width: icon_width,
+                    height: icon_height,
+                },
+            ))));
+        }
+
         egui::CentralPanel::default()
             .frame(egui::Frame::default().fill(egui::Color32::from_rgb(
                 background.0,
@@ -99,8 +130,6 @@ impl eframe::App for RlGuiApp<'_> {
                 background.2,
             )))
             .show(ui, |_ui| {});
-
-        let children = win.children.clone();
         let snapshots: Vec<WidgetSnapshot> = children
             .iter()
             .filter_map(|id| match eval.gui_handles.get(id) {
@@ -393,8 +422,18 @@ pub fn func(eval: &mut Evaluator, window: Value) -> Value {
         Err(e) => return verr!(vs!(e)),
     };
 
-    let (title, width, height) = match eval.gui_handles.get(&window_id) {
-        Some(GuiHandle::Window(w)) => (w.title.clone(), w.width, w.height),
+    let (title, width, height, position, decorated, icon) = match eval.gui_handles.get(&window_id) {
+        Some(GuiHandle::Window(w)) => {
+            let (width, height) = w.pending_size.unwrap_or((w.width, w.height));
+            (
+                w.title.clone(),
+                width,
+                height,
+                w.pending_position,
+                w.decorated,
+                w.icon.clone(),
+            )
+        }
         Some(_) => {
             return verr!(vs!(format!(
                 "gui_run: handle {} is not a window",
@@ -404,10 +443,23 @@ pub fn func(eval: &mut Evaluator, window: Value) -> Value {
         None => return verr!(vs!(format!("gui_run: unknown handle {}", window_id))),
     };
 
+    let mut viewport = eframe::egui::ViewportBuilder::default()
+        .with_title(title.clone())
+        .with_inner_size([width, height])
+        .with_decorations(decorated);
+    if let Some((x, y)) = position {
+        viewport = viewport.with_position([x, y]);
+    }
+    if let Some((icon_width, icon_height, rgba)) = icon {
+        viewport = viewport.with_icon(eframe::egui::IconData {
+            rgba,
+            width: icon_width,
+            height: icon_height,
+        });
+    }
+
     let options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_title(title.clone())
-            .with_inner_size([width, height]),
+        viewport,
         ..Default::default()
     };
 
