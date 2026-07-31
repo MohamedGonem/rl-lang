@@ -27,6 +27,7 @@ pub enum GuiHandle {
     RadioGroup(SelectState),
     Slider(SliderState),
     ProgressBar(ProgressState),
+}
 
 pub struct WindowState {
     pub title: String,
