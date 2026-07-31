@@ -102,6 +102,9 @@ pub struct Evaluator {
     pub gui_handles: HashMap<u64, GuiHandle>,
     /// Next handle id to hand out for `std::gui` resources; only ever increments.
     pub gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
     pub gui_quit_requested: bool,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
