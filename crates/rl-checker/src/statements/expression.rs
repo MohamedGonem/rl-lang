@@ -407,8 +407,20 @@ impl TypeChecker {
             }
 
             ExpressionKind::Propagate(inner) => {
-                self.check_expression(inner);
-                CheckType::Unknown
+                let inner_type = self.check_expression(inner);
+                match inner_type {
+                    CheckType::Known(TypeAnnotation::Result(inner_ty)) => {
+                        CheckType::Known(*inner_ty)
+                    }
+                    CheckType::Unknown => CheckType::Unknown,
+                    other => {
+                        self.error(
+                            format!("`?` operator requires a result, got {}", other.info()),
+                            expr_span,
+                        );
+                        CheckType::Unknown
+                    }
+                }
             }
 
             ExpressionKind::StructLiteral { name, fields } => {
