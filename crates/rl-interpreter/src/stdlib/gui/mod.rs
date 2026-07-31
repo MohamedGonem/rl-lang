@@ -3,6 +3,9 @@
 use crate::native::Module;
 
 mod common;
+mod gui_window;
+
+pub use rl_commons::keywords::gui::KEYWORDS;
 
 /// A single native GUI resource.
 pub enum GuiHandle {
@@ -17,4 +20,5 @@ pub struct WindowState {
 
 pub fn module() -> Module {
     Module::new("gui")
+        .with_function("gui_window", gui_window::func)
 }

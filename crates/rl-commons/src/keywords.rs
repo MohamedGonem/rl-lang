@@ -461,3 +461,9 @@ pub mod collections {
         "map_merge",
     ];
 }
+
+pub mod gui {
+    pub const KEYWORDS: &[&str] = &[
+        "gui_window",
+    ];
+}
