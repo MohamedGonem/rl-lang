@@ -7,6 +7,7 @@ mod common;
 mod gui_button;
 mod gui_checkbox;
 mod gui_label;
+mod gui_textbox;
 mod gui_window;
 
 pub use rl_commons::keywords::gui::KEYWORDS;
@@ -17,6 +18,7 @@ pub enum GuiHandle {
     Button(ButtonState),
     Label(LabelState),
     Checkbox(CheckboxState),
+    Textbox(TextboxState),
 pub struct WindowState {
     pub title: String,
     pub width: f32,
@@ -52,7 +54,20 @@ pub struct CheckboxState {
     pub on_change: Option<Value>,
 }
 
+pub struct TextboxState {
+    pub window: u64,
+    pub text: String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub visible: bool,
+}
+
 pub fn module() -> Module {
     Module::new("gui")
         .with_function("gui_window", gui_window::func)
+        .with_function("gui_button", gui_button::func)
+        .with_function("gui_label", gui_label::func)
+        .with_function("gui_checkbox", gui_checkbox::func)
+        .with_function("gui_textbox", gui_textbox::func)
 }

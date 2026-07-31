@@ -468,5 +468,6 @@ pub mod gui {
         "gui_button",
         "gui_label",
         "gui_checkbox",
+        "gui_textbox",
     ];
 }
