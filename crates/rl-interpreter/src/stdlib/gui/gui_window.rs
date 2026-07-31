@@ -16,6 +16,7 @@ pub fn func(eval: &mut Evaluator, title: String, width: i64, height: i64) -> Val
             visible: true,
             children: Vec::new(),
             background: (27, 27, 27),
+            pending_size: None,
         }),
     );
     vok!(handle)

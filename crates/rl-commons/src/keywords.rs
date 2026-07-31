@@ -493,6 +493,7 @@ pub mod gui {
         "gui_remove",
         "gui_window_set_title",
         "gui_window_set_background",
+        "gui_window_set_size",
         "gui_run",
         "gui_close",
         "gui_quit",
