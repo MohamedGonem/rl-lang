@@ -23,6 +23,7 @@ mod gui_progress_bar;
 mod gui_quit;
 mod gui_radio_group;
 mod gui_remove;
+mod gui_run;
 mod gui_set_checked;
 mod gui_set_pos;
 mod gui_set_progress;
@@ -156,6 +157,7 @@ pub fn module() -> Module {
         .with_function("gui_get_pos", gui_get_pos::func)
         .with_function("gui_remove", gui_remove::func)
         .with_function("gui_window_set_title", gui_window_set_title::func)
+        .with_function("gui_run", gui_run::func)
         .with_function("gui_close", gui_close::func)
         .with_function("gui_quit", gui_quit::func)
 }
