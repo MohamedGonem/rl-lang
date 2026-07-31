@@ -8,6 +8,7 @@ mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
 mod gui_get_text;
+mod gui_get_value;
 mod gui_is_checked;
 mod gui_is_visible;
 mod gui_label;
@@ -17,6 +18,7 @@ mod gui_progress_bar;
 mod gui_radio_group;
 mod gui_set_checked;
 mod gui_set_text;
+mod gui_set_value;
 mod gui_set_visible;
 mod gui_slider;
 mod gui_textbox;
@@ -135,4 +137,6 @@ pub fn module() -> Module {
         .with_function("gui_get_selected_index", gui_get_selected_index::func)
         .with_function("gui_set_selected_index", gui_set_selected_index::func)
         .with_function("gui_get_selected", gui_get_selected::func)
+        .with_function("gui_get_value", gui_get_value::func)
+        .with_function("gui_set_value", gui_set_value::func)
 }

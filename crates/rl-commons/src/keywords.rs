@@ -484,5 +484,7 @@ pub mod gui {
         "gui_get_selected_index",
         "gui_set_selected_index",
         "gui_get_selected",
+        "gui_get_value",
+        "gui_set_value",
     ];
 }
