@@ -383,7 +383,7 @@ impl eframe::App for RlGuiApp<'_> {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
 
-        ctx.request_repaint();
+        // ctx.request_repaint();
     }
 }
 
