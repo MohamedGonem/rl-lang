@@ -28,6 +28,7 @@ mod gui_set_visible;
 mod gui_slider;
 mod gui_textbox;
 mod gui_window;
+mod gui_window_set_title;
 
 pub use rl_commons::keywords::gui::KEYWORDS;
 
@@ -146,4 +147,5 @@ pub fn module() -> Module {
         .with_function("gui_set_value", gui_set_value::func)
         .with_function("gui_set_progress", gui_set_progress::func)
         .with_function("gui_get_progress", gui_get_progress::func)
+        .with_function("gui_window_set_title", gui_window_set_title::func)
 }

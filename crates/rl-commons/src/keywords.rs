@@ -488,5 +488,6 @@ pub mod gui {
         "gui_set_value",
         "gui_set_progress",
         "gui_get_progress",
+        "gui_window_set_title",
     ];
 }
