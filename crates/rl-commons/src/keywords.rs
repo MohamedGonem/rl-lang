@@ -465,5 +465,6 @@ pub mod collections {
 pub mod gui {
     pub const KEYWORDS: &[&str] = &[
         "gui_window",
+        "gui_button",
     ];
 }
