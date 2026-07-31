@@ -102,6 +102,7 @@ pub struct Evaluator {
     pub gui_handles: HashMap<u64, GuiHandle>,
     /// Next handle id to hand out for `std::gui` resources; only ever increments.
     pub gui_next_handle: u64,
+    pub gui_quit_requested: bool,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
@@ -150,6 +151,7 @@ impl Evaluator {
             audio_master_volume: 1.0,
             gui_handles: HashMap::new(),
             gui_next_handle: 1,
+            gui_quit_requested: false,
             records: HashMap::new(),
             tags: HashMap::new(),
             impl_methods: HashMap::new(),

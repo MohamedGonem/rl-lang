@@ -6,7 +6,9 @@ use crate::values::Value;
 mod common;
 mod gui_button;
 mod gui_checkbox;
+mod gui_close;
 mod gui_dropdown;
+mod gui_get_pos;
 mod gui_get_progress;
 mod gui_get_selected;
 mod gui_get_selected_index;
@@ -18,8 +20,11 @@ mod gui_label;
 mod gui_on_change;
 mod gui_on_click;
 mod gui_progress_bar;
+mod gui_quit;
 mod gui_radio_group;
+mod gui_remove;
 mod gui_set_checked;
+mod gui_set_pos;
 mod gui_set_progress;
 mod gui_set_selected_index;
 mod gui_set_text;
@@ -149,5 +154,8 @@ pub fn module() -> Module {
         .with_function("gui_get_progress", gui_get_progress::func)
         .with_function("gui_set_pos", gui_set_pos::func)
         .with_function("gui_get_pos", gui_get_pos::func)
+        .with_function("gui_remove", gui_remove::func)
         .with_function("gui_window_set_title", gui_window_set_title::func)
+        .with_function("gui_close", gui_close::func)
+        .with_function("gui_quit", gui_quit::func)
 }

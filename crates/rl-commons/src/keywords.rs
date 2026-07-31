@@ -490,6 +490,9 @@ pub mod gui {
         "gui_get_progress",
         "gui_set_pos",
         "gui_get_pos",
+        "gui_remove",
         "gui_window_set_title",
+        "gui_close",
+        "gui_quit",
     ];
 }
