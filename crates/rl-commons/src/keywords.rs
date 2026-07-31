@@ -475,5 +475,7 @@ pub mod gui {
         "gui_progress_bar",
         "gui_set_text",
         "gui_get_text",
+        "gui_set_visible",
+        "gui_is_visible",
     ];
 }

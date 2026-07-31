@@ -8,10 +8,12 @@ mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
 mod gui_get_text;
+mod gui_is_visible;
 mod gui_label;
 mod gui_progress_bar;
 mod gui_radio_group;
 mod gui_set_text;
+mod gui_set_visible;
 mod gui_slider;
 mod gui_textbox;
 mod gui_window;
@@ -120,4 +122,6 @@ pub fn module() -> Module {
         .with_function("gui_progress_bar", gui_progress_bar::func)
         .with_function("gui_set_text", gui_set_text::func)
         .with_function("gui_get_text", gui_get_text::func)
+        .with_function("gui_set_visible", gui_set_visible::func)
+        .with_function("gui_is_visible", gui_is_visible::func)
 }
