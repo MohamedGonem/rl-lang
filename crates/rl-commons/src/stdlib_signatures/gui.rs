@@ -36,6 +36,7 @@ pub fn module() -> ModuleNames {
         .with_typed_function(gui_window_set_title())
         .with_typed_function(gui_window_set_background())
         .with_typed_function(gui_window_set_size())
+        .with_typed_function(gui_window_set_pos())
         .with_typed_function(gui_window_set_decorated())
         .with_typed_function(gui_run())
         .with_typed_function(gui_close())
@@ -382,6 +383,16 @@ fn gui_window_set_background() -> StdFn {
 fn gui_window_set_size() -> StdFn {
     StdFn::typed(
         "gui_window_set_size",
+        overloads(
+            vec![handle(HandleKind::Gui), fixed(T::Int), fixed(T::Int)],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_window_set_pos() -> StdFn {
+    StdFn::typed(
+        "gui_window_set_pos",
         overloads(
             vec![handle(HandleKind::Gui), fixed(T::Int), fixed(T::Int)],
             result(T::Null),
