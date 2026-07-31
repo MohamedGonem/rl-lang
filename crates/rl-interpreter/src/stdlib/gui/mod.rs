@@ -4,6 +4,7 @@ use crate::native::Module;
 
 mod common;
 mod gui_button;
+mod gui_checkbox;
 mod gui_window;
 
 pub use rl_commons::keywords::gui::KEYWORDS;
@@ -12,6 +13,7 @@ pub use rl_commons::keywords::gui::KEYWORDS;
 pub enum GuiHandle {
     Window(WindowState),
     Button(ButtonState),
+    Checkbox(CheckboxState),
 pub struct WindowState {
     pub title: String,
     pub width: f32,
@@ -27,6 +29,16 @@ pub struct ButtonState {
     pub y: f32,
     pub visible: bool,
     pub on_click: Option<Value>,
+}
+
+pub struct CheckboxState {
+    pub window: u64,
+    pub label: String,
+    pub x: f32,
+    pub y: f32,
+    pub visible: bool,
+    pub checked: bool,
+    pub on_change: Option<Value>,
 }
 
 pub fn module() -> Module {

@@ -466,5 +466,6 @@ pub mod gui {
     pub const KEYWORDS: &[&str] = &[
         "gui_window",
         "gui_button",
+        "gui_checkbox",
     ];
 }
