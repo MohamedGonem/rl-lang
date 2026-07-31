@@ -1,6 +1,9 @@
 //! `std::gui` - a native desktop GUI module built on `eframe`.
 
 use crate::native::Module;
+
+mod common;
+
 /// A single native GUI resource.
 pub enum GuiHandle {
     Window(WindowState),
