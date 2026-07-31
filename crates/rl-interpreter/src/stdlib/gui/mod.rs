@@ -8,12 +8,14 @@ mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
 mod gui_get_text;
+mod gui_is_checked;
 mod gui_is_visible;
 mod gui_label;
 mod gui_on_change;
 mod gui_on_click;
 mod gui_progress_bar;
 mod gui_radio_group;
+mod gui_set_checked;
 mod gui_set_text;
 mod gui_set_visible;
 mod gui_slider;
@@ -128,4 +130,6 @@ pub fn module() -> Module {
         .with_function("gui_is_visible", gui_is_visible::func)
         .with_function("gui_on_click", gui_on_click::func)
         .with_function("gui_on_change", gui_on_change::func)
+        .with_function("gui_is_checked", gui_is_checked::func)
+        .with_function("gui_set_checked", gui_set_checked::func)
 }

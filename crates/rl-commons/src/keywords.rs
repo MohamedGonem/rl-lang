@@ -479,5 +479,7 @@ pub mod gui {
         "gui_is_visible",
         "gui_on_click",
         "gui_on_change",
+        "gui_is_checked",
+        "gui_set_checked",
     ];
 }
