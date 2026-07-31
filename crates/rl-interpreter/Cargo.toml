@@ -22,6 +22,7 @@ libloading.workspace = true
 libffi.workspace = true
 rodio.workspace = true
 cpal.workspace = true
+eframe.workspace = true
 symphonia.workspace = true
 log = { workspace = true, optional = true }
 shell-words.workspace = true
