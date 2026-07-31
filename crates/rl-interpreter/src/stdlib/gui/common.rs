@@ -25,3 +25,16 @@ pub fn attach_child(eval: &mut Evaluator, window_id: u64, child_id: u64) {
     }
 }
 
+pub fn extract_string_array(value: Value, name: &str) -> Result<Vec<String>, String> {
+    match value {
+        Value::Values { items, .. } => items
+            .into_iter()
+            .map(|v| crate::stdlib::common::extract_string(v, name))
+            .collect(),
+        other => Err(format!(
+            "{}: expected array[string], got {}",
+            name,
+            other.type_name()
+        )),
+    }
+}

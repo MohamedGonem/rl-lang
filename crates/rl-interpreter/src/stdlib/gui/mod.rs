@@ -19,6 +19,7 @@ pub enum GuiHandle {
     Label(LabelState),
     Checkbox(CheckboxState),
     Textbox(TextboxState),
+    Dropdown(SelectState),
 pub struct WindowState {
     pub title: String,
     pub width: f32,
@@ -63,6 +64,17 @@ pub struct TextboxState {
     pub visible: bool,
 }
 
+pub struct SelectState {
+    pub window: u64,
+    pub options: Vec<String>,
+    pub selected: usize,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub visible: bool,
+    pub on_change: Option<Value>,
+}
+
 pub fn module() -> Module {
     Module::new("gui")
         .with_function("gui_window", gui_window::func)
@@ -70,4 +82,5 @@ pub fn module() -> Module {
         .with_function("gui_label", gui_label::func)
         .with_function("gui_checkbox", gui_checkbox::func)
         .with_function("gui_textbox", gui_textbox::func)
+        .with_function("gui_dropdown", gui_dropdown::func)
 }
