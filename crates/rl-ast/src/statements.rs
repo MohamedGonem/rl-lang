@@ -409,6 +409,8 @@ pub enum TypeAnnotation {
 
     // ---std-specific---
     Handle(HandleKind),
+    /// Placeholder used by `dec handle name = v` bindings.
+    HandleInfer,
 }
 
 /// A single function or lambda parameter: a name and its type annotation.
