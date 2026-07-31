@@ -132,4 +132,7 @@ pub fn module() -> Module {
         .with_function("gui_on_change", gui_on_change::func)
         .with_function("gui_is_checked", gui_is_checked::func)
         .with_function("gui_set_checked", gui_set_checked::func)
+        .with_function("gui_get_selected_index", gui_get_selected_index::func)
+        .with_function("gui_set_selected_index", gui_set_selected_index::func)
+        .with_function("gui_get_selected", gui_get_selected::func)
 }

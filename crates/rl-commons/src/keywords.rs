@@ -481,5 +481,8 @@ pub mod gui {
         "gui_on_change",
         "gui_is_checked",
         "gui_set_checked",
+        "gui_get_selected_index",
+        "gui_set_selected_index",
+        "gui_get_selected",
     ];
 }
