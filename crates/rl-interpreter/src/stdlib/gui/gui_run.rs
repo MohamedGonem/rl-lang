@@ -1,4 +1,5 @@
 use rl_ast::statements::HandleKind;
+use rl_utils::errors::Error;
 use rl_utils::span::Span;
 
 use crate::{
@@ -161,6 +162,12 @@ impl eframe::App for RlGuiApp<'_> {
         let mut changed_selection: Vec<(u64, usize)> = Vec::new();
         let mut changed_value: Vec<(u64, f64)> = Vec::new();
 
+        fn report_callback_err(result: Result<Value, Error>) {
+            if let Err(e) = result {
+                e.report_to_stderr();
+            }
+        }
+
         for snap in &snapshots {
             match snap {
                 WidgetSnapshot::Button { id, label, x, y } => {
@@ -297,8 +304,15 @@ impl eframe::App for RlGuiApp<'_> {
         }
 
         for (id, text) in changed_text {
-            if let Some(GuiHandle::Textbox(t)) = eval.gui_handles.get_mut(&id) {
-                t.text = text;
+            let callback = match eval.gui_handles.get_mut(&id) {
+                Some(GuiHandle::Textbox(t)) => {
+                    t.text = text.clone();
+                    t.on_change.clone()
+                }
+                _ => None,
+            };
+            if let Some(cb) = callback {
+                report_callback_err(eval.call_value(cb, vec![Value::String(text)], Span::dummy()));
             }
         }
 
@@ -311,7 +325,7 @@ impl eframe::App for RlGuiApp<'_> {
                 _ => None,
             };
             if let Some(cb) = callback {
-                let _ = eval.call_value(cb, vec![Value::Bool(checked)], Span::dummy());
+                report_callback_err(eval.call_value(cb, vec![Value::Bool(checked)], Span::dummy()));
             }
         }
 
@@ -324,7 +338,11 @@ impl eframe::App for RlGuiApp<'_> {
                 _ => None,
             };
             if let Some(cb) = callback {
-                let _ = eval.call_value(cb, vec![Value::Integer(sel as i64)], Span::dummy());
+                report_callback_err(eval.call_value(
+                    cb,
+                    vec![Value::Integer(sel as i64)],
+                    Span::dummy(),
+                ));
             }
         }
 
@@ -337,7 +355,7 @@ impl eframe::App for RlGuiApp<'_> {
                 _ => None,
             };
             if let Some(cb) = callback {
-                let _ = eval.call_value(cb, vec![Value::Float(v)], Span::dummy());
+                report_callback_err(eval.call_value(cb, vec![Value::Float(v)], Span::dummy()));
             }
         }
 
@@ -347,7 +365,7 @@ impl eframe::App for RlGuiApp<'_> {
                 _ => None,
             };
             if let Some(cb) = callback {
-                let _ = eval.call_value(cb, vec![], Span::dummy());
+                report_callback_err(eval.call_value(cb, vec![], Span::dummy()));
             }
         }
 
