@@ -471,5 +471,6 @@ pub mod gui {
         "gui_textbox",
         "gui_dropdown",
         "gui_radio_group",
+        "gui_slider",
     ];
 }
