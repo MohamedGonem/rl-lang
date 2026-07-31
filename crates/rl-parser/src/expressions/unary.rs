@@ -32,25 +32,26 @@ impl Parser {
 
         if self.match_type(&[TokenType::Minus]) {
             if let TokenType::NumberLiteral(n) = self.peek()
-                && self.peek_next() != TokenType::As {
-                    self.advance(); // consume the NumberLiteral
-                    let span = start.join(self.previous_span());
-                    let Some(negated) = negate_u64(n) else {
-                        return Err(self.err(
-                            format!(
-                                "value -{} is out of range for int ({}..={})",
-                                n,
-                                i64::MIN,
-                                i64::MAX
-                            ),
-                            span,
-                        ));
-                    };
-                    let expr = self
-                        .ast_arena
-                        .alloc_expr(ExpressionKind::Integer(negated), span);
-                    return self.parse_postfix(expr, start);
-                }
+                && self.peek_next() != TokenType::As
+            {
+                self.advance(); // consume the NumberLiteral
+                let span = start.join(self.previous_span());
+                let Some(negated) = negate_u64(n) else {
+                    return Err(self.err(
+                        format!(
+                            "value -{} is out of range for int ({}..={})",
+                            n,
+                            i64::MIN,
+                            i64::MAX
+                        ),
+                        span,
+                    ));
+                };
+                let expr = self
+                    .ast_arena
+                    .alloc_expr(ExpressionKind::Integer(negated), span);
+                return self.parse_postfix(expr, start);
+            }
 
             let operator = self.previous();
             let operand = self.parse_unary()?;
