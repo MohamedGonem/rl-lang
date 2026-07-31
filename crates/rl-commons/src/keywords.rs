@@ -496,6 +496,7 @@ pub mod gui {
         "gui_window_set_size",
         "gui_window_set_pos",
         "gui_window_set_decorated",
+        "gui_window_set_icon",
         "gui_run",
         "gui_close",
         "gui_quit",

@@ -38,6 +38,7 @@ pub fn module() -> ModuleNames {
         .with_typed_function(gui_window_set_size())
         .with_typed_function(gui_window_set_pos())
         .with_typed_function(gui_window_set_decorated())
+        .with_typed_function(gui_window_set_icon())
         .with_typed_function(gui_run())
         .with_typed_function(gui_close())
         .with_typed_function(gui_quit())
@@ -405,6 +406,21 @@ fn gui_window_set_decorated() -> StdFn {
         "gui_window_set_decorated",
         overloads(
             vec![handle(HandleKind::Gui), fixed(T::Bool)],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_window_set_icon() -> StdFn {
+    StdFn::typed(
+        "gui_window_set_icon",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Array(Box::new(T::Int))),
+            ],
             result(T::Null),
         ),
     )

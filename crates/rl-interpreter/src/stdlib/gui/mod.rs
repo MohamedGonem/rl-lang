@@ -36,6 +36,7 @@ mod gui_textbox;
 mod gui_window;
 mod gui_window_set_background;
 mod gui_window_set_decorated;
+mod gui_window_set_icon;
 mod gui_window_set_pos;
 mod gui_window_set_size;
 mod gui_window_set_title;
@@ -66,6 +67,7 @@ pub struct WindowState {
     pub pending_size: Option<(f32, f32)>,
     pub pending_position: Option<(f32, f32)>,
     pub decorated: bool,
+    pub icon: Option<(u32, u32, Vec<u8>)>,
 }
 
 pub struct ButtonState {
@@ -171,6 +173,7 @@ pub fn module() -> Module {
         .with_function("gui_window_set_size", gui_window_set_size::func)
         .with_function("gui_window_set_pos", gui_window_set_pos::func)
         .with_function("gui_window_set_decorated", gui_window_set_decorated::func)
+        .with_function("gui_window_set_icon", gui_window_set_icon::func)
         .with_function("gui_run", gui_run::func)
         .with_function("gui_close", gui_close::func)
         .with_function("gui_quit", gui_quit::func)

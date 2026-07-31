@@ -19,6 +19,7 @@ pub fn func(eval: &mut Evaluator, title: String, width: i64, height: i64) -> Val
             pending_size: None,
             pending_position: None,
             decorated: true,
+            icon: None,
         }),
     );
     vok!(handle)

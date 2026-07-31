@@ -39,3 +39,28 @@ pub fn extract_string_array(value: Value, name: &str) -> Result<Vec<String>, Str
         )),
     }
 }
+
+/// Extracts `array[int]` into a `Vec<u8>`, validating every element is a byte
+/// (0-255). Used by `gui_window_set_icon` for raw RGBA pixel data.
+pub fn extract_byte_array(value: Value, name: &str) -> Result<Vec<u8>, String> {
+    match value {
+        Value::Values { items, .. } => items
+            .into_iter()
+            .map(|v| {
+                let n = crate::stdlib::common::extract_int(v, name)?;
+                if !(0..=255).contains(&n) {
+                    return Err(format!(
+                        "{}: byte value {} is out of range (must be 0-255)",
+                        name, n
+                    ));
+                }
+                Ok(n as u8)
+            })
+            .collect(),
+        other => Err(format!(
+            "{}: expected array[int], got {}",
+            name,
+            other.type_name()
+        )),
+    }
+}
