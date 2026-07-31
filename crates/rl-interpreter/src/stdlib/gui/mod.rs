@@ -7,9 +7,11 @@ mod common;
 mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
+mod gui_get_text;
 mod gui_label;
 mod gui_progress_bar;
 mod gui_radio_group;
+mod gui_set_text;
 mod gui_slider;
 mod gui_textbox;
 mod gui_window;
@@ -116,4 +118,6 @@ pub fn module() -> Module {
         .with_function("gui_radio_group", gui_radio_group::func)
         .with_function("gui_slider", gui_slider::func)
         .with_function("gui_progress_bar", gui_progress_bar::func)
+        .with_function("gui_set_text", gui_set_text::func)
+        .with_function("gui_get_text", gui_get_text::func)
 }
