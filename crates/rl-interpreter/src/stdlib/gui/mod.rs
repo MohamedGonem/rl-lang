@@ -8,6 +8,7 @@ mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
 mod gui_label;
+mod gui_progress_bar;
 mod gui_radio_group;
 mod gui_slider;
 mod gui_textbox;
@@ -25,6 +26,7 @@ pub enum GuiHandle {
     Dropdown(SelectState),
     RadioGroup(SelectState),
     Slider(SliderState),
+    ProgressBar(ProgressState),
 
 pub struct WindowState {
     pub title: String,
@@ -93,6 +95,15 @@ pub struct SliderState {
     pub on_change: Option<Value>,
 }
 
+pub struct ProgressState {
+    pub window: u64,
+    pub value: f32,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub visible: bool,
+}
+
 pub fn module() -> Module {
     Module::new("gui")
         .with_function("gui_window", gui_window::func)
@@ -102,4 +113,6 @@ pub fn module() -> Module {
         .with_function("gui_textbox", gui_textbox::func)
         .with_function("gui_dropdown", gui_dropdown::func)
         .with_function("gui_radio_group", gui_radio_group::func)
+        .with_function("gui_slider", gui_slider::func)
+        .with_function("gui_progress_bar", gui_progress_bar::func)
 }

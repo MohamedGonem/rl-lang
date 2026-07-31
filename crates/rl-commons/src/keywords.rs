@@ -472,5 +472,6 @@ pub mod gui {
         "gui_dropdown",
         "gui_radio_group",
         "gui_slider",
+        "gui_progress_bar",
     ];
 }
