@@ -10,6 +10,8 @@ mod gui_dropdown;
 mod gui_get_text;
 mod gui_is_visible;
 mod gui_label;
+mod gui_on_change;
+mod gui_on_click;
 mod gui_progress_bar;
 mod gui_radio_group;
 mod gui_set_text;
@@ -124,4 +126,6 @@ pub fn module() -> Module {
         .with_function("gui_get_text", gui_get_text::func)
         .with_function("gui_set_visible", gui_set_visible::func)
         .with_function("gui_is_visible", gui_is_visible::func)
+        .with_function("gui_on_click", gui_on_click::func)
+        .with_function("gui_on_change", gui_on_change::func)
 }
