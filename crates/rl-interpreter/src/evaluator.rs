@@ -1308,27 +1308,29 @@ impl Evaluator {
         let mut err = self.err(format!("undefined function {}", path.join("::")), span);
         // suggest a stdlib leaf name if the last segment is a close typo
         if let Some(last) = path.last() {
-            let candidates = stdlib::math::KEYWORDS
+            let candidates = stdlib::array::KEYWORDS
                 .iter()
-                .chain(stdlib::math::constants::KEYWORDS)
+                .chain(stdlib::audio::KEYWORDS)
                 .chain(stdlib::bitwise::KEYWORDS)
-                .chain(stdlib::io::KEYWORDS)
-                .chain(stdlib::string::KEYWORDS)
-                .chain(stdlib::types::KEYWORDS)
-                .chain(stdlib::array::KEYWORDS)
-                .chain(stdlib::path::KEYWORDS)
-                .chain(stdlib::fs::KEYWORDS)
-                .chain(stdlib::random::KEYWORDS)
-                .chain(stdlib::time::KEYWORDS)
-                .chain(stdlib::process::KEYWORDS)
-                .chain(stdlib::result::KEYWORDS)
-                .chain(stdlib::terminal::KEYWORDS)
-                .chain(stdlib::rl::KEYWORDS)
-                .chain(stdlib::debug::KEYWORDS)
-                .chain(stdlib::net::KEYWORDS)
-                .chain(stdlib::http::KEYWORDS)
-                .chain(stdlib::collections::KEYWORDS)
                 .chain(stdlib::c::KEYWORDS)
+                .chain(stdlib::collections::KEYWORDS)
+                .chain(stdlib::debug::KEYWORDS)
+                .chain(stdlib::fs::KEYWORDS)
+                .chain(stdlib::gui::KEYWORDS)
+                .chain(stdlib::http::KEYWORDS)
+                .chain(stdlib::io::KEYWORDS)
+                .chain(stdlib::math::KEYWORDS)
+                .chain(stdlib::math::constants::KEYWORDS)
+                .chain(stdlib::net::KEYWORDS)
+                .chain(stdlib::path::KEYWORDS)
+                .chain(stdlib::process::KEYWORDS)
+                .chain(stdlib::random::KEYWORDS)
+                .chain(stdlib::result::KEYWORDS)
+                .chain(stdlib::rl::KEYWORDS)
+                .chain(stdlib::string::KEYWORDS)
+                .chain(stdlib::terminal::KEYWORDS)
+                .chain(stdlib::time::KEYWORDS)
+                .chain(stdlib::types::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));

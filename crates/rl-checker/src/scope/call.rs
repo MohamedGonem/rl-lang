@@ -53,15 +53,29 @@ impl TypeChecker {
         }
 
         let suggestion = if let Some(last) = path.last() {
-            let candidates = keywords::math::KEYWORDS
+            let candidates = keywords::array::KEYWORDS
                 .iter()
-                .chain(keywords::math::constants::KEYWORDS)
-                .chain(keywords::io::KEYWORDS)
-                .chain(keywords::string::KEYWORDS)
-                .chain(keywords::types::KEYWORDS)
-                .chain(keywords::array::KEYWORDS)
-                .chain(keywords::path::KEYWORDS)
+                .chain(keywords::audio::KEYWORDS)
+                .chain(keywords::bitwise::KEYWORDS)
+                .chain(keywords::c::KEYWORDS)
+                .chain(keywords::collections::KEYWORDS)
+                .chain(keywords::debug::KEYWORDS)
                 .chain(keywords::fs::KEYWORDS)
+                .chain(keywords::gui::KEYWORDS)
+                .chain(keywords::http::KEYWORDS)
+                .chain(keywords::io::KEYWORDS)
+                .chain(keywords::math::KEYWORDS)
+                .chain(keywords::math::constants::KEYWORDS)
+                .chain(keywords::net::KEYWORDS)
+                .chain(keywords::path::KEYWORDS)
+                .chain(keywords::process::KEYWORDS)
+                .chain(keywords::random::KEYWORDS)
+                .chain(keywords::result::KEYWORDS)
+                .chain(keywords::rl::KEYWORDS)
+                .chain(keywords::string::KEYWORDS)
+                .chain(keywords::terminal::KEYWORDS)
+                .chain(keywords::time::KEYWORDS)
+                .chain(keywords::types::KEYWORDS)
                 .copied();
             closest_match(last, candidates)
         } else {
