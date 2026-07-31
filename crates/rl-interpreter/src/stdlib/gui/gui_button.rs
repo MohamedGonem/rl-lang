@@ -4,7 +4,10 @@ use crate::{
     evaluator::Evaluator,
     stdlib::{
         common::{extract_handle, verr, vok, vs},
-        gui::{ButtonState, GuiHandle, common::insert_handle},
+        gui::{
+            ButtonState, GuiHandle,
+            common::{attach_child, insert_handle, require_window},
+        },
     },
     values::Value,
 };
@@ -15,15 +18,8 @@ pub fn func(eval: &mut Evaluator, window: Value, label: String, x: i64, y: i64) 
         Err(e) => return verr!(vs!(e)),
     };
 
-    match eval.gui_handles.get(&window_id) {
-        Some(GuiHandle::Window(_)) => {}
-        Some(_) => {
-            return verr!(vs!(format!(
-                "gui_button: handle {} is not a window",
-                window_id
-            )));
-        }
-        None => return verr!(vs!(format!("gui_button: unknown handle {}", window_id))),
+    if let Err(e) = require_window(eval, window_id, "gui_button") {
+        return verr!(vs!(e));
     }
 
     let handle = insert_handle(
@@ -41,10 +37,7 @@ pub fn func(eval: &mut Evaluator, window: Value, label: String, x: i64, y: i64) 
     let Value::Handle { id: button_id, .. } = handle else {
         unreachable!()
     };
-
-    if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id) {
-        w.children.push(button_id);
-    }
+    attach_child(eval, window_id, button_id);
 
     vok!(handle)
 }
