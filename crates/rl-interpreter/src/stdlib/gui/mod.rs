@@ -93,6 +93,7 @@ pub struct TextboxState {
     pub y: f32,
     pub width: f32,
     pub visible: bool,
+    pub on_change: Option<Value>,
 }
 
 pub struct SelectState {

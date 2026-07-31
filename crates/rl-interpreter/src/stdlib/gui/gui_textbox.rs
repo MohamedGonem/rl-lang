@@ -38,6 +38,7 @@ pub fn func(
             y: y as f32,
             width: width.max(1) as f32,
             visible: true,
+            on_change: None,
         }),
     );
 

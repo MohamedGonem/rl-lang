@@ -27,6 +27,10 @@ pub fn func(eval: &mut Evaluator, handle: Value, function: Value) -> Value {
             c.on_change = Some(function);
             vok!(vnl!())
         }
+        Some(GuiHandle::Textbox(t)) => {
+            t.on_change = Some(function);
+            vok!(vnl!())
+        }
         Some(GuiHandle::Dropdown(s)) | Some(GuiHandle::RadioGroup(s)) => {
             s.on_change = Some(function);
             vok!(vnl!())
