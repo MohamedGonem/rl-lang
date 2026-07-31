@@ -156,6 +156,10 @@ impl Parser {
                     self.advance();
                     TypeAnnotation::Error
                 }
+                TokenType::Handle => {
+                    self.advance();
+                    TypeAnnotation::HandleInfer
+                }
                 TokenType::Identifier(name) => {
                     self.advance();
                     if self.tag_names.contains(&name) {
