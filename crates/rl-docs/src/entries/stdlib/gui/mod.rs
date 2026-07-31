@@ -31,6 +31,7 @@ mod gui_slider;
 mod gui_textbox;
 mod gui_window;
 mod gui_window_set_background;
+mod gui_window_set_decorated;
 mod gui_window_set_size;
 mod gui_window_set_title;
 
@@ -77,6 +78,7 @@ static FUNCTIONS: &[&FnEntry] = &[
     &gui_window_set_title::GUI_WINDOW_SET_TITLE,
     &gui_window_set_background::GUI_WINDOW_SET_BACKGROUND,
     &gui_window_set_size::GUI_WINDOW_SET_SIZE,
+    &gui_window_set_decorated::GUI_WINDOW_SET_DECORATED,
     // event functions
     &gui_on_click::GUI_ON_CLICK,
     &gui_on_change::GUI_ON_CHANGE,
