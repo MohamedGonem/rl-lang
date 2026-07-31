@@ -486,5 +486,7 @@ pub mod gui {
         "gui_get_selected",
         "gui_get_value",
         "gui_set_value",
+        "gui_set_progress",
+        "gui_get_progress",
     ];
 }

@@ -7,6 +7,7 @@ mod common;
 mod gui_button;
 mod gui_checkbox;
 mod gui_dropdown;
+mod gui_get_progress;
 mod gui_get_text;
 mod gui_get_value;
 mod gui_is_checked;
@@ -17,6 +18,7 @@ mod gui_on_click;
 mod gui_progress_bar;
 mod gui_radio_group;
 mod gui_set_checked;
+mod gui_set_progress;
 mod gui_set_text;
 mod gui_set_value;
 mod gui_set_visible;
@@ -139,4 +141,6 @@ pub fn module() -> Module {
         .with_function("gui_get_selected", gui_get_selected::func)
         .with_function("gui_get_value", gui_get_value::func)
         .with_function("gui_set_value", gui_set_value::func)
+        .with_function("gui_set_progress", gui_set_progress::func)
+        .with_function("gui_get_progress", gui_get_progress::func)
 }
