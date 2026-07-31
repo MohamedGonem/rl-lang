@@ -172,6 +172,7 @@ impl Value {
                 HandleKind::Net => "net handle",
                 HandleKind::Http => "http handle",
                 HandleKind::Audio => "audio handle",
+                HandleKind::Gui => "gui handle",
             },
         }
     }

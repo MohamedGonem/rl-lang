@@ -34,6 +34,7 @@ pub enum HandleKind {
     Net = 1,
     Http = 2,
     Audio = 3,
+    Gui = 4,
 }
 
 impl Statement {
