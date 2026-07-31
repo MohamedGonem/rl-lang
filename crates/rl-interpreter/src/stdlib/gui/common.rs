@@ -25,6 +25,7 @@ pub fn attach_child(eval: &mut Evaluator, window_id: u64, child_id: u64) {
     }
 }
 
+/// Extracts `array[string]` into a `Vec<String>`, for `gui_dropdown`/`gui_radio_group`.
 pub fn extract_string_array(value: Value, name: &str) -> Result<Vec<String>, String> {
     match value {
         Value::Values { items, .. } => items

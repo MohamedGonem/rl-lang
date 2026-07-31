@@ -6,7 +6,9 @@ use crate::values::Value;
 mod common;
 mod gui_button;
 mod gui_checkbox;
+mod gui_dropdown;
 mod gui_label;
+mod gui_radio_group;
 mod gui_textbox;
 mod gui_window;
 
@@ -20,6 +22,7 @@ pub enum GuiHandle {
     Checkbox(CheckboxState),
     Textbox(TextboxState),
     Dropdown(SelectState),
+    RadioGroup(SelectState),
 pub struct WindowState {
     pub title: String,
     pub width: f32,
@@ -83,4 +86,5 @@ pub fn module() -> Module {
         .with_function("gui_checkbox", gui_checkbox::func)
         .with_function("gui_textbox", gui_textbox::func)
         .with_function("gui_dropdown", gui_dropdown::func)
+        .with_function("gui_radio_group", gui_radio_group::func)
 }

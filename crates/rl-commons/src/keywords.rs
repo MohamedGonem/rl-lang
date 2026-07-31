@@ -470,5 +470,6 @@ pub mod gui {
         "gui_checkbox",
         "gui_textbox",
         "gui_dropdown",
+        "gui_radio_group",
     ];
 }
