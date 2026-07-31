@@ -7,9 +7,8 @@ use std::sync::Arc;
 
 use crate::{
     native::{IntoNativeFn, Module},
-    stdlib,
     stdlib::{
-        audio::AudioHandle, c::CHandle, http::HttpHandle, net::NetHandle,
+        self, audio::AudioHandle, c::CHandle, gui::GuiHandle, http::HttpHandle, net::NetHandle,
         random::xoshiro::Xoshiro256,
     },
     values::{FunctionData, MapKey, Value},
@@ -99,6 +98,10 @@ pub struct Evaluator {
     /// Global volume scalar set via `std::audio::set_master_volume`, applied
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub gui_handles: HashMap<u64, GuiHandle>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub gui_next_handle: u64,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
@@ -145,6 +148,8 @@ impl Evaluator {
             audio_next_handle: 1,
             audio_output_device: None,
             audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
             records: HashMap::new(),
             tags: HashMap::new(),
             impl_methods: HashMap::new(),
@@ -202,7 +207,8 @@ impl Evaluator {
                 .with_module(stdlib::net::module())
                 .with_module(stdlib::http::module())
                 .with_module(stdlib::collections::module())
-                .with_module(stdlib::c::module()),
+                .with_module(stdlib::c::module())
+                .with_module(stdlib::gui::module()),
         )
     }
 
