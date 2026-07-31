@@ -419,3 +419,68 @@ pub struct Param {
     pub param_name: String,
     pub param_type: TypeAnnotation,
 }
+
+impl TypeAnnotation {
+    pub fn contains_handle_infer(&self) -> bool {
+        match self {
+            TypeAnnotation::HandleInfer => true,
+            TypeAnnotation::Array(inner)
+            | TypeAnnotation::CArray(inner)
+            | TypeAnnotation::Set(inner)
+            | TypeAnnotation::CSet(inner)
+            | TypeAnnotation::Result(inner)
+            | TypeAnnotation::CResult(inner) => inner.contains_handle_infer(),
+
+            TypeAnnotation::Map(k, v) | TypeAnnotation::CMap(k, v) => {
+                k.contains_handle_infer() || v.contains_handle_infer()
+            }
+
+            TypeAnnotation::Tuple(items) | TypeAnnotation::CTuple(items) => {
+                items.iter().any(TypeAnnotation::contains_handle_infer)
+            }
+
+            _ => false,
+        }
+    }
+
+    pub fn resolve_handle_infer(&self, actual: &TypeAnnotation) -> Option<TypeAnnotation> {
+        use TypeAnnotation::*;
+
+        if !self.contains_handle_infer() {
+            return if self == actual {
+                Some(self.clone())
+            } else {
+                None
+            };
+        }
+
+        Some(match (self, actual) {
+            (HandleInfer, Handle(kind)) => Handle(*kind),
+            (Array(d), Array(a)) | (Array(d), CArray(a)) => {
+                Array(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (CArray(d), Array(a)) | (CArray(d), CArray(a)) => {
+                CArray(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (Set(d), Set(a)) | (Set(d), CSet(a)) => Set(Box::new(d.resolve_handle_infer(a)?)),
+            (CSet(d), Set(a)) | (CSet(d), CSet(a)) => CSet(Box::new(d.resolve_handle_infer(a)?)),
+            (Result(d), Result(a)) | (Result(d), CResult(a)) => {
+                Result(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (CResult(d), Result(a)) | (CResult(d), CResult(a)) => {
+                CResult(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (Map(dk, dv), Map(ak, av)) | (Map(dk, dv), CMap(ak, av)) => Map(
+                Box::new(dk.resolve_handle_infer(ak)?),
+                Box::new(dv.resolve_handle_infer(av)?),
+            ),
+            (Tuple(d), Tuple(a)) | (Tuple(d), CTuple(a)) if d.len() == a.len() => Tuple(Rc::new(
+                d.iter()
+                    .zip(a.iter())
+                    .map(|(d, a)| d.resolve_handle_infer(a))
+                    .collect::<Option<Vec<_>>>()?,
+            )),
+            _ => return None,
+        })
+    }
+}
