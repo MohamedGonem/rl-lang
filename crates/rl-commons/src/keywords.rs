@@ -492,6 +492,7 @@ pub mod gui {
         "gui_get_pos",
         "gui_remove",
         "gui_window_set_title",
+        "gui_window_set_background",
         "gui_run",
         "gui_close",
         "gui_quit",

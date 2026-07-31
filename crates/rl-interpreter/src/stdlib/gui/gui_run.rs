@@ -80,7 +80,7 @@ impl eframe::App for RlGuiApp<'_> {
     fn ui(&mut self, ui: &mut eframe::egui::Ui, _frame: &mut eframe::Frame) {
         use eframe::egui;
 
-        let ctx = ui.ctx();
+        let ctx = ui.ctx().clone();
         let eval = &mut *self.eval;
 
         let Some(GuiHandle::Window(win)) = eval.gui_handles.get(&self.window) else {
@@ -90,6 +90,15 @@ impl eframe::App for RlGuiApp<'_> {
 
         ctx.send_viewport_cmd(egui::ViewportCommand::Visible(win.visible));
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(win.title.clone()));
+
+        let background = win.background;
+        egui::CentralPanel::default()
+            .frame(egui::Frame::default().fill(egui::Color32::from_rgb(
+                background.0,
+                background.1,
+                background.2,
+            )))
+            .show(ui, |_ui| {});
 
         let children = win.children.clone();
         let snapshots: Vec<WidgetSnapshot> = children
@@ -173,7 +182,7 @@ impl eframe::App for RlGuiApp<'_> {
                 WidgetSnapshot::Button { id, label, x, y } => {
                     let resp = egui::Area::new(egui::Id::new(("rl_gui_button", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| ui.button(label))
+                        .show(&ctx, |ui| ui.button(label))
                         .inner;
                     if resp.clicked() {
                         clicked.push(*id);
@@ -182,7 +191,7 @@ impl eframe::App for RlGuiApp<'_> {
                 WidgetSnapshot::Label { id, text, x, y } => {
                     egui::Area::new(egui::Id::new(("rl_gui_label", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| ui.label(text));
+                        .show(&ctx, |ui| ui.label(text));
                 }
                 WidgetSnapshot::Checkbox {
                     id,
@@ -194,7 +203,7 @@ impl eframe::App for RlGuiApp<'_> {
                     let mut checked = *checked;
                     let resp = egui::Area::new(egui::Id::new(("rl_gui_checkbox", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| ui.checkbox(&mut checked, label))
+                        .show(&ctx, |ui| ui.checkbox(&mut checked, label))
                         .inner;
                     if resp.changed() {
                         changed_checkbox.push((*id, checked));
@@ -210,7 +219,7 @@ impl eframe::App for RlGuiApp<'_> {
                     let mut text = text.clone();
                     let resp = egui::Area::new(egui::Id::new(("rl_gui_textbox", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| {
+                        .show(&ctx, |ui| {
                             ui.add_sized([*width, 20.0], egui::TextEdit::singleline(&mut text))
                         })
                         .inner;
@@ -229,7 +238,7 @@ impl eframe::App for RlGuiApp<'_> {
                     let mut sel = *selected;
                     egui::Area::new(egui::Id::new(("rl_gui_dropdown", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| {
+                        .show(&ctx, |ui| {
                             egui::ComboBox::from_id_salt(("rl_gui_dropdown_combo", *id))
                                 .width(*width)
                                 .selected_text(options.get(sel).cloned().unwrap_or_default())
@@ -253,7 +262,7 @@ impl eframe::App for RlGuiApp<'_> {
                     let mut sel = *selected;
                     egui::Area::new(egui::Id::new(("rl_gui_radio", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| {
+                        .show(&ctx, |ui| {
                             ui.vertical(|ui| {
                                 for (i, opt) in options.iter().enumerate() {
                                     ui.radio_value(&mut sel, i, opt);
@@ -276,7 +285,7 @@ impl eframe::App for RlGuiApp<'_> {
                     let mut v = *value;
                     let resp = egui::Area::new(egui::Id::new(("rl_gui_slider", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| {
+                        .show(&ctx, |ui| {
                             ui.add_sized(
                                 [*width, 20.0],
                                 egui::Slider::new(&mut v, *min..=*max).show_value(true),
@@ -296,7 +305,7 @@ impl eframe::App for RlGuiApp<'_> {
                 } => {
                     egui::Area::new(egui::Id::new(("rl_gui_progress", *id)))
                         .fixed_pos(egui::pos2(*x, *y))
-                        .show(ctx, |ui| {
+                        .show(&ctx, |ui| {
                             ui.add_sized([*width, 20.0], egui::ProgressBar::new(*value))
                         });
                 }

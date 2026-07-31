@@ -34,6 +34,7 @@ mod gui_set_visible;
 mod gui_slider;
 mod gui_textbox;
 mod gui_window;
+mod gui_window_set_background;
 mod gui_window_set_title;
 
 pub use rl_commons::keywords::gui::KEYWORDS;
@@ -57,6 +58,8 @@ pub struct WindowState {
     pub height: f32,
     pub visible: bool,
     pub children: Vec<u64>,
+    /// RGB background fill for the window's central panel.
+    pub background: (u8, u8, u8),
 }
 
 pub struct ButtonState {
@@ -158,6 +161,7 @@ pub fn module() -> Module {
         .with_function("gui_get_pos", gui_get_pos::func)
         .with_function("gui_remove", gui_remove::func)
         .with_function("gui_window_set_title", gui_window_set_title::func)
+        .with_function("gui_window_set_background", gui_window_set_background::func)
         .with_function("gui_run", gui_run::func)
         .with_function("gui_close", gui_close::func)
         .with_function("gui_quit", gui_quit::func)

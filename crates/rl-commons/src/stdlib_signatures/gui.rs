@@ -34,6 +34,7 @@ pub fn module() -> ModuleNames {
         .with_typed_function(gui_get_pos())
         .with_typed_function(gui_remove())
         .with_typed_function(gui_window_set_title())
+        .with_typed_function(gui_window_set_background())
         .with_typed_function(gui_run())
         .with_typed_function(gui_close())
         .with_typed_function(gui_quit())
@@ -356,6 +357,21 @@ fn gui_window_set_title() -> StdFn {
         "gui_window_set_title",
         overloads(
             vec![handle(HandleKind::Gui), fixed(T::String)],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_window_set_background() -> StdFn {
+    StdFn::typed(
+        "gui_window_set_background",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Int),
+            ],
             result(T::Null),
         ),
     )
