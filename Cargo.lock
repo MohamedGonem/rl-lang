@@ -1965,6 +1965,7 @@ dependencies = [
  "rl-resolver",
  "rl-utils",
  "rodio",
+ "shell-words",
  "symphonia",
  "tiny_http",
  "ureq",
@@ -2227,6 +2228,12 @@ checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "shell-words"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 
 [[package]]
 name = "shlex"

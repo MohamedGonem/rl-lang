@@ -24,6 +24,7 @@ rodio.workspace = true
 cpal.workspace = true
 symphonia.workspace = true
 log = { workspace = true, optional = true }
+shell-words.workspace = true
 
 [features]
 debug = ["dep:log"]
