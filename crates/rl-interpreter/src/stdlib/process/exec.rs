@@ -22,7 +22,7 @@ fn shell_command(cmd: &str) -> Command {
 
 fn with_command(e: &str, cmd: &str) -> Command {
     let mut c = Command::new(e);
-    c.args(["-c", cmd]);
+    c.args([cmd]);
     c
 }
 
