@@ -19,6 +19,17 @@ pub fn require_window(eval: &Evaluator, window_id: u64, fn_name: &str) -> Result
     }
 }
 
+/// Removes a window handle and all of its child widget handles. Used both by
+/// `gui_close` and by `gui_run` when a secondary window's native close
+/// button is clicked. No-op if `id` isn't a window (or doesn't exist).
+pub fn close_window(eval: &mut Evaluator, id: u64) {
+    if let Some(GuiHandle::Window(w)) = eval.gui_handles.remove(&id) {
+        for child in w.children {
+            eval.gui_handles.remove(&child);
+        }
+    }
+}
+
 pub fn attach_child(eval: &mut Evaluator, window_id: u64, child_id: u64) {
     if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id) {
         w.children.push(child_id);
