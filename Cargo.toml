@@ -68,7 +68,6 @@ rodio = { version = "0.22.2", default-features = false, features = ["playback", 
 cpal = "0.17"
 symphonia = { version = "0.5", features = ["all"] }
 eframe = "0.35"
-
 shell-words = "1.1"
 
 [profile.release]
