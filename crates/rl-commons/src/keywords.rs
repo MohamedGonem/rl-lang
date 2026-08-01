@@ -170,8 +170,14 @@ pub mod net {
 }
 
 pub mod c {
-    pub const KEYWORDS: &[&str] =
-        &["compile", "load", "call", "has_symbol", "close", "clear_cache"];
+    pub const KEYWORDS: &[&str] = &[
+        "compile",
+        "load",
+        "call",
+        "has_symbol",
+        "close",
+        "clear_cache",
+    ];
 }
 
 pub mod path {
@@ -200,8 +206,11 @@ pub mod process {
         "pid",
         "sleep",
         "exec",
+        "with_exec",
         "exec_code",
+        "with_exec_code",
         "exec_lines",
+        "with_exec_lines",
     ];
 }
 

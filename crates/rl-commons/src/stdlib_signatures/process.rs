@@ -14,8 +14,11 @@ pub fn module() -> ModuleNames {
         .with_typed_function(pid())
         .with_typed_function(sleep())
         .with_typed_function(exec())
+        .with_typed_function(with_exec())
         .with_typed_function(exec_code())
+        .with_typed_function(with_exec_code())
         .with_typed_function(exec_lines())
+        .with_typed_function(with_exec_lines())
 }
 
 fn args() -> StdFn {
@@ -49,8 +52,22 @@ fn exec() -> StdFn {
     StdFn::typed("exec", vec![(params(vec![T::String]), result(T::String))])
 }
 
+fn with_exec() -> StdFn {
+    StdFn::typed(
+        "with_exec",
+        vec![(params(vec![T::String, T::String]), result(T::String))],
+    )
+}
+
 fn exec_code() -> StdFn {
     StdFn::typed("exec_code", vec![(params(vec![T::String]), result(T::Int))])
+}
+
+fn with_exec_code() -> StdFn {
+    StdFn::typed(
+        "with_exec_code",
+        vec![(params(vec![T::String, T::String]), result(T::Int))],
+    )
 }
 
 fn exec_lines() -> StdFn {
@@ -58,6 +75,16 @@ fn exec_lines() -> StdFn {
         "exec_lines",
         vec![(
             params(vec![T::String]),
+            result(T::Array(Box::new(T::String))),
+        )],
+    )
+}
+
+fn with_exec_lines() -> StdFn {
+    StdFn::typed(
+        "with_exec_lines",
+        vec![(
+            params(vec![T::String, T::String]),
             result(T::Array(Box::new(T::String))),
         )],
     )
