@@ -20,14 +20,19 @@ fn shell_command(cmd: &str) -> Command {
     c
 }
 
-fn with_command(e: &str, cmd: &str) -> Command {
+fn with_command(e: &str, cmd: &str) -> Result<Command, shell_words::ParseError> {
+    let args = shell_words::split(cmd)?;
     let mut c = Command::new(e);
-    c.args([cmd]);
-    c
+    c.args(args);
+    Ok(c)
 }
 
 pub fn std_with_exec(_: &mut Evaluator, e: String, cmd: String) -> Value {
-    let output = match with_command(&e, &cmd).output() {
+    let mut command = match with_command(&e, &cmd) {
+        Ok(c) => c,
+        Err(err) => return verr!(vs!(format!("with_exec: invalid args \"{}\": {}", cmd, err))),
+    };
+    let output = match command.output() {
         Ok(o) => o,
         Err(e) => return verr!(vs!(format!("with_exec: failed to run \"{}\": {}", cmd, e))),
     };
@@ -55,7 +60,11 @@ pub fn std_exec_code(_: &mut Evaluator, cmd: String) -> Value {
 }
 
 pub fn std_with_exec_code(_: &mut Evaluator, e: String, cmd: String) -> Value {
-    let status = match with_command(&e, &cmd).status() {
+    let mut command = match with_command(&e, &cmd) {
+        Ok(c) => c,
+        Err(err) => return verr!(vs!(format!("with_exec: invalid args \"{}\": {}", cmd, err))),
+    };
+    let status = match command.status() {
         Ok(s) => s,
         Err(e) => {
             return verr!(vs!(format!(
@@ -88,7 +97,16 @@ pub fn std_exec_lines(_: &mut Evaluator, cmd: String) -> Value {
 }
 
 pub fn std_with_exec_lines(_: &mut Evaluator, e: String, cmd: String) -> Value {
-    let output = match with_command(&e, &cmd).output() {
+    let mut command = match with_command(&e, &cmd) {
+        Ok(c) => c,
+        Err(err) => {
+            return verr!(vs!(format!(
+                "with_exec_lines: invalid args \"{}\": {}",
+                cmd, err
+            )));
+        }
+    };
+    let output = match command.output() {
         Ok(o) => o,
         Err(e) => {
             return verr!(vs!(format!(
