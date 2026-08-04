@@ -32,6 +32,7 @@ pub fn func(eval: &mut Evaluator, window: Value, label: String, x: i64, y: i64) 
             visible: true,
             checked: false,
             on_change: None,
+            z: 0,
         }),
     );
 

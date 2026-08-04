@@ -49,6 +49,7 @@ pub fn func(
             visible: true,
             on_change: None,
             drag_only: true,
+            z: 0,
         }),
     );
     let Value::Handle { id, .. } = handle else {

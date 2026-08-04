@@ -83,6 +83,7 @@ pub struct ButtonState {
     pub y: f32,
     pub visible: bool,
     pub on_click: Option<Value>,
+    pub z: i32,
 }
 
 pub struct LabelState {
@@ -91,6 +92,7 @@ pub struct LabelState {
     pub x: f32,
     pub y: f32,
     pub visible: bool,
+    pub z: i32,
 }
 
 pub struct CheckboxState {
@@ -101,6 +103,7 @@ pub struct CheckboxState {
     pub visible: bool,
     pub checked: bool,
     pub on_change: Option<Value>,
+    pub z: i32,
 }
 
 pub struct TextboxState {
@@ -114,6 +117,7 @@ pub struct TextboxState {
     pub on_submit: Option<Value>,
     pub multiline: bool,
     pub height: f32,
+    pub z: i32,
 }
 
 pub struct SelectState {
@@ -125,6 +129,7 @@ pub struct SelectState {
     pub width: f32,
     pub visible: bool,
     pub on_change: Option<Value>,
+    pub z: i32,
 }
 
 pub struct SliderState {
@@ -138,6 +143,7 @@ pub struct SliderState {
     pub visible: bool,
     pub on_change: Option<Value>,
     pub drag_only: bool,
+    pub z: i32,
 }
 
 pub struct ProgressState {
@@ -147,6 +153,7 @@ pub struct ProgressState {
     pub y: f32,
     pub width: f32,
     pub visible: bool,
+    pub z: i32,
 }
 
 pub struct SeparatorState {
@@ -155,6 +162,7 @@ pub struct SeparatorState {
     pub y: f32,
     pub width: f32,
     pub visible: bool,
+    pub z: i32,
 }
 
 pub struct ImageState {
@@ -165,6 +173,7 @@ pub struct ImageState {
     pub height: f32,
     pub visible: bool,
     pub rgba: (u32, u32, std::sync::Arc<Vec<u8>>),
+    pub z: i32,
 }
 
 pub fn module() -> Module {

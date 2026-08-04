@@ -41,6 +41,7 @@ pub fn func(eval: &mut Evaluator, window: Value, options: Value, x: i64, y: i64)
             width: 0.0,
             visible: true,
             on_change: None,
+            z: 0,
         }),
     );
     let Value::Handle { id, .. } = handle else {

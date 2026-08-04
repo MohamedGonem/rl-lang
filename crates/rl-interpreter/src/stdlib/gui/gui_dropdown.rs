@@ -48,6 +48,7 @@ pub fn func(
             width: width.max(1) as f32,
             visible: true,
             on_change: None,
+            z: 0,
         }),
     );
     let Value::Handle { id, .. } = handle else {

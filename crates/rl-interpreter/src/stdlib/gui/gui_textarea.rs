@@ -12,6 +12,12 @@ use crate::{
     values::Value,
 };
 
+/// A multiline textarea. Shares `TextboxState`/`GuiHandle::Textbox` with
+/// `gui_textbox` (distinguished only by `multiline: true`), so it works
+/// automatically with every existing textbox function - `gui_get_text`,
+/// `gui_set_text`, `gui_set_visible`, `gui_set_pos`, `gui_remove`, and
+/// `gui_on_change`. The one exception is `gui_on_submit`: Enter inserts a
+/// newline here instead of submitting, so it never fires for a textarea.
 pub fn func(
     eval: &mut Evaluator,
     window: Value,
@@ -43,6 +49,7 @@ pub fn func(
             on_submit: None,
             multiline: true,
             height: height.max(1) as f32,
+            z: 0,
         }),
     );
 

@@ -42,6 +42,7 @@ pub fn func(
             on_submit: None,
             multiline: false,
             height: 20.0,
+            z: 0,
         }),
     );
 

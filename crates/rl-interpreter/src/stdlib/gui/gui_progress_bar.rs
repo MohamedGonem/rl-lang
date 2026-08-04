@@ -30,6 +30,7 @@ pub fn func(eval: &mut Evaluator, window: Value, x: i64, y: i64, width: i64) -> 
             y: y as f32,
             width: width.max(1) as f32,
             visible: true,
+            z: 0,
         }),
     );
     let Value::Handle { id, .. } = handle else {

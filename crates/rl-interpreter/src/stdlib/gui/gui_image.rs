@@ -63,6 +63,7 @@ pub fn func(
             height: height as f32,
             visible: true,
             rgba: (width as u32, height as u32, std::sync::Arc::new(rgba_bytes)),
+            z: 0,
         }),
     );
     let Value::Handle { id, .. } = handle else {
