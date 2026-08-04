@@ -1,15 +1,15 @@
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, verr, vnl, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, handle: Value, flag: bool) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, flag: bool) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "tcp_set_nonblocking") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),

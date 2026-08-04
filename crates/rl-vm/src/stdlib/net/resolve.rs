@@ -1,19 +1,16 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::Vm,
 };
-use rl_ast::statements::TypeAnnotation;
 use std::net::ToSocketAddrs;
+use std::rc::Rc;
 
-pub fn func(_: &mut Evaluator, host_port: String) -> Value {
+pub fn func(_: &mut Vm, host_port: String) -> VmValue {
     match host_port.to_socket_addrs() {
         Ok(addrs) => {
-            let items: Vec<Value> = addrs.map(|a| vs!(a.ip().to_string())).collect();
-            vok!(Value::Values {
-                items_type: TypeAnnotation::String,
-                items,
-            })
+            let items: Vec<VmValue> = addrs.map(|a| vs!(a.ip().to_string())).collect();
+            vok!(VmValue::Arr(Rc::new(items)))
         }
         Err(e) => verr!(vs!(format!("resolve(\"{}\"): {}", host_port, e))),
     }

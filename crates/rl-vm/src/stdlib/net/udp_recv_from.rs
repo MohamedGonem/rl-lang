@@ -1,15 +1,16 @@
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, extract_number, verr, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn func(eval: &mut Evaluator, handle: Value, max_bytes: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, max_bytes: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "udp_recv_from") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),
@@ -34,7 +35,10 @@ pub fn func(eval: &mut Evaluator, handle: Value, max_bytes: Value) -> Value {
         Ok((n, sender)) => {
             buf.truncate(n);
             let data = String::from_utf8_lossy(&buf).into_owned();
-            vok!(Value::Tuple(vec![vs!(data), vs!(sender.to_string())]))
+            vok!(VmValue::Tuple(Rc::new(vec![
+                vs!(data),
+                vs!(sender.to_string())
+            ])))
         }
         Err(e) => verr!(vs!(format!("udp_recv_from: {}", e))),
     }

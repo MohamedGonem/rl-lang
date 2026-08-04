@@ -1,15 +1,15 @@
 use std::net::UdpSocket;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_string, verr, vok, vs},
         net::{NetHandle, common::insert_handle},
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, address: Value) -> Value {
+pub fn func(eval: &mut Vm, address: VmValue) -> VmValue {
     let addr = match extract_string(address, "udp_bind") {
         Ok(s) => s,
         Err(e) => return verr!(vs!(format!("udp_bind: {} ", e))),

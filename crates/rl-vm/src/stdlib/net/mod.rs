@@ -24,8 +24,6 @@ mod udp_recv_from;
 mod udp_send;
 mod udp_send_to;
 
-pub use rl_commons::keywords::net::KEYWORDS;
-
 /// A single native networking resource, stored behind an `int` handle.
 pub enum NetHandle {
     TcpListener(TcpListener),

@@ -3,15 +3,15 @@ use std::net::Shutdown;
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, extract_string, verr, vnl, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, handle: Value, mode: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, mode: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "tcp_local_addr") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),

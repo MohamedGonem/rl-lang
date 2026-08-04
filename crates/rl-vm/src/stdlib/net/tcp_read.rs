@@ -3,15 +3,15 @@ use std::io::Read;
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, extract_number, verr, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, handle: Value, max_bytes: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, max_bytes: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "tcp_read") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),

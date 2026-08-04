@@ -1,14 +1,14 @@
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, verr, vok, vs},
         net::{NetHandle, common::insert_handle},
     },
-    values::Value,
+    values::VmValue,
 };
 use rl_ast::statements::HandleKind;
 
-pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "tcp_accept") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),

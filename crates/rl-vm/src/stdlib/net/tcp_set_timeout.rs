@@ -3,15 +3,15 @@ use std::time::Duration;
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, extract_number, verr, vnl, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, handle: Value, millis: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, millis: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "tcp_set_timeout") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),

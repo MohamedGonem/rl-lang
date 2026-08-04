@@ -1,15 +1,15 @@
 use rl_ast::statements::HandleKind;
 
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{extract_handle, extract_string, verr, vi, vok, vs},
         net::NetHandle,
     },
-    values::Value,
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, handle: Value, data: Value, address: Value) -> Value {
+pub fn func(eval: &mut Vm, handle: VmValue, data: VmValue, address: VmValue) -> VmValue {
     let id = match extract_handle(handle, HandleKind::Net, "udp_send_to") {
         Ok(id) => id,
         Err(e) => return verr!(vs!(e)),
