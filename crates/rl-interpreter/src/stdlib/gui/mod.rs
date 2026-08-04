@@ -35,6 +35,7 @@ mod gui_set_text;
 mod gui_set_value;
 mod gui_set_visible;
 mod gui_slider;
+mod gui_textarea;
 mod gui_textbox;
 mod gui_window;
 mod gui_window_set_background;
@@ -110,6 +111,9 @@ pub struct TextboxState {
     pub width: f32,
     pub visible: bool,
     pub on_change: Option<Value>,
+    pub on_submit: Option<Value>,
+    pub multiline: bool,
+    pub height: f32,
 }
 
 pub struct SelectState {
@@ -170,6 +174,7 @@ pub fn module() -> Module {
         .with_function("gui_label", gui_label::func)
         .with_function("gui_checkbox", gui_checkbox::func)
         .with_function("gui_textbox", gui_textbox::func)
+        .with_function("gui_textarea", gui_textarea::func)
         .with_function("gui_dropdown", gui_dropdown::func)
         .with_function("gui_radio_group", gui_radio_group::func)
         .with_function("gui_slider", gui_slider::func)
