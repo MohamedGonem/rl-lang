@@ -14,6 +14,7 @@ mod gui_get_selected;
 mod gui_get_selected_index;
 mod gui_get_text;
 mod gui_get_value;
+mod gui_get_z;
 mod gui_image;
 mod gui_is_checked;
 mod gui_is_visible;
@@ -34,6 +35,7 @@ mod gui_set_selected_index;
 mod gui_set_text;
 mod gui_set_value;
 mod gui_set_visible;
+mod gui_set_z;
 mod gui_slider;
 mod gui_textarea;
 mod gui_textbox;
@@ -208,6 +210,8 @@ pub fn module() -> Module {
         .with_function("gui_get_progress", gui_get_progress::func)
         .with_function("gui_set_pos", gui_set_pos::func)
         .with_function("gui_get_pos", gui_get_pos::func)
+        .with_function("gui_set_z", gui_set_z::func)
+        .with_function("gui_get_z", gui_get_z::func)
         .with_function("gui_remove", gui_remove::func)
         .with_function("gui_window_set_title", gui_window_set_title::func)
         .with_function("gui_window_set_background", gui_window_set_background::func)
