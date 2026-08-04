@@ -18,6 +18,7 @@ mod gui_image;
 mod gui_is_checked;
 mod gui_is_visible;
 mod gui_label;
+mod gui_number_input;
 mod gui_on_change;
 mod gui_on_click;
 mod gui_progress_bar;
@@ -130,6 +131,7 @@ pub struct SliderState {
     pub width: f32,
     pub visible: bool,
     pub on_change: Option<Value>,
+    pub drag_only: bool,
 }
 
 pub struct ProgressState {
@@ -161,6 +163,7 @@ pub fn module() -> Module {
         .with_function("gui_dropdown", gui_dropdown::func)
         .with_function("gui_radio_group", gui_radio_group::func)
         .with_function("gui_slider", gui_slider::func)
+        .with_function("gui_number_input", gui_number_input::func)
         .with_function("gui_progress_bar", gui_progress_bar::func)
         .with_function("gui_image", gui_image::func)
         .with_function("gui_set_text", gui_set_text::func)
