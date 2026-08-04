@@ -14,8 +14,6 @@ pub mod xoshiro;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::random::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("random")
         .with_function("rand_int", rand_int::func)

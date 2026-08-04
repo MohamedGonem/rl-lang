@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn func(eval: &mut Evaluator) -> f64 {
+pub fn func(eval: &mut Vm) -> f64 {
     eval.rng.generate_random_float()
 }

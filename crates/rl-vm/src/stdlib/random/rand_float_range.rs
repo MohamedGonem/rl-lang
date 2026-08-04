@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vok, vs},
+    values::VmValue,
 };
 
-pub fn func(eval: &mut Evaluator, min: f64, max: f64) -> Value {
+pub fn func(eval: &mut Vm, min: f64, max: f64) -> VmValue {
     if min >= max {
         return verr!(vs!(
             "min value shouldn't be bigger than or equal to maximum value".to_string()

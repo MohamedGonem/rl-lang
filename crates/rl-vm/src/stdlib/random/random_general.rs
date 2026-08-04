@@ -1,18 +1,18 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vby, verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vby, verr, vi, vok, vs},
+    values::VmValue,
 };
-use rl_ast::statements::TypeAnnotation;
+use std::rc::Rc;
 
-pub fn dice(eval: &mut Evaluator, sides: i64) -> Value {
+pub fn dice(eval: &mut Vm, sides: i64) -> VmValue {
     if sides <= 0 {
         return verr!(vs!("sides should be 1 or higher".to_string()));
     }
     vok!(vi!(eval.rng.generate_random_int_range(1, sides)))
 }
 
-pub fn dices(eval: &mut Evaluator, count: i64, sides: i64) -> Value {
+pub fn dices(eval: &mut Vm, count: i64, sides: i64) -> VmValue {
     if count <= 0 {
         return verr!(vs!("count should be 1 or higher".to_string()));
     }
@@ -20,17 +20,14 @@ pub fn dices(eval: &mut Evaluator, count: i64, sides: i64) -> Value {
         return verr!(vs!("sides should be 1 or higher".to_string()));
     }
 
-    let result: Vec<Value> = (0..count)
+    let result: Vec<VmValue> = (0..count)
         .map(|_| vi!(eval.rng.generate_random_int_range(1, sides)))
         .collect();
 
-    vok!(Value::Values {
-        items_type: TypeAnnotation::Int,
-        items: result,
-    })
+    vok!(VmValue::Arr(Rc::new(result,)))
 }
 
-pub fn range(eval: &mut Evaluator, stop: i64) -> Value {
+pub fn range(eval: &mut Vm, stop: i64) -> VmValue {
     if 0 == stop {
         return verr!(vs!("rand_range() stop shouldn't be zero".to_string()));
     }
@@ -43,7 +40,7 @@ pub fn range(eval: &mut Evaluator, stop: i64) -> Value {
     vok!(vi!(eval.rng.generate_random_int_range(0, stop)))
 }
 
-pub fn range_step(eval: &mut Evaluator, start: i64, end: i64, step: i64) -> Value {
+pub fn range_step(eval: &mut Vm, start: i64, end: i64, step: i64) -> VmValue {
     if 0 == step {
         return verr!(vs!("rand_range_step() stop shouldn't be zero".to_string()));
     }
@@ -59,9 +56,9 @@ pub fn range_step(eval: &mut Evaluator, start: i64, end: i64, step: i64) -> Valu
     vok!(vi!(start + i * step))
 }
 
-pub fn choice(eval: &mut Evaluator, array: Value) -> Value {
+pub fn choice(eval: &mut Vm, array: VmValue) -> VmValue {
     match array {
-        Value::Values { items, .. } => {
+        VmValue::Arr(items) => {
             if items.is_empty() {
                 return verr!(vs!("array is empty".to_string()));
             }
@@ -78,17 +75,17 @@ pub fn choice(eval: &mut Evaluator, array: Value) -> Value {
     }
 }
 
-pub fn choices(eval: &mut Evaluator, array: Value, count: i64) -> Value {
+pub fn choices(eval: &mut Vm, array: VmValue, count: i64) -> VmValue {
     if count <= 0 {
         return verr!(vs!("count should be 1 or higher".to_string()));
     }
 
     match array.clone() {
-        Value::Values { items_type, items } => {
+        VmValue::Arr(items) => {
             if items.is_empty() {
                 return verr!(vs!("array is empty".to_string()));
             }
-            let result = (0..count)
+            let result: Vec<VmValue> = (0..count)
                 .map(|_| {
                     items[eval
                         .rng
@@ -97,10 +94,7 @@ pub fn choices(eval: &mut Evaluator, array: Value, count: i64) -> Value {
                         .clone()
                 })
                 .collect();
-            vok!(Value::Values {
-                items_type,
-                items: result,
-            })
+            vok!(VmValue::Arr(Rc::new(result)))
         }
 
         other => verr!(vs!(format!(
@@ -110,13 +104,13 @@ pub fn choices(eval: &mut Evaluator, array: Value, count: i64) -> Value {
     }
 }
 
-pub fn sample(eval: &mut Evaluator, array: Value, count: i64) -> Value {
+pub fn sample(eval: &mut Vm, array: VmValue, count: i64) -> VmValue {
     if count <= 0 {
         return verr!(vs!("count should be 1 or higher".to_string()));
     }
 
     match array.clone() {
-        Value::Values { items_type, items } => {
+        VmValue::Arr(items) => {
             if count as usize > items.len() {
                 return verr!(vs!("count larger than array".to_string()));
             }
@@ -126,30 +120,27 @@ pub fn sample(eval: &mut Evaluator, array: Value, count: i64) -> Value {
                 indices.swap(i, j);
             }
 
-            let result = indices[..count as usize]
+            let result: Vec<VmValue> = indices[..count as usize]
                 .iter()
                 .map(|&i| items[i].clone())
                 .collect();
 
-            vok!(Value::Values {
-                items_type,
-                items: result,
-            })
+            vok!(VmValue::Arr(Rc::new(result)))
         }
 
         other => verr!(vs!(format!("rand_sample() expected array found {}", other))),
     }
 }
 
-pub fn char(eval: &mut Evaluator) -> char {
+pub fn char(eval: &mut Vm) -> char {
     eval.rng.generate_random_int_range(32, 126) as u8 as char
 }
 
-pub fn byte(eval: &mut Evaluator) -> u8 {
+pub fn byte(eval: &mut Vm) -> u8 {
     eval.rng.generate_random_int_range(0, 255) as u8
 }
 
-pub fn string(eval: &mut Evaluator, count: i64) -> Value {
+pub fn string(eval: &mut Vm, count: i64) -> VmValue {
     if count <= 0 {
         return verr!(vs!("count cannot be less than or equal to zero".to_string()));
     }
@@ -159,33 +150,30 @@ pub fn string(eval: &mut Evaluator, count: i64) -> Value {
     vok!(vs!(result))
 }
 
-pub fn bytes(eval: &mut Evaluator, count: i64) -> Value {
+pub fn bytes(eval: &mut Vm, count: i64) -> VmValue {
     if count <= 0 {
         return verr!(vs!("count cannot be less than zero".to_string()));
     }
 
-    let result: Vec<Value> = (0..count).map(|_| vby!(byte(eval))).collect();
+    let result: Vec<VmValue> = (0..count).map(|_| vby!(byte(eval))).collect();
 
-    vok!(Value::Values {
-        items_type: TypeAnnotation::Byte,
-        items: result,
-    })
+    vok!(VmValue::Arr(Rc::new(result,)))
 }
 
-pub fn shuffle(eval: &mut Evaluator, array: Value) -> Value {
+pub fn shuffle(eval: &mut Vm, array: VmValue) -> VmValue {
     match array {
-        Value::Values { items, items_type } => {
+        VmValue::Arr(items) => {
             if items.is_empty() {
                 return verr!(vs!("array is empty".to_string()));
             }
 
-            let mut items = items;
+            let mut items = (*items).clone();
             for i in (1..items.len()).rev() {
                 let j = eval.rng.generate_random_int_range(0, i as i64) as usize;
                 items.swap(i, j);
             }
 
-            vok!(Value::Values { items_type, items })
+            vok!(VmValue::Arr(Rc::new(items)))
         }
 
         other => verr!(vs!(format!(
