@@ -16,8 +16,6 @@ mod sleep;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::process::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("process")
         .with_function("args", args::std_args)

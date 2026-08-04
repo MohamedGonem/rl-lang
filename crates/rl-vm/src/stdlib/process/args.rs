@@ -1,13 +1,10 @@
-use crate::{evaluator::Evaluator, values::Value};
-use rl_ast::statements::TypeAnnotation;
+use crate::{values::VmValue, vm_logic::Vm};
+use std::rc::Rc;
 
-pub fn std_args(eval: &mut Evaluator) -> Value {
-    let args: Vec<Value> = std::env::args()
+pub fn std_args(eval: &mut Vm) -> VmValue {
+    let args: Vec<VmValue> = std::env::args()
         .skip(eval.user_args_offset)
-        .map(Value::String)
+        .map(|s| VmValue::Str(Rc::from(s)))
         .collect();
-    Value::Values {
-        items_type: TypeAnnotation::String,
-        items: args,
-    }
+    VmValue::Arr(Rc::new(args))
 }
