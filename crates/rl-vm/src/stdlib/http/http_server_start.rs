@@ -1,12 +1,12 @@
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{verr, vok, vs},
         http::{HttpHandle, common::insert_handle},
     },
-    values::Value,
+    values::VmValue,
 };
-pub fn func(eval: &mut Evaluator, addr: String) -> Value {
+pub fn func(eval: &mut Vm, addr: String) -> VmValue {
     match tiny_http::Server::http(&addr) {
         Ok(server) => {
             let id = insert_handle(eval, HttpHandle::Server(server));

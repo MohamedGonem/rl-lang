@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
     stdlib::{
         common::{check_arity_range, extract_string, verr, vs},
         http::common::ureq_result_to_value,
     },
-    values::Value,
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
+use rl_utils::span::Span;
 
-pub fn func(_: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
-    check_arity_range(&args, 2, 4, "http_request", span)?;
+pub fn func(_: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+    check_arity_range(&args, 2, 4, "http_request", Span::dummy())?;
 
     let method = match extract_string(args[0].clone(), "http_request") {
         Ok(s) => s,
@@ -20,7 +20,7 @@ pub fn func(_: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Er
         Err(e) => return Ok(verr!(vs!(format!("http_request: {e}")))),
     };
     let body = match args.get(2) {
-        Some(Value::String(s)) => Some(s.clone()),
+        Some(VmValue::Str(s)) => Some(s.to_string()),
         Some(other) => {
             return Ok(verr!(vs!(format!(
                 "http_request: expects a string body, got {}",
@@ -31,11 +31,11 @@ pub fn func(_: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Er
     };
 
     let mut request = ureq::request(&method, &url);
-    if let Some(Value::Values { items, .. }) = args.get(3) {
-        for item in items {
+    if let Some(VmValue::Arr(items)) = args.get(3) {
+        for item in items.iter() {
             match item {
-                Value::Tuple(pair) if pair.len() == 2 => {
-                    if let (Value::String(name), Value::String(value)) = (&pair[0], &pair[1]) {
+                VmValue::Tuple(pair) if pair.len() == 2 => {
+                    if let (VmValue::Str(name), VmValue::Str(value)) = (&pair[0], &pair[1]) {
                         request = request.set(name, value);
                         continue;
                     }

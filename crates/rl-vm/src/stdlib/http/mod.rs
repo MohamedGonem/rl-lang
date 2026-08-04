@@ -16,8 +16,6 @@ mod http_server_start;
 mod http_server_stop;
 mod http_server_try_recv;
 
-pub use rl_commons::keywords::http::KEYWORDS;
-
 /// A single native HTTP resource, stored behind an `int` handle.
 pub enum HttpHandle {
     Server(tiny_http::Server),

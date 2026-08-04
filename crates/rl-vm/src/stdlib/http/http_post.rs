@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
     stdlib::{
         common::{check_arity_range, extract_string, verr, vs},
         http::common::ureq_result_to_value,
     },
-    values::Value,
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
+use rl_utils::span::Span;
 
-pub fn func(_: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
-    check_arity_range(&args, 2, 3, "http_post", span)?;
+pub fn func(_: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+    check_arity_range(&args, 2, 3, "http_post", Span::dummy())?;
 
     let url = match extract_string(args[0].clone(), "http_post") {
         Ok(s) => s,
@@ -21,7 +21,7 @@ pub fn func(_: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Er
     };
 
     let content_type = match args.get(2) {
-        Some(Value::String(s)) => s.clone(),
+        Some(VmValue::Str(s)) => s.to_string(),
         Some(other) => {
             return Ok(verr!(vs!(format!(
                 "http_post: expects a string content_type, got {}",

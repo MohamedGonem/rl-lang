@@ -1,16 +1,16 @@
 use crate::{
-    evaluator::Evaluator,
     stdlib::{
         common::{check_arity_range, extract_handle, extract_string, verr, vok, vs},
         http::HttpHandle,
     },
-    values::Value,
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
 use rl_ast::statements::HandleKind;
-use rl_utils::{errors::Error, span::Span};
+use rl_utils::span::Span;
 
-pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
-    check_arity_range(&args, 3, 4, "http_post", span)?;
+pub fn func(eval: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+    check_arity_range(&args, 3, 4, "http_post", Span::dummy())?;
 
     let id = match extract_handle(args[0].clone(), HandleKind::Http, "http_respond") {
         Ok(id) => id,
@@ -18,7 +18,7 @@ pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value,
     };
 
     let status = match &args[1] {
-        Value::Integer(n) if (100..=599).contains(n) => *n as u16,
+        VmValue::Int(n) if (100..=599).contains(n) => *n as u16,
         other => {
             return Ok(verr!(vs!(format!(
                 "http_respond: expects a valid HTTP status int, got {}",
@@ -32,7 +32,7 @@ pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value,
         Err(e) => return Ok(verr!(vs!(format!("{e}")))),
     };
     let content_type = match args.get(3) {
-        Some(Value::String(s)) => Some(s.clone()),
+        Some(VmValue::Str(s)) => Some(s.to_string()),
         Some(other) => {
             return Ok(verr!(vs!(format!(
                 "http_respond: expects a string content_type, got {}",
@@ -62,7 +62,7 @@ pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value,
     }
 
     match request.respond(response) {
-        Ok(()) => Ok(vok!(Value::Null)),
+        Ok(()) => Ok(vok!(VmValue::Null)),
         Err(e) => Ok(verr!(vs!(format!("http_respond: {}", e)))),
     }
 }
