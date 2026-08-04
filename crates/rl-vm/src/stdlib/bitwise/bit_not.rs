@@ -1,13 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vby, verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vby, verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_bit_not(_: &mut Evaluator, v: Value) -> Value {
+pub fn std_bit_not(_: &mut Vm, v: VmValue) -> VmValue {
     match v {
-        Value::Byte(x) => vok!(vby!(!x)),
-        Value::Integer(x) => vok!(vi!(!x)),
+        VmValue::Byte(x) => vok!(vby!(!x)),
+        VmValue::Int(x) => vok!(vi!(!x)),
         _ => verr!(vs!("bit_not expects a byte or an int".to_string())),
     }
 }

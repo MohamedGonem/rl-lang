@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vby, verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vby, verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_bit_shift_left(_: &mut Evaluator, a: Value, shift: Value) -> Value {
+pub fn std_bit_shift_left(_: &mut Vm, a: VmValue, shift: VmValue) -> VmValue {
     match (a, shift) {
-        (Value::Byte(x), Value::Byte(s)) => vok!(vby!(x << (s as u32))),
-        (Value::Byte(x), Value::Integer(s)) => vok!(vby!(x << (s as u32))),
-        (Value::Integer(x), Value::Byte(s)) => vok!(vi!(x << (s as u32))),
-        (Value::Integer(x), Value::Integer(s)) => vok!(vi!(x << (s as u32))),
+        (VmValue::Byte(x), VmValue::Byte(s)) => vok!(vby!(x << (s as u32))),
+        (VmValue::Byte(x), VmValue::Int(s)) => vok!(vby!(x << (s as u32))),
+        (VmValue::Int(x), VmValue::Byte(s)) => vok!(vi!(x << (s as u32))),
+        (VmValue::Int(x), VmValue::Int(s)) => vok!(vi!(x << (s as u32))),
         _ => verr!(vs!(
             "bit_shift_left expects ((byte|int), (int|byte))".to_string()
         )),

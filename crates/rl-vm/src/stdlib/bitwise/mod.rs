@@ -14,8 +14,6 @@ pub mod trailing_zeros;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::bitwise::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("bitwise")
         .with_function("bit_and", bit_and::std_bit_and)

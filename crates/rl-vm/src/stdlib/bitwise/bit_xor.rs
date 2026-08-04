@@ -1,13 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vby, verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vby, verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_bit_xor(_: &mut Evaluator, a: Value, b: Value) -> Value {
+pub fn std_bit_xor(_: &mut Vm, a: VmValue, b: VmValue) -> VmValue {
     match (a, b) {
-        (Value::Byte(x), Value::Byte(y)) => vok!(vby!(x ^ y)),
-        (Value::Integer(x), Value::Integer(y)) => vok!(vi!(x ^ y)),
+        (VmValue::Byte(x), VmValue::Byte(y)) => vok!(vby!(x ^ y)),
+        (VmValue::Int(x), VmValue::Int(y)) => vok!(vi!(x ^ y)),
         _ => verr!(vs!(
             "bit_xor expects (byte, byte) or (int, int) arguments".to_string()
         )),

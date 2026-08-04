@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vby, verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vby, verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_bit_and(_: &mut Evaluator, a: Value, b: Value) -> Value {
+pub fn std_bit_and(_: &mut Vm, a: VmValue, b: VmValue) -> VmValue {
     match (a, b) {
-        (Value::Byte(x), Value::Byte(y)) => vok!(vby!(x & y)),
-        (Value::Integer(x), Value::Integer(y)) => vok!(vi!(x & y)),
-        (Value::Byte(x), Value::Integer(y)) => vok!(vi!(x as i64 & y)),
-        (Value::Integer(x), Value::Byte(y)) => vok!(vi!(x & y as i64)),
+        (VmValue::Byte(x), VmValue::Byte(y)) => vok!(vby!(x & y)),
+        (VmValue::Int(x), VmValue::Int(y)) => vok!(vi!(x & y)),
+        (VmValue::Byte(x), VmValue::Int(y)) => vok!(vi!(x as i64 & y)),
+        (VmValue::Int(x), VmValue::Byte(y)) => vok!(vi!(x & y as i64)),
         _ => verr!(vs!("bit_and expects byte or integer arguments".to_string())),
     }
 }
