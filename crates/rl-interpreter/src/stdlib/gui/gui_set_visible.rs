@@ -25,6 +25,8 @@ pub fn func(eval: &mut Evaluator, handle: Value, visible: bool) -> Value {
         Some(GuiHandle::RadioGroup(s)) => s.visible = visible,
         Some(GuiHandle::Slider(s)) => s.visible = visible,
         Some(GuiHandle::ProgressBar(p)) => p.visible = visible,
+        Some(GuiHandle::Separator(s)) => s.visible = visible,
+        Some(GuiHandle::Image(i)) => i.visible = visible,
         None => return verr!(vs!(format!("gui_set_visible: unknown handle {}", id))),
     }
 

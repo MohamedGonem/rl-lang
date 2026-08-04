@@ -24,6 +24,8 @@ pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
         Some(GuiHandle::RadioGroup(w)) => (w.x, w.y),
         Some(GuiHandle::Slider(w)) => (w.x, w.y),
         Some(GuiHandle::ProgressBar(w)) => (w.x, w.y),
+        Some(GuiHandle::Separator(w)) => (w.x, w.y),
+        Some(GuiHandle::Image(w)) => (w.x, w.y),
         Some(GuiHandle::Window(_)) => {
             return verr!(vs!(format!("gui_get_pos: handle {} is a window", id)));
         }

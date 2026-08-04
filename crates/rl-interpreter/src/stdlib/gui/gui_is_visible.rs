@@ -25,6 +25,8 @@ pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
         Some(GuiHandle::RadioGroup(w)) => vok!(vb!(w.visible)),
         Some(GuiHandle::Slider(w)) => vok!(vb!(w.visible)),
         Some(GuiHandle::ProgressBar(w)) => vok!(vb!(w.visible)),
+        Some(GuiHandle::Separator(w)) => vok!(vb!(w.visible)),
+        Some(GuiHandle::Image(w)) => vok!(vb!(w.visible)),
         None => verr!(vs!(format!("gui_is_visible: unknown handle {}", id))),
     }
 }

@@ -48,6 +48,14 @@ pub fn func(eval: &mut Evaluator, handle: Value, x: i64, y: i64) -> Value {
             w.x = x as f32;
             w.y = y as f32;
         }
+        Some(GuiHandle::Separator(w)) => {
+            w.x = x as f32;
+            w.y = y as f32;
+        }
+        Some(GuiHandle::Image(w)) => {
+            w.x = x as f32;
+            w.y = y as f32;
+        }
         Some(GuiHandle::Window(_)) => {
             return verr!(vs!(format!(
                 "gui_set_pos: handle {} is a window and cannot be repositioned",

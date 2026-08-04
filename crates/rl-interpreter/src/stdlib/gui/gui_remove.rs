@@ -24,6 +24,8 @@ pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
         Some(GuiHandle::RadioGroup(w)) => w.window,
         Some(GuiHandle::Slider(w)) => w.window,
         Some(GuiHandle::ProgressBar(w)) => w.window,
+        Some(GuiHandle::Separator(w)) => w.window,
+        Some(GuiHandle::Image(w)) => w.window,
         Some(GuiHandle::Window(_)) => {
             return verr!(vs!(format!(
                 "gui_remove: handle {} is a window - use gui_close instead",
