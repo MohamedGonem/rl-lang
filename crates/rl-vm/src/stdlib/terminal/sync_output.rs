@@ -1,7 +1,7 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{try_fn, verr, vnl, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{try_fn, verr, vnl, vok, vs},
+    values::VmValue,
 };
 use crossterm::{
     execute,
@@ -9,7 +9,7 @@ use crossterm::{
 };
 use std::io::stdout;
 
-pub fn std_term_begin_sync(_: &mut Evaluator) -> Value {
+pub fn std_term_begin_sync(_: &mut Vm) -> VmValue {
     try_fn!(
         "term_begin_sync",
         execute!(stdout(), BeginSynchronizedUpdate)
@@ -17,7 +17,7 @@ pub fn std_term_begin_sync(_: &mut Evaluator) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_end_sync(_: &mut Evaluator) -> Value {
+pub fn std_term_end_sync(_: &mut Vm) -> VmValue {
     try_fn!("term_end_sync", execute!(stdout(), EndSynchronizedUpdate));
     vok!(vnl!())
 }

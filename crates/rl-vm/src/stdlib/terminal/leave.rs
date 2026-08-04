@@ -1,5 +1,5 @@
-use crate::stdlib::common::{try_fn, verr, vnl, vok, vs};
-use crate::{evaluator::Evaluator, values::Value};
+use crate::stdlib::macros::{try_fn, verr, vnl, vok, vs};
+use crate::{Vm, values::VmValue};
 use crossterm::cursor::Show;
 use crossterm::{
     execute,
@@ -7,7 +7,7 @@ use crossterm::{
 };
 use std::io::{Write, stderr, stdout};
 
-pub fn func(_: &mut Evaluator) -> Value {
+pub fn func(_: &mut Vm) -> VmValue {
     let _ = stdout().flush();
     let _ = stderr().flush();
     try_fn!("term_leave", disable_raw_mode());

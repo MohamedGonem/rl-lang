@@ -31,8 +31,6 @@ mod wrap;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::terminal::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("term")
         // enter / leave

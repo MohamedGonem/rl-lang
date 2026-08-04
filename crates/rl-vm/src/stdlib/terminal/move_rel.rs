@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{try_fn, verr, vnl, vok, vs},
         terminal::common::extract_u16,
     },
-    values::Value,
+    values::VmValue,
 };
 use crossterm::{
     cursor::{MoveDown, MoveLeft, MoveRight, MoveToNextLine, MoveToPreviousLine, MoveUp},
@@ -12,7 +12,7 @@ use crossterm::{
 };
 use std::io::stdout;
 
-pub fn std_term_move_up(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_move_up(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -22,7 +22,7 @@ pub fn std_term_move_up(_: &mut Evaluator, arg: Value) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_move_down(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_move_down(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -32,7 +32,7 @@ pub fn std_term_move_down(_: &mut Evaluator, arg: Value) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_move_left(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_move_left(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -42,7 +42,7 @@ pub fn std_term_move_left(_: &mut Evaluator, arg: Value) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_move_right(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_move_right(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -52,7 +52,7 @@ pub fn std_term_move_right(_: &mut Evaluator, arg: Value) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_next_line(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_next_line(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -62,7 +62,7 @@ pub fn std_term_next_line(_: &mut Evaluator, arg: Value) -> Value {
     vok!(vnl!())
 }
 
-pub fn std_term_prev_line(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_prev_line(_: &mut Vm, arg: VmValue) -> VmValue {
     let n = match extract_u16(arg, "n") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),

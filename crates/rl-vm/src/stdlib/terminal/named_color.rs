@@ -1,5 +1,5 @@
 use crate::stdlib::common::{extract_string, try_fn, verr, vs};
-use crate::{evaluator::Evaluator, values::Value};
+use crate::{Vm, values::VmValue};
 use crossterm::{
     execute,
     style::{Color, SetBackgroundColor, SetForegroundColor},
@@ -28,7 +28,7 @@ fn parse_color(s: &str) -> Option<Color> {
     }
 }
 
-pub fn std_term_fg(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_fg(_: &mut Vm, arg: VmValue) -> VmValue {
     let name = match extract_string(arg, "term_fg") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -41,10 +41,10 @@ pub fn std_term_fg(_: &mut Evaluator, arg: Value) -> Value {
 
     try_fn!("term_fg", execute!(stdout(), SetForegroundColor(color)));
 
-    Value::Ok(Box::new(Value::Null))
+    VmValue::Ok(Box::new(VmValue::Null))
 }
 
-pub fn std_term_bg(_: &mut Evaluator, arg: Value) -> Value {
+pub fn std_term_bg(_: &mut Vm, arg: VmValue) -> VmValue {
     let name = match extract_string(arg, "term_fg") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
@@ -57,5 +57,5 @@ pub fn std_term_bg(_: &mut Evaluator, arg: Value) -> Value {
 
     try_fn!("term_bg", execute!(stdout(), SetBackgroundColor(color)));
 
-    Value::Ok(Box::new(Value::Null))
+    VmValue::Ok(Box::new(VmValue::Null))
 }

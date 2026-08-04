@@ -1,10 +1,10 @@
-use crate::stdlib::common::{verr, vnl, vok, vs};
+use crate::stdlib::macros::{verr, vnl, vok, vs};
 use crate::stdlib::terminal::common::extract_u16;
-use crate::{evaluator::Evaluator, values::Value};
+use crate::{Vm, values::VmValue};
 use crossterm::{cursor::MoveToRow, execute};
 use std::io::stdout;
 
-pub fn func(_: &mut Evaluator, args: Value) -> Value {
+pub fn func(_: &mut Vm, args: VmValue) -> VmValue {
     let col = match extract_u16(args, "row") {
         Ok(a) => a,
         Err(e) => return verr!(vs!(e)),

@@ -1,26 +1,26 @@
 use crate::stdlib::common::{try_fn, verr, vi, vnl, vok, vs};
 use crate::stdlib::terminal::common::extract_u16;
-use crate::{evaluator::Evaluator, values::Value};
+use crate::{Vm, values::VmValue};
 use crossterm::{
     execute,
     terminal::{SetSize, size},
 };
-use rl_ast::statements::TypeAnnotation;
 use std::io::stdout;
+use std::rc::Rc;
 
-pub fn std_term_get_size(_: &mut Evaluator) -> Value {
+pub fn std_term_get_size(_: &mut Vm) -> VmValue {
     let (cols, rows) = match size() {
         Ok((cols, rows)) => (cols, rows),
         Err(e) => return verr!(vs!(format!("term_get_size(): {}", e))),
     };
 
-    vok!(Value::Values {
-        items_type: TypeAnnotation::Int,
-        items: vec![vi!(cols as i64), vi!(rows as i64)],
-    })
+    vok!(VmValue::Arr(Rc::new(vec![
+        vi!(cols as i64),
+        vi!(rows as i64)
+    ],)))
 }
 
-pub fn std_term_set_size(_: &mut Evaluator, cols: Value, rows: Value) -> Value {
+pub fn std_term_set_size(_: &mut Vm, cols: VmValue, rows: VmValue) -> VmValue {
     let cols = match extract_u16(cols, "cols") {
         Ok(v) => v,
         Err(e) => return verr!(vs!(e)),
