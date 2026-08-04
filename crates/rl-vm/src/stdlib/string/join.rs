@@ -1,22 +1,22 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::Vm,
 };
 
-pub fn std_join(_: &mut Evaluator, strings_array: Value, delim: String) -> Value {
+pub fn std_join(_: &mut Vm, strings_array: VmValue, delim: String) -> VmValue {
     match strings_array {
-        Value::Values { items: array, .. } => {
+        VmValue::Arr(array) => {
             let mut strings: Vec<String> = vec![];
-            for v in array {
+            for v in array.iter() {
                 match v {
-                    Value::Integer(i) => strings.push(format!("{}", i)),
-                    Value::Float(f) => strings.push(format!("{}", f)),
-                    Value::Bool(b) => strings.push(format!("{}", b)),
-                    Value::String(s) => strings.push(s),
-                    Value::Char(c) => strings.push(c.to_string()),
-                    Value::Null => strings.push("null".to_string()),
-                    Value::Function { .. } => {
+                    VmValue::Int(i) => strings.push(format!("{}", i)),
+                    VmValue::Float(f) => strings.push(format!("{}", f)),
+                    VmValue::Bool(b) => strings.push(format!("{}", b)),
+                    VmValue::Str(s) => strings.push(s.to_string()),
+                    VmValue::Char(c) => strings.push(c.to_string()),
+                    VmValue::Null => strings.push("null".to_string()),
+                    VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. } => {
                         return verr!(vs!(
                             "functions/lambdas/enclosures are not supported via join()".to_string()
                         ));

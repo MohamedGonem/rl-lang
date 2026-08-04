@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vc, verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vc, verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_char_at(_: &mut Evaluator, string: String, index: i64) -> Value {
+pub fn std_char_at(_: &mut Vm, string: String, index: i64) -> VmValue {
     if index < 0 {
         return verr!(vs!(format!("index cannot be negative: {}", index)));
     }

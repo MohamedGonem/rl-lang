@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_trim(_: &mut Evaluator, string: String) -> String {
+pub fn std_trim(_: &mut Vm, string: String) -> String {
     string.trim().to_string()
 }

@@ -33,8 +33,6 @@ mod trim_start;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::string::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("str")
         .with_function("to_upper", to_upper::std_to_upper)

@@ -1,12 +1,11 @@
-use crate::evaluator::Evaluator;
-use crate::values::Value;
-use rl_utils::errors::Error;
-use rl_utils::span::Span;
+use crate::values::VmValue;
+use crate::vm_logic::{Vm, VmError};
+use std::rc::Rc;
 
-pub fn std_format(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
+pub fn std_format(eval: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
     // checks for incorrect usage
     if args.is_empty() {
-        return Err(eval.err("expected arguments".to_string(), span));
+        return Err(eval.err("expected arguments".to_string()));
     }
 
     // making mutable empty string for the transformation
@@ -53,27 +52,21 @@ pub fn std_format(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<
 
     // check for missing value that wasnt replaced
     if missing > 0 {
-        return Err(eval.err(
-            format!(
-                "format() has {} placeholder(s) with no matching argument",
-                missing
-            ),
-            span,
-        ));
+        return Err(eval.err(format!(
+            "format() has {} placeholder(s) with no matching argument",
+            missing
+        )));
     }
 
     // check for additional values that is not used
     if used < args.len() - 1 {
-        return Err(eval.err(
-            format!(
-                "format() received {} argument(s) but only {} placeholder(s) were used",
-                args.len() - 1,
-                used
-            ),
-            span,
-        ));
+        return Err(eval.err(format!(
+            "format() received {} argument(s) but only {} placeholder(s) were used",
+            args.len() - 1,
+            used
+        )));
     }
 
     // returns the final transformed value
-    Ok(Value::String(result))
+    Ok(VmValue::Str(Rc::from(result)))
 }

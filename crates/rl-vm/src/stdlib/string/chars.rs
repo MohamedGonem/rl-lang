@@ -1,10 +1,7 @@
-use crate::{evaluator::Evaluator, values::Value};
-use rl_ast::statements::TypeAnnotation;
+use crate::{Vm, values::VmValue};
+use std::rc::Rc;
 
-pub fn std_chars(_: &mut Evaluator, string: String) -> Value {
-    let chars = string.chars().map(Value::Char).collect();
-    Value::Values {
-        items_type: TypeAnnotation::Char,
-        items: chars,
-    }
+pub fn std_chars(_: &mut Vm, string: String) -> VmValue {
+    let chars = string.chars().map(VmValue::Char).collect();
+    VmValue::Arr(Rc::new(chars))
 }

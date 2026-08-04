@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_is_empty(_: &mut Evaluator, string: String) -> bool {
+pub fn std_is_empty(_: &mut Vm, string: String) -> bool {
     string.is_empty()
 }

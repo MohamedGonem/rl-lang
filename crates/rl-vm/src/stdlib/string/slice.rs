@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_slice(_: &mut Evaluator, string: String, start: i64, end: i64) -> Value {
+pub fn std_slice(_: &mut Vm, string: String, start: i64, end: i64) -> VmValue {
     let chars = string.chars();
     let chars_count = chars.clone().count();
     if start as usize >= chars_count || end as usize > chars_count {

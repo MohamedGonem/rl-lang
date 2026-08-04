@@ -1,12 +1,11 @@
-use crate::{evaluator::Evaluator, values::Value};
-use rl_ast::statements::TypeAnnotation;
+use crate::{values::VmValue, vm_logic::Vm};
+use std::rc::Rc;
 
-pub fn std_split(_: &mut Evaluator, string: String, delim: String) -> Value {
-    Value::Values {
-        items_type: TypeAnnotation::String,
-        items: string
+pub fn std_split(_: &mut Vm, string: String, delim: String) -> VmValue {
+    VmValue::Arr(Rc::new(
+        string
             .split(&delim)
-            .map(|s| Value::String(s.to_string()))
+            .map(|s| VmValue::Str(Rc::from(s)))
             .collect(),
-    }
+    ))
 }
