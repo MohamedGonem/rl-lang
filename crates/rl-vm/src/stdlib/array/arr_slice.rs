@@ -1,12 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_slice(_: &mut Evaluator, array: Value, start: i64, end: i64) -> Value {
+pub fn std_arr_slice(_: &mut Vm, array: VmValue, start: i64, end: i64) -> VmValue {
     match array {
-        Value::Values { items_type, items } => {
+        VmValue::Arr(items) => {
             let start = start as usize;
             let end = end as usize;
             if start > items.len() || end > items.len() {
@@ -23,10 +24,7 @@ pub fn std_arr_slice(_: &mut Evaluator, array: Value, start: i64, end: i64) -> V
                     start, end
                 )));
             }
-            vok!(Value::Values {
-                items_type,
-                items: items[start..end].to_vec(),
-            })
+            vok!(VmValue::Arr(Rc::new(items[start..end].to_vec())))
         }
         other => verr!(vs!(format!(
             "arr_slice: accepts only arrays, found {}",

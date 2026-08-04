@@ -1,33 +1,16 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_concat(_: &mut Evaluator, array1: Value, array2: Value) -> Value {
+pub fn std_arr_concat(_: &mut Vm, array1: VmValue, array2: VmValue) -> VmValue {
     match (array1, array2) {
-        (
-            Value::Values {
-                items_type: it_1,
-                items: i1,
-            },
-            Value::Values {
-                items_type: it_2,
-                items: i2,
-            },
-        ) => {
-            if it_1 != it_2 {
-                return verr!(vs!(format!(
-                    "arr_concat: type mismatch: array type {:?}, cannot concat {:?}",
-                    it_1, it_2
-                )));
-            }
-            let mut v = i1;
-            v.extend(i2);
-            vok!(Value::Values {
-                items_type: it_1,
-                items: v
-            })
+        (VmValue::Arr(i1), VmValue::Arr(i2)) => {
+            let mut v = (*i1).clone();
+            v.extend(i2.iter().cloned());
+            vok!(VmValue::Arr(Rc::new(v)))
         }
         _ => verr!(vs!("arr_concat: accepts only arrays".to_string())),
     }

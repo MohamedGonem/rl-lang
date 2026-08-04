@@ -1,12 +1,12 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_arr_contains(_: &mut Evaluator, array: Value, value: Value) -> Value {
+pub fn std_arr_contains(_: &mut Vm, array: VmValue, value: VmValue) -> VmValue {
     match array {
-        Value::Values { items, .. } => vok!(Value::Bool(items.contains(&value))),
+        VmValue::Arr(items) => vok!(VmValue::Bool(items.contains(&value))),
         other => verr!(vs!(format!(
             "arr_contains: accepts only arrays, found {}",
             other.type_name()

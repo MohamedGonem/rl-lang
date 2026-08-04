@@ -1,22 +1,20 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_unique(_: &mut Evaluator, array: Value) -> Value {
+pub fn std_arr_unique(_: &mut Vm, array: VmValue) -> VmValue {
     match array {
-        Value::Values { items_type, items } => {
+        VmValue::Arr(items) => {
             let mut seen = Vec::new();
-            for item in items {
-                if !seen.contains(&item) {
-                    seen.push(item);
+            for item in items.iter() {
+                if !seen.contains(item) {
+                    seen.push((*item).clone());
                 }
             }
-            vok!(Value::Values {
-                items_type,
-                items: seen
-            })
+            vok!(VmValue::Arr(Rc::new(seen)))
         }
         other => verr!(vs!(format!(
             "arr_unique: accepts only arrays, found {}",

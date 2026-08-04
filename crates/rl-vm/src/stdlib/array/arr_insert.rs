@@ -1,30 +1,19 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
-use rl_ast::statements::TypeAnnotation;
+use std::rc::Rc;
 
-pub fn std_arr_insert(_: &mut Evaluator, array: Value, value: Value, index: i64) -> Value {
+pub fn std_arr_insert(_: &mut Vm, array: VmValue, value: VmValue, index: i64) -> VmValue {
     match array {
-        Value::Values { items_type, items } => {
+        VmValue::Arr(items) => {
             if index < 0 || index as usize > items.len() {
                 return verr!(vs!(format!("arr_insert: index out of bounds: {}", index)));
             }
-
-            let val_type = Evaluator::infer_type(&value, false);
-            if val_type != items_type && val_type != TypeAnnotation::Null {
-                return verr!(vs!(format!(
-                    "arr_insert: type mismatch: array expects {:?}, cannot push {:?}",
-                    items_type, val_type
-                )));
-            }
-            let mut v = items;
+            let mut v = (*items).clone();
             v.insert(index as usize, value);
-            vok!(Value::Values {
-                items_type,
-                items: v
-            })
+            vok!(VmValue::Arr(Rc::new(v)))
         }
         other => verr!(vs!(format!(
             "arr_insert: accepts only arrays and values, found {}",

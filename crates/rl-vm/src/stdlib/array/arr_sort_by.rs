@@ -1,18 +1,17 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
+use std::rc::Rc;
 
 pub fn std_arr_sort_by(
-    eval: &mut Evaluator,
-    array: Value,
-    function: Value,
-    span: Span,
-) -> Result<Value, Error> {
-    let (items_type, mut items) = match array {
-        Value::Values { items_type, items } => (items_type, items),
+    eval: &mut Vm,
+    array: VmValue,
+    function: VmValue,
+) -> Result<VmValue, VmError> {
+    let mut items = match array {
+        VmValue::Arr(items) => (*items).clone(),
         other => {
             return Ok(verr!(vs!(format!(
                 "arr_sort_by: accepts only arrays, found {}",
@@ -21,7 +20,10 @@ pub fn std_arr_sort_by(
         }
     };
 
-    if !matches!(function, Value::Function { .. }) {
+    if !matches!(
+        &function,
+        VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. }
+    ) {
         return Ok(verr!(vs!(format!(
             "arr_sort_by: expected function or lambda, found {}",
             function.type_name()
@@ -34,15 +36,15 @@ pub fn std_arr_sort_by(
             let result = eval.call_value(
                 function.clone(),
                 vec![items[j - 1].clone(), items[j].clone()],
-                span,
+                eval.current_span(),
             )?;
 
             match result {
-                Value::Integer(n) if n > 0 => {
+                VmValue::Int(n) if n > 0 => {
                     items.swap(j - 1, j);
                     j -= 1;
                 }
-                Value::Integer(_) => break,
+                VmValue::Int(_) => break,
                 other => {
                     return Ok(verr!(vs!(format!(
                         "arr_sort_by: comparator must return int (-1, 0, 1), found {}",
@@ -53,5 +55,5 @@ pub fn std_arr_sort_by(
         }
     }
 
-    Ok(vok!(Value::Values { items_type, items }))
+    Ok(vok!(VmValue::Arr(Rc::new(items))))
 }

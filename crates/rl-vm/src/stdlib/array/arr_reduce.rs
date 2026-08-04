@@ -1,19 +1,17 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
 
 pub fn std_arr_reduce(
-    eval: &mut Evaluator,
-    array: Value,
-    function: Value,
-    initial: Value,
-    span: Span,
-) -> Result<Value, Error> {
+    eval: &mut Vm,
+    array: VmValue,
+    function: VmValue,
+    initial: VmValue,
+) -> Result<VmValue, VmError> {
     let items = match array {
-        Value::Values { items, .. } => items,
+        VmValue::Arr(items) => items,
         other => {
             return Ok(verr!(vs!(format!(
                 "arr_reduce: accepts only arrays, found {}",
@@ -21,8 +19,10 @@ pub fn std_arr_reduce(
             ))));
         }
     };
-
-    if !matches!(function, Value::Function { .. }) {
+    if !matches!(
+        &function,
+        VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. }
+    ) {
         return Ok(verr!(vs!(format!(
             "arr_reduce: expected function or lambda, found {}",
             function.type_name()
@@ -31,8 +31,12 @@ pub fn std_arr_reduce(
 
     let mut result = initial;
 
-    for item in items {
-        result = eval.call_value(function.clone(), vec![result, item], span)?;
+    for item in items.iter() {
+        result = eval.call_value(
+            function.clone(),
+            vec![result, (*item).clone()],
+            eval.current_span(),
+        )?;
     }
 
     Ok(vok!(result))

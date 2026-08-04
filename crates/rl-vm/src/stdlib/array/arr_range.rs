@@ -1,11 +1,11 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
-use rl_ast::statements::TypeAnnotation;
+use std::rc::Rc;
 
-pub fn std_arr_range(_: &mut Evaluator, start: i64, end: i64, step: i64) -> Value {
+pub fn std_arr_range(_: &mut Vm, start: i64, end: i64, step: i64) -> VmValue {
     if step <= 0 {
         return verr!(vs!(format!(
             "arr_range: step must be positive, got {}",
@@ -13,11 +13,10 @@ pub fn std_arr_range(_: &mut Evaluator, start: i64, end: i64, step: i64) -> Valu
         )));
     }
 
-    vok!(Value::Values {
-        items_type: TypeAnnotation::Int,
-        items: (start..end)
+    vok!(VmValue::Arr(Rc::new(
+        (start..end)
             .step_by(step as usize)
-            .map(Value::Integer)
+            .map(VmValue::Int)
             .collect(),
-    })
+    )))
 }

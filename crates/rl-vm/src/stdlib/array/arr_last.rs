@@ -1,13 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_arr_last(_: &mut Evaluator, array: Value) -> Value {
+pub fn std_arr_last(_: &mut Vm, array: VmValue) -> VmValue {
     match array {
-        Value::Values { items, .. } => match items.into_iter().last() {
-            Some(v) => vok!(v),
+        VmValue::Arr(items) => match items.last() {
+            Some(v) => vok!((*v).clone()),
             None => verr!(vs!("arr_last: called on empty array".to_string())),
         },
         other => verr!(vs!(format!(

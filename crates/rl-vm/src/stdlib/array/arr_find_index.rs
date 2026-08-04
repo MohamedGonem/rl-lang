@@ -1,19 +1,16 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_ast::statements::TypeAnnotation;
-use rl_utils::{errors::Error, span::Span};
 
 pub fn std_arr_find_index(
-    eval: &mut Evaluator,
-    array: Value,
-    function: Value,
-    span: Span,
-) -> Result<Value, Error> {
+    eval: &mut Vm,
+    array: VmValue,
+    function: VmValue,
+) -> Result<VmValue, VmError> {
     let items = match array {
-        Value::Values { items, .. } => items,
+        VmValue::Arr(items) => items,
         other => {
             return Ok(verr!(vs!(format!(
                 "arr_find_index: accepts only arrays, found {}",
@@ -21,26 +18,23 @@ pub fn std_arr_find_index(
             ))));
         }
     };
-    let Value::Function(data) = &function else {
+    if !matches!(
+        &function,
+        VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. }
+    ) {
         return Ok(verr!(vs!(format!(
             "arr_find_index: expected function or lambda, found {}",
             function.type_name()
         ))));
-    };
-
-    if !matches!(data.return_type, Some(TypeAnnotation::Bool)) {
-        return Ok(verr!(vs!(format!(
-            "arr_find_index: expected function or lambda with Bool return type, found {:?}",
-            data.return_type
-        ))));
     }
 
     for (i, item) in items.iter().enumerate() {
-        let mapped_item = eval.call_value(function.clone(), vec![item.clone()], span)?;
-        if let Value::Bool(true) = mapped_item {
-            return Ok(vok!(Value::Integer(i as i64)));
+        let mapped_item =
+            eval.call_value(function.clone(), vec![(*item).clone()], eval.current_span())?;
+        if let VmValue::Bool(true) = mapped_item {
+            return Ok(vok!(VmValue::Int(i as i64)));
         }
     }
 
-    Ok(vok!(Value::Integer(-1_i64)))
+    Ok(vok!(VmValue::Int(-1_i64)))
 }

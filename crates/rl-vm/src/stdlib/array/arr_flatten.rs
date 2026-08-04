@@ -1,24 +1,24 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_flatten(_: &mut Evaluator, array: Value) -> Value {
+pub fn std_arr_flatten(_: &mut Vm, array: VmValue) -> VmValue {
     match array {
-        Value::Values { items, items_type } => vok!(Value::Values {
-            items_type,
-            items: items
-                .into_iter()
+        VmValue::Arr(items) => vok!(VmValue::Arr(Rc::new(
+            items
+                .iter()
                 .flat_map(|v| {
-                    if let Value::Values { items, .. } = v {
-                        items
+                    if let VmValue::Arr(inner) = v {
+                        (**inner).clone()
                     } else {
-                        vec![v]
+                        vec![(*v).clone()]
                     }
                 })
                 .collect(),
-        }),
+        ))),
         other => verr!(vs!(format!(
             "arr_flatten: accepts only arrays, found {}",
             other.type_name()

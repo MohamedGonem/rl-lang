@@ -1,21 +1,19 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_remove(_: &mut Evaluator, array: Value, index: i64) -> Value {
+pub fn std_arr_remove(_: &mut Vm, array: VmValue, index: i64) -> VmValue {
     match array {
-        Value::Values { items, items_type } => {
+        VmValue::Arr(items) => {
             if index as usize >= items.len() {
                 return verr!(vs!(format!("arr_remove: index out of bounds: {}", index)));
             }
-            let mut v = items;
+            let mut v = (*items).clone();
             v.remove(index as usize);
-            vok!(Value::Values {
-                items_type,
-                items: v
-            })
+            vok!(VmValue::Arr(Rc::new(v)))
         }
         other => verr!(vs!(format!(
             "arr_remove: accepts only arrays, found {}",

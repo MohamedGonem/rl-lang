@@ -1,25 +1,16 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
+use std::rc::Rc;
 
-pub fn std_arr_push(_: &mut Evaluator, array: Value, value: Value) -> Value {
+pub fn std_arr_push(_: &mut Vm, array: VmValue, value: VmValue) -> VmValue {
     match array {
-        Value::Values { items_type, items } => {
-            let val_type = Evaluator::infer_type(&value, false);
-            if !Evaluator::types_compatible(&val_type, &items_type) {
-                return verr!(vs!(format!(
-                    "arr_push: type mismatch: array expects {:?}, cannot push {:?}",
-                    items_type, val_type
-                )));
-            }
-            let mut v = items;
+        VmValue::Arr(items) => {
+            let mut v = (*items).clone();
             v.push(value);
-            vok!(Value::Values {
-                items_type,
-                items: v
-            })
+            vok!(VmValue::Arr(Rc::new(v)))
         }
         other => verr!(vs!(format!(
             "arr_push: accepts only arrays, found {}",

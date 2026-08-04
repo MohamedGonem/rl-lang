@@ -1,18 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
+use std::rc::Rc;
 
-pub fn std_arr_map(
-    eval: &mut Evaluator,
-    array: Value,
-    function: Value,
-    span: Span,
-) -> Result<Value, Error> {
-    let (items_type, items) = match array {
-        Value::Values { items_type, items } => (items_type, items),
+pub fn std_arr_map(eval: &mut Vm, array: VmValue, function: VmValue) -> Result<VmValue, VmError> {
+    let items = match array {
+        VmValue::Arr(items) => items,
         other => {
             return Ok(verr!(vs!(format!(
                 "arr_map: accepts only arrays, found {}",
@@ -20,7 +15,10 @@ pub fn std_arr_map(
             ))));
         }
     };
-    if !matches!(function, Value::Function { .. }) {
+    if !matches!(
+        &function,
+        VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. }
+    ) {
         return Ok(verr!(vs!(format!(
             "arr_map: expected function or lambda, found {}",
             function.type_name()
@@ -29,18 +27,11 @@ pub fn std_arr_map(
 
     let mut result = Vec::with_capacity(items.len());
 
-    for item in items {
-        let mapped_item = eval.call_value(function.clone(), vec![item], span)?;
+    for item in items.iter() {
+        let mapped_item =
+            eval.call_value(function.clone(), vec![(*item).clone()], eval.current_span())?;
         result.push(mapped_item);
     }
 
-    let item_type = result
-        .first()
-        .map(|first| Evaluator::infer_type(first, false))
-        .unwrap_or(items_type);
-
-    Ok(vok!(Value::Values {
-        items_type: item_type,
-        items: result
-    }))
+    Ok(vok!(VmValue::Arr(Rc::new(result))))
 }
