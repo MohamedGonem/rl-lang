@@ -10,6 +10,7 @@ pub(crate) mod audio;
 pub(crate) mod c;
 mod collections;
 pub mod common;
+pub(crate) mod gui;
 mod io;
 pub mod macros;
 
@@ -25,6 +26,7 @@ pub fn root() -> Module {
             .with_module(collections::module())
             .with_module(array::module())
             .with_module(c::module())
-            .with_module(audio::module()),
+            .with_module(audio::module())
+            .with_module(gui::module()),
     )
 }

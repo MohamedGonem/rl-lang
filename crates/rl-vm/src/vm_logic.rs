@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::chunk::{Chunk, OpCode};
+use crate::stdlib::gui::GuiHandle;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
@@ -118,6 +119,14 @@ pub struct Vm {
     /// Global volume scalar set via `std::audio::set_master_volume`, applied
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub(crate) audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub(crate) gui_handles: HashMap<u64, GuiHandle>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub(crate) gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub(crate) gui_quit_requested: bool,
 }
 
 impl Vm {
@@ -137,6 +146,9 @@ impl Vm {
             audio_next_handle: 1,
             audio_output_device: None,
             audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
         }
     }
 
