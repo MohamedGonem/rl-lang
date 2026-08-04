@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_path_exists(_: &mut Evaluator, path: String) -> bool {
+pub fn std_path_exists(_: &mut Vm, path: String) -> bool {
     std::path::Path::new(&path).exists()
 }

@@ -18,8 +18,6 @@ mod path_stem;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::path::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("path")
         .with_function("path_exists", path_exists::std_path_exists)
