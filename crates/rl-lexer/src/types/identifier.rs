@@ -74,6 +74,7 @@ impl Tokenizer {
             "big" => self.add_token(TokenType::Big),
             "small" => self.add_token(TokenType::Small),
             "sbyte" => self.add_token(TokenType::SByte),
+            "handle" => self.add_token(TokenType::Handle),
 
             &_ => self.add_token(TokenType::Identifier(value)),
         }

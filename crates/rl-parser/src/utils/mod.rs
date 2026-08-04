@@ -251,11 +251,7 @@ impl Parser {
                         self.advance();
                         Ok(TypeAnnotation::SFloat)
                     }
-                    _ => {
-                        Err(
-                            self.err("`small` only applies to int/float types", self.peek_span())
-                        )
-                    }
+                    _ => Err(self.err("`small` only applies to int/float types", self.peek_span())),
                 }
             }
 

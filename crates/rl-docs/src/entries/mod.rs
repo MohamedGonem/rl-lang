@@ -30,6 +30,7 @@ pub fn stdlib_entries() -> Vec<&'static StdEntry> {
         &stdlib::http::HTTP,
         &stdlib::collections::COLLECTIONS,
         &stdlib::c::C,
+        &stdlib::gui::GUI,
     ]
 }
 

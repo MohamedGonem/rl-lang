@@ -6,6 +6,7 @@ pub mod c;
 pub mod collections;
 pub mod debug;
 pub mod fs;
+pub mod gui;
 pub mod http;
 pub mod io;
 pub mod math;

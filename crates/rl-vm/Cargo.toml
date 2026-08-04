@@ -17,3 +17,4 @@ libffi.workspace = true
 rodio.workspace = true
 cpal.workspace = true
 symphonia.workspace = true
+eframe.workspace = true

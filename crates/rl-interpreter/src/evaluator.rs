@@ -7,9 +7,8 @@ use std::sync::Arc;
 
 use crate::{
     native::{IntoNativeFn, Module},
-    stdlib,
     stdlib::{
-        audio::AudioHandle, c::CHandle, http::HttpHandle, net::NetHandle,
+        self, audio::AudioHandle, c::CHandle, gui::GuiHandle, http::HttpHandle, net::NetHandle,
         random::xoshiro::Xoshiro256,
     },
     values::{FunctionData, MapKey, Value},
@@ -99,6 +98,14 @@ pub struct Evaluator {
     /// Global volume scalar set via `std::audio::set_master_volume`, applied
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub gui_handles: HashMap<u64, GuiHandle>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub gui_quit_requested: bool,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
@@ -145,6 +152,9 @@ impl Evaluator {
             audio_next_handle: 1,
             audio_output_device: None,
             audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
             records: HashMap::new(),
             tags: HashMap::new(),
             impl_methods: HashMap::new(),
@@ -202,7 +212,8 @@ impl Evaluator {
                 .with_module(stdlib::net::module())
                 .with_module(stdlib::http::module())
                 .with_module(stdlib::collections::module())
-                .with_module(stdlib::c::module()),
+                .with_module(stdlib::c::module())
+                .with_module(stdlib::gui::module()),
         )
     }
 
@@ -1300,27 +1311,29 @@ impl Evaluator {
         let mut err = self.err(format!("undefined function {}", path.join("::")), span);
         // suggest a stdlib leaf name if the last segment is a close typo
         if let Some(last) = path.last() {
-            let candidates = stdlib::math::KEYWORDS
+            let candidates = stdlib::array::KEYWORDS
                 .iter()
-                .chain(stdlib::math::constants::KEYWORDS)
+                .chain(stdlib::audio::KEYWORDS)
                 .chain(stdlib::bitwise::KEYWORDS)
-                .chain(stdlib::io::KEYWORDS)
-                .chain(stdlib::string::KEYWORDS)
-                .chain(stdlib::types::KEYWORDS)
-                .chain(stdlib::array::KEYWORDS)
-                .chain(stdlib::path::KEYWORDS)
-                .chain(stdlib::fs::KEYWORDS)
-                .chain(stdlib::random::KEYWORDS)
-                .chain(stdlib::time::KEYWORDS)
-                .chain(stdlib::process::KEYWORDS)
-                .chain(stdlib::result::KEYWORDS)
-                .chain(stdlib::terminal::KEYWORDS)
-                .chain(stdlib::rl::KEYWORDS)
-                .chain(stdlib::debug::KEYWORDS)
-                .chain(stdlib::net::KEYWORDS)
-                .chain(stdlib::http::KEYWORDS)
-                .chain(stdlib::collections::KEYWORDS)
                 .chain(stdlib::c::KEYWORDS)
+                .chain(stdlib::collections::KEYWORDS)
+                .chain(stdlib::debug::KEYWORDS)
+                .chain(stdlib::fs::KEYWORDS)
+                .chain(stdlib::gui::KEYWORDS)
+                .chain(stdlib::http::KEYWORDS)
+                .chain(stdlib::io::KEYWORDS)
+                .chain(stdlib::math::KEYWORDS)
+                .chain(stdlib::math::constants::KEYWORDS)
+                .chain(stdlib::net::KEYWORDS)
+                .chain(stdlib::path::KEYWORDS)
+                .chain(stdlib::process::KEYWORDS)
+                .chain(stdlib::random::KEYWORDS)
+                .chain(stdlib::result::KEYWORDS)
+                .chain(stdlib::rl::KEYWORDS)
+                .chain(stdlib::string::KEYWORDS)
+                .chain(stdlib::terminal::KEYWORDS)
+                .chain(stdlib::time::KEYWORDS)
+                .chain(stdlib::types::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));

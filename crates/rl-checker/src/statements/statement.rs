@@ -30,6 +30,48 @@ impl TypeChecker {
                     return;
                 }
 
+                if type_annotation.contains_handle_infer() {
+                    match &value_type {
+                        CheckType::Unknown => {
+                            self.declare(name.clone(), CheckType::Unknown, false, statement.span);
+                        }
+                        CheckType::Known(actual) => {
+                            match type_annotation.resolve_handle_infer(actual) {
+                                Some(resolved) => {
+                                    self.declare(
+                                        name.clone(),
+                                        CheckType::Known(resolved),
+                                        false,
+                                        statement.span,
+                                    );
+                                }
+                                None => {
+                                    self.error(
+                                        format!(
+                                            "`dec handle` requires a std module call returning a handle, got {}",
+                                            value_type.info()),
+                                        statement.span);
+                                    self.declare(
+                                        name.clone(),
+                                        CheckType::Unknown,
+                                        false,
+                                        statement.span,
+                                    );
+                                }
+                            }
+                        }
+                        _ => {
+                            self.error(
+                                format!(
+                                    "`dec handle` requires a std module call returning a handle, got {}",
+                                    value_type.info()),
+                                statement.span);
+                            self.declare(name.clone(), CheckType::Unknown, false, statement.span);
+                        }
+                    }
+                    return;
+                }
+
                 let declared = CheckType::Known(type_annotation.clone());
 
                 if !value_type.matches(&declared) {

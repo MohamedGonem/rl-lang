@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::chunk::{Chunk, OpCode};
+use crate::stdlib::gui::GuiHandle;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
@@ -118,6 +119,14 @@ pub struct Vm {
     /// Global volume scalar set via `std::audio::set_master_volume`, applied
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub(crate) audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub(crate) gui_handles: HashMap<u64, GuiHandle>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub(crate) gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub(crate) gui_quit_requested: bool,
 }
 
 impl Vm {
@@ -137,6 +146,9 @@ impl Vm {
             audio_next_handle: 1,
             audio_output_device: None,
             audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
         }
     }
 
@@ -192,6 +204,44 @@ impl Vm {
     pub fn run_and_return(&mut self, chunk: &Chunk) -> Result<VmValue, VmError> {
         self.run(chunk)?;
         Ok(self.stack.pop().unwrap_or(VmValue::Null))
+    }
+
+    /// Calls an arbitrary callable `VmValue` (a user function, closure, or
+    /// native function) with the given arguments and returns its result.
+    ///
+    /// Used by native stdlib modules (e.g. `std::gui`) that need to invoke
+    /// an rl-lang callback value from Rust - outside the normal `Call`
+    /// opcode dispatch path, e.g. from an egui event callback. Builds a
+    /// tiny synthetic `Chunk` (`Const` callee, `Const` per arg, `Call`,
+    /// `Return`) and runs it via `Vm::run_and_return`; `self.stack`,
+    /// `self.locals`, and `self.scope_starts` are ordinary fields, so this
+    /// is safe to call reentrantly from inside an already-running
+    /// dispatch loop (e.g. from within a native function's own body).
+    pub fn call_value(
+        &mut self,
+        callee: VmValue,
+        args: Vec<VmValue>,
+        span: Span,
+    ) -> Result<VmValue, VmError> {
+        let mut chunk = Chunk::new();
+        let arg_count = args.len() as u16;
+
+        let callee_idx = chunk.add_constant(callee);
+        chunk.write_op(OpCode::Const, span);
+        chunk.write_u16(callee_idx, span);
+
+        for arg in args {
+            let idx = chunk.add_constant(arg);
+            chunk.write_op(OpCode::Const, span);
+            chunk.write_u16(idx, span);
+        }
+
+        chunk.write_op(OpCode::Call, span);
+        chunk.write_u16(arg_count, span);
+
+        chunk.write_op(OpCode::Return, span);
+
+        self.run_and_return(&chunk)
     }
 
     /// Vm entry function
