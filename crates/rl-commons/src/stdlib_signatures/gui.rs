@@ -11,16 +11,23 @@ pub fn module() -> ModuleNames {
         .with_typed_function(gui_label())
         .with_typed_function(gui_checkbox())
         .with_typed_function(gui_textbox())
+        .with_typed_function(gui_textarea())
         .with_typed_function(gui_dropdown())
         .with_typed_function(gui_radio_group())
         .with_typed_function(gui_slider())
+        .with_typed_function(gui_number_input())
         .with_typed_function(gui_progress_bar())
+        .with_typed_function(gui_separator())
+        .with_typed_function(gui_image())
         .with_typed_function(gui_set_text())
         .with_typed_function(gui_get_text())
         .with_typed_function(gui_set_visible())
         .with_typed_function(gui_is_visible())
         .with_typed_function(gui_on_click())
         .with_typed_function(gui_on_change())
+        .with_typed_function(gui_on_submit())
+        .with_typed_function(gui_on_key())
+        .with_typed_function(gui_on_close())
         .with_typed_function(gui_is_checked())
         .with_typed_function(gui_set_checked())
         .with_typed_function(gui_get_selected_index())
@@ -32,6 +39,8 @@ pub fn module() -> ModuleNames {
         .with_typed_function(gui_get_progress())
         .with_typed_function(gui_set_pos())
         .with_typed_function(gui_get_pos())
+        .with_typed_function(gui_set_z())
+        .with_typed_function(gui_get_z())
         .with_typed_function(gui_remove())
         .with_typed_function(gui_window_set_title())
         .with_typed_function(gui_window_set_background())
@@ -115,6 +124,23 @@ fn gui_textbox() -> StdFn {
     )
 }
 
+fn gui_textarea() -> StdFn {
+    StdFn::typed(
+        "gui_textarea",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::String),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Int),
+            ],
+            result(T::Handle(HandleKind::Gui)),
+        ),
+    )
+}
+
 fn gui_dropdown() -> StdFn {
     StdFn::typed(
         "gui_dropdown",
@@ -163,6 +189,23 @@ fn gui_slider() -> StdFn {
     )
 }
 
+fn gui_number_input() -> StdFn {
+    StdFn::typed(
+        "gui_number_input",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Float),
+                fixed(T::Float),
+                fixed(T::Float),
+                fixed(T::Int),
+                fixed(T::Int),
+            ],
+            result(T::Handle(HandleKind::Gui)),
+        ),
+    )
+}
+
 fn gui_progress_bar() -> StdFn {
     StdFn::typed(
         "gui_progress_bar",
@@ -170,6 +213,38 @@ fn gui_progress_bar() -> StdFn {
             vec![
                 handle(HandleKind::Gui),
                 fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Int),
+            ],
+            result(T::Handle(HandleKind::Gui)),
+        ),
+    )
+}
+
+fn gui_separator() -> StdFn {
+    StdFn::typed(
+        "gui_separator",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Int),
+            ],
+            result(T::Handle(HandleKind::Gui)),
+        ),
+    )
+}
+
+fn gui_image() -> StdFn {
+    StdFn::typed(
+        "gui_image",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Int),
+                fixed(T::Int),
+                fixed(T::Array(Box::new(T::Int))),
                 fixed(T::Int),
                 fixed(T::Int),
             ],
@@ -250,7 +325,53 @@ fn gui_on_change() -> StdFn {
                 ]),
                 result(T::Null),
             ),
+            (
+                params(vec![
+                    T::Handle(HandleKind::Gui),
+                    T::Callback(vec![T::String], Box::new(T::Null)),
+                ]),
+                result(T::Null),
+            ),
         ],
+    )
+}
+
+fn gui_on_submit() -> StdFn {
+    StdFn::typed(
+        "gui_on_submit",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Callback(vec![T::String], Box::new(T::Null))),
+            ],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_on_key() -> StdFn {
+    StdFn::typed(
+        "gui_on_key",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Callback(vec![T::String], Box::new(T::Null))),
+            ],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_on_close() -> StdFn {
+    StdFn::typed(
+        "gui_on_close",
+        overloads(
+            vec![
+                handle(HandleKind::Gui),
+                fixed(T::Callback(vec![], Box::new(T::Null))),
+            ],
+            result(T::Null),
+        ),
     )
 }
 
@@ -346,6 +467,23 @@ fn gui_get_pos() -> StdFn {
             vec![handle(HandleKind::Gui)],
             result(T::Tuple(std::rc::Rc::new(vec![T::Int, T::Int]))),
         ),
+    )
+}
+
+fn gui_set_z() -> StdFn {
+    StdFn::typed(
+        "gui_set_z",
+        overloads(
+            vec![handle(HandleKind::Gui), fixed(T::Int)],
+            result(T::Null),
+        ),
+    )
+}
+
+fn gui_get_z() -> StdFn {
+    StdFn::typed(
+        "gui_get_z",
+        overloads(vec![handle(HandleKind::Gui)], result(T::Int)),
     )
 }
 
