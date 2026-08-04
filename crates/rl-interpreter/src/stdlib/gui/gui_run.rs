@@ -104,6 +104,10 @@ enum WidgetSnapshot {
 }
 
 impl WidgetSnapshot {
+    /// Draw order among a window's widgets: higher draws on top. Used to
+    /// stable-sort snapshots before rendering, so widgets with equal z keep
+    /// drawing in creation order (the order `sort_by_key` preserves for
+    /// equal keys).
     fn z(&self) -> i32 {
         match self {
             WidgetSnapshot::Button { z, .. }
@@ -120,6 +124,14 @@ impl WidgetSnapshot {
     }
 }
 
+/// Renders one window's background and widgets for the current frame, and
+/// dispatches any callbacks triggered by this frame's interactions.
+///
+/// `ctx` must be scoped to the viewport `window_id` corresponds to: the
+/// root's own `Context` for the root window, or the `Context` handed to a
+/// `show_viewport_immediate` closure for a secondary window. Every widget is
+/// drawn as its own `egui::Area`, so this same code works unmodified for
+/// either case - `Area::show` is always `Context`-based, unlike panels.
 fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
     let Some(GuiHandle::Window(win)) = eval.gui_handles.get(&window_id) else {
         return;
@@ -128,6 +140,10 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
     let children = win.children.clone();
     let enter_pressed = ctx.input(|i| i.key_pressed(egui::Key::Enter));
 
+    // Background fill: a full-viewport Area at `Order::Background`, painted
+    // manually, rather than a panel. This sidesteps relying on the exact
+    // panel API (which has shifted across egui versions) since `Area` is the
+    // one drawing primitive every widget here already depends on.
     egui::Area::new(egui::Id::new(("rl_gui_window_bg", window_id)))
         .order(egui::Order::Background)
         .fixed_pos(egui::pos2(0.0, 0.0))
@@ -238,6 +254,10 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
         })
         .collect();
 
+    // Stable sort: widgets with equal z keep the relative order they were
+    // already in (children's creation order), only differing z reorders
+    // them. Higher z draws later, i.e. on top, since each widget is its own
+    // Area drawn in this loop's order.
     snapshots.sort_by_key(WidgetSnapshot::z);
 
     let mut clicked: Vec<u64> = Vec::new();
@@ -423,6 +443,10 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 rgba,
                 ..
             } => {
+                // Re-uploaded as a fresh texture every frame rather than
+                // cached, since caching would need to track texture
+                // lifetime against widget removal. Simple and correct;
+                // costly for large or frequently-redrawn images.
                 let color_image = egui::ColorImage::from_rgba_unmultiplied(
                     [*texture_width as usize, *texture_height as usize],
                     rgba,
@@ -432,6 +456,10 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                     color_image,
                     egui::TextureOptions::default(),
                 );
+                // SizedTexture's size is the *display* size, independent of
+                // the texture's actual pixel dimensions - GPU sampling
+                // stretches to fit, so this alone gives us "display at
+                // exactly width x height" with no extra builder calls.
                 let sized =
                     egui::load::SizedTexture::new(texture.id(), egui::vec2(*width, *height));
                 egui::Area::new(egui::Id::new(("rl_gui_image", *id)))
@@ -551,6 +579,10 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
     }
 }
 
+/// A window's viewport-level state (title/visible/decorated/icon/pending
+/// size & position), snapshotted with the one-shot pending fields cleared.
+/// Shared by the root window (driven via `ViewportCommand`s) and secondary
+/// windows (driven via their `ViewportBuilder`, rebuilt every frame).
 struct ViewportState {
     title: String,
     visible: bool,
@@ -593,6 +625,10 @@ impl eframe::App for RlGuiApp<'_> {
         let ctx = ui.ctx().clone();
         let eval = &mut *self.eval;
 
+        // If the user clicked the native close button, clean up (and fire
+        // `on_close`) now. eframe still closes the native window at the end
+        // of this frame regardless - this just makes sure the callback runs
+        // and any child widget handles are freed rather than leaked.
         if ctx.input(|i| i.viewport().close_requested()) {
             close_window(eval, self.window);
         }
@@ -623,6 +659,10 @@ impl eframe::App for RlGuiApp<'_> {
 
         render_window(eval, &ctx, self.window);
 
+        // Every other open window becomes its own native viewport, spawned
+        // fresh each frame (immediate viewports must be re-requested every
+        // frame they should stay visible - stop calling this for an id and
+        // its window closes).
         let secondary_window_ids: Vec<u64> = eval
             .gui_handles
             .iter()

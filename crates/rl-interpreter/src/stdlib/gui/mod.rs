@@ -75,11 +75,23 @@ pub struct WindowState {
     pub children: Vec<u64>,
     /// RGB background fill for the window's central panel.
     pub background: (u8, u8, u8),
+    /// A pending resize request from `gui_window_set_size`, applied once and
+    /// then cleared so it doesn't fight the user manually resizing the
+    /// window afterward.
     pub pending_size: Option<(f32, f32)>,
+    /// A pending move request from `gui_window_set_pos`, applied once and
+    /// then cleared so it doesn't fight the user manually dragging the
+    /// window afterward.
     pub pending_position: Option<(f32, f32)>,
+    /// Whether the native title bar and window borders are shown.
     pub decorated: bool,
+    /// Window icon as `(width, height, rgba bytes)`. `None` uses the OS default.
     pub icon: Option<(u32, u32, Vec<u8>)>,
+    /// Called with no arguments when this window closes, whether via
+    /// `gui_close` or the native close button.
     pub on_close: Option<Value>,
+    /// Called with the pressed key's name (e.g. `"Enter"`, `"Escape"`) for
+    /// every non-repeat key press while this window has focus.
     pub on_key: Option<Value>,
 }
 
@@ -90,6 +102,9 @@ pub struct ButtonState {
     pub y: f32,
     pub visible: bool,
     pub on_click: Option<Value>,
+    /// Draw order among this window's widgets: higher draws on top of
+    /// lower when positions overlap. Widgets with equal z draw in creation
+    /// order (later created = on top).
     pub z: i32,
 }
 
@@ -121,8 +136,16 @@ pub struct TextboxState {
     pub width: f32,
     pub visible: bool,
     pub on_change: Option<Value>,
+    /// Called with the current text when Enter is pressed while this
+    /// textbox has focus. Never fires when `multiline` is true, since Enter
+    /// inserts a newline there instead of submitting.
     pub on_submit: Option<Value>,
+    /// Whether this is a multiline textarea (`gui_textarea`) rather than a
+    /// single-line textbox (`gui_textbox`). Both share this same state and
+    /// every get/set/visibility/position/remove/on_change function.
     pub multiline: bool,
+    /// Row height in points. Only meaningful when `multiline` is true -
+    /// single-line textboxes use a fixed row height instead.
     pub height: f32,
     pub z: i32,
 }
@@ -149,6 +172,10 @@ pub struct SliderState {
     pub width: f32,
     pub visible: bool,
     pub on_change: Option<Value>,
+    /// When true, renders as a compact draggable/typeable number field
+    /// (`gui_number_input`) instead of a slider bar (`gui_slider`). Both
+    /// share this same state and every get/set/visibility/position/remove/
+    /// on_change function.
     pub drag_only: bool,
     pub z: i32,
 }
@@ -179,6 +206,10 @@ pub struct ImageState {
     pub width: f32,
     pub height: f32,
     pub visible: bool,
+    /// Raw RGBA8 pixel data as `(width, height, bytes)`, row-major
+    /// top-to-bottom - same representation as `gui_window_set_icon`, since
+    /// `std::gui` has no image-decoding dependency. `Arc`-wrapped since this
+    /// gets cloned every frame while rendering.
     pub rgba: (u32, u32, std::sync::Arc<Vec<u8>>),
     pub z: i32,
 }

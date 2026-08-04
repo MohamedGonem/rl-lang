@@ -9,6 +9,9 @@ use crate::{
     values::Value,
 };
 
+/// Sets `handle`'s draw order among its window's widgets. Higher `z` draws
+/// on top of lower `z` when positions overlap; widgets with equal `z` draw
+/// in creation order (later created = on top).
 pub fn func(eval: &mut Evaluator, handle: Value, z: i64) -> Value {
     let id = match extract_handle(handle, HandleKind::Gui, "gui_set_z") {
         Ok(id) => id,

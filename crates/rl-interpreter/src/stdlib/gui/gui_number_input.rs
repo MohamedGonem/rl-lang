@@ -12,6 +12,11 @@ use crate::{
     values::Value,
 };
 
+/// A compact draggable/typeable number field. Shares `SliderState`/
+/// `GuiHandle::Slider` with `gui_slider` (distinguished only by
+/// `drag_only: true`), so it works automatically with every existing
+/// slider function - `gui_get_value`, `gui_set_value`, `gui_set_visible`,
+/// `gui_set_pos`, `gui_remove`, and `gui_on_change`.
 pub fn func(
     eval: &mut Evaluator,
     window: Value,
