@@ -1,6 +1,6 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_is_prime(_: &mut Evaluator, x: i64) -> bool {
+pub fn std_is_prime(_: &mut Vm, x: i64) -> bool {
     let x = x as u64;
     if x < 2 {
         return false;

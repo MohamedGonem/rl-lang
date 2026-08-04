@@ -1,6 +1,6 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_lcm(_: &mut Evaluator, x: i64, y: i64) -> i64 {
+pub fn std_lcm(_: &mut Vm, x: i64, y: i64) -> i64 {
     let mut a = x as u64;
     let mut b = y as u64;
     let a_ = x as u64;

@@ -1,13 +1,13 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_floor(_: &mut Evaluator, a: Value) -> Value {
+pub fn std_floor(_: &mut Vm, a: VmValue) -> VmValue {
     match a {
-        Value::Integer(i) => vok!(vi!(i)),
-        Value::Float(f) => vok!(vf!(f.floor())),
+        VmValue::Int(i) => vok!(vi!(i)),
+        VmValue::Float(f) => vok!(vf!(f.floor())),
         other => verr!(vs!(format!(
             "floor expects a number, got {}",
             other.type_name()

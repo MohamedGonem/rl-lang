@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_clamp(_: &mut Evaluator, value: Value, min: Value, max: Value) -> Value {
+pub fn std_clamp(_: &mut Vm, value: VmValue, min: VmValue, max: VmValue) -> VmValue {
     match (value, min, max) {
-        (Value::Integer(value), Value::Integer(low), Value::Integer(high)) => {
+        (VmValue::Int(value), VmValue::Int(low), VmValue::Int(high)) => {
             vok!(vi!(value.clamp(low, high)))
         }
-        (Value::Float(value), Value::Float(low), Value::Float(high)) => {
+        (VmValue::Float(value), VmValue::Float(low), VmValue::Float(high)) => {
             vok!(vf!(value.clamp(low, high)))
         }
         (value, min, max) => verr!(vs!(format!(

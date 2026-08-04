@@ -31,8 +31,6 @@ mod tau;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::math::constants::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("consts")
         .with_function("E", e::std_e)

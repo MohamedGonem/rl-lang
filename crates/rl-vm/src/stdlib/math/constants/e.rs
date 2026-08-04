@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_e(_: &mut Evaluator) -> f64 {
+pub fn std_e(_: &mut Vm) -> f64 {
     std::f64::consts::E
 }

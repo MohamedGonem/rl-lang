@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_log(_: &mut Evaluator, a: Value, base: Value) -> Value {
+pub fn std_log(_: &mut Vm, a: VmValue, base: VmValue) -> VmValue {
     match (a, base) {
-        (Value::Integer(i), Value::Integer(base)) => vok!(vf!((i as f64).log(base as f64))),
-        (Value::Float(f), Value::Float(base)) => vok!(vf!(f.log(base))),
-        (Value::Float(f), Value::Integer(base)) => vok!(vf!(f.log(base as f64))),
-        (Value::Integer(i), Value::Float(base)) => vok!(vf!((i as f64).log(base))),
+        (VmValue::Int(i), VmValue::Int(base)) => vok!(vf!((i as f64).log(base as f64))),
+        (VmValue::Float(f), VmValue::Float(base)) => vok!(vf!(f.log(base))),
+        (VmValue::Float(f), VmValue::Int(base)) => vok!(vf!(f.log(base as f64))),
+        (VmValue::Int(i), VmValue::Float(base)) => vok!(vf!((i as f64).log(base))),
 
         (a, base) => verr!(vs!(format!(
             "log expects a number, got ({}, {})",

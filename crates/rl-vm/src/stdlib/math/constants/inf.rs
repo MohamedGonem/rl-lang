@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_inf(_: &mut Evaluator) -> f64 {
+pub fn std_inf(_: &mut Vm) -> f64 {
     f64::INFINITY
 }

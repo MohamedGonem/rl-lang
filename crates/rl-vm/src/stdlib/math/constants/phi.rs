@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_phi(_: &mut Evaluator) -> f64 {
+pub fn std_phi(_: &mut Vm) -> f64 {
     std::f64::consts::GOLDEN_RATIO
 }

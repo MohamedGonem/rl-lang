@@ -1,5 +1,5 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
-pub fn std_atan(_: &mut Evaluator, x: f64) -> f64 {
+pub fn std_atan(_: &mut Vm, x: f64) -> f64 {
     x.atan()
 }

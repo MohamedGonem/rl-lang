@@ -1,7 +1,7 @@
-use crate::evaluator::Evaluator;
+use crate::Vm;
 
 pub fn std_map_range(
-    _: &mut Evaluator,
+    _: &mut Vm,
     value: f64,
     in_min: f64,
     out_min: f64,

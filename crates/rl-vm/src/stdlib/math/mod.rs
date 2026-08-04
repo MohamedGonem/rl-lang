@@ -40,8 +40,6 @@ mod tan;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::math::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("math")
         .with_function("sin", sin::std_sin)

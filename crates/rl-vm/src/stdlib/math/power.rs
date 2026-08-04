@@ -1,18 +1,18 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_pow(_: &mut Evaluator, base: Value, exponent: Value) -> Value {
+pub fn std_pow(_: &mut Vm, base: VmValue, exponent: VmValue) -> VmValue {
     match (base, exponent) {
-        (Value::Integer(a), Value::Integer(b)) => {
+        (VmValue::Int(a), VmValue::Int(b)) => {
             let b = b as u32;
             vok!(vi!(a.pow(b)))
         }
-        (Value::Integer(a), Value::Float(b)) => vok!(vf!((a as f64).powf(b))),
-        (Value::Float(a), Value::Float(b)) => vok!(vf!(a.powf(b))),
-        (Value::Float(a), Value::Integer(b)) => vok!(vf!(a.powi(b as i32))),
+        (VmValue::Int(a), VmValue::Float(b)) => vok!(vf!((a as f64).powf(b))),
+        (VmValue::Float(a), VmValue::Float(b)) => vok!(vf!(a.powf(b))),
+        (VmValue::Float(a), VmValue::Int(b)) => vok!(vf!(a.powi(b as i32))),
         _ => verr!(vs!("pow expects numeric arguments".to_string())),
     }
 }
