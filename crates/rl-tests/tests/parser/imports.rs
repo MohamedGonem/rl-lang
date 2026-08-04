@@ -1,76 +1,82 @@
 use rl_ast::statements::StatementKind;
-use rl_utils::span::Span;
 
-use crate::{assert_stmt, common};
+use crate::common::{self, span_whole};
+use crate::assert_stmt;
 
 #[test]
 fn import_simple() {
+    let source = "get x from y";
     assert_stmt!(
-        "get x from y",
+        source,
         StatementKind::ImportFileNamed {
             path: vec!["y".to_string()],
             names: vec!["x".to_string()],
         },
-        Span::new(0, 12),
+        span_whole(source),
     );
 }
 
 #[test]
 fn import_path() {
+    let source = "get x from y::z";
     assert_stmt!(
-        "get x from y::z",
+        source,
         StatementKind::ImportFileNamed {
             path: vec!["y".to_string(), "z".to_string()],
             names: vec!["x".to_string()],
         },
-        Span::new(0, 15),
+        span_whole(source),
     );
 }
 
 #[test]
 fn import_multi() {
+    let source = "get x, z from y";
     assert_stmt!(
-        "get x, z from y",
+        source,
         StatementKind::ImportFileNamed {
             path: vec!["y".to_string()],
             names: vec!["x".to_string(), "z".to_string()],
         },
-        Span::new(0, 15),
+        span_whole(source),
     );
 }
 
 #[test]
 fn import_multi_path() {
+    let source = "get x, z from y::w";
     assert_stmt!(
-        "get x, z from y::w",
+        source,
         StatementKind::ImportFileNamed {
             path: vec!["y".to_string(), "w".to_string()],
             names: vec!["x".to_string(), "z".to_string()],
         },
-        Span::new(0, 18),
+        span_whole(source),
     );
 }
 
 #[test]
 fn import_file() {
     // get x  (no `from`, single segment - treat as file import)
+    let source = "get x";
     assert_stmt!(
-        "get x",
+        source,
         StatementKind::ImportFile {
             path: vec!["x".to_string()],
         },
-        Span::new(0, 5),
+        span_whole(source),
     );
 }
 
 #[test]
 fn import_file_path() {
     // get x::y
+    let source = "get x::y";
     assert_stmt!(
-        "get x::y",
+        source,
         StatementKind::ImportFile {
             path: vec!["x".to_string(), "y".to_string()],
         },
-        Span::new(0, 8),
+        span_whole(source),
     );
 }
