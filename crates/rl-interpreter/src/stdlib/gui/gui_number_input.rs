@@ -34,7 +34,7 @@ pub fn func(
         return verr!(vs!(e));
     }
 
-    if !(min < max) {
+    if min >= max {
         return verr!(vs!(format!(
             "gui_number_input: min ({}) must be less than max ({})",
             min, max

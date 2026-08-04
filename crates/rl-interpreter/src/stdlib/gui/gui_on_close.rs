@@ -27,10 +27,7 @@ pub fn func(eval: &mut Evaluator, handle: Value, function: Value) -> Value {
             w.on_close = Some(function);
             vok!(vnl!())
         }
-        Some(_) => verr!(vs!(format!(
-            "gui_on_close: handle {} is not a window",
-            id
-        ))),
+        Some(_) => verr!(vs!(format!("gui_on_close: handle {} is not a window", id))),
         None => verr!(vs!(format!("gui_on_close: unknown handle {}", id))),
     }
 }

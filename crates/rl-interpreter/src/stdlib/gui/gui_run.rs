@@ -605,11 +605,11 @@ fn take_viewport_state(eval: &mut Evaluator, window_id: u64) -> Option<ViewportS
         pending_position: w.pending_position,
     };
 
-    if state.pending_size.is_some() || state.pending_position.is_some() {
-        if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id) {
-            w.pending_size = None;
-            w.pending_position = None;
-        }
+    if (state.pending_size.is_some() || state.pending_position.is_some())
+        && let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id)
+    {
+        w.pending_size = None;
+        w.pending_position = None;
     }
 
     Some(state)

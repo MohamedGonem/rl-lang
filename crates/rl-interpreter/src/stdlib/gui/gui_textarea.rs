@@ -53,7 +53,10 @@ pub fn func(
         }),
     );
 
-    let Value::Handle { id: textarea_id, .. } = handle else {
+    let Value::Handle {
+        id: textarea_id, ..
+    } = handle
+    else {
         unreachable!()
     };
     attach_child(eval, window_id, textarea_id);
