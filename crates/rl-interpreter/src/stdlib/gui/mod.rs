@@ -14,6 +14,7 @@ mod gui_get_selected;
 mod gui_get_selected_index;
 mod gui_get_text;
 mod gui_get_value;
+mod gui_image;
 mod gui_is_checked;
 mod gui_is_visible;
 mod gui_label;
@@ -54,6 +55,7 @@ pub enum GuiHandle {
     RadioGroup(SelectState),
     Slider(SliderState),
     ProgressBar(ProgressState),
+    Image(ImageState),
 }
 
 pub struct WindowState {
@@ -137,6 +139,16 @@ pub struct ProgressState {
     pub y: f32,
     pub width: f32,
     pub visible: bool,
+
+}
+pub struct ImageState {
+    pub window: u64,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub visible: bool,
+    pub rgba: (u32, u32, std::sync::Arc<Vec<u8>>),
 }
 
 pub fn module() -> Module {
@@ -150,6 +162,7 @@ pub fn module() -> Module {
         .with_function("gui_radio_group", gui_radio_group::func)
         .with_function("gui_slider", gui_slider::func)
         .with_function("gui_progress_bar", gui_progress_bar::func)
+        .with_function("gui_image", gui_image::func)
         .with_function("gui_set_text", gui_set_text::func)
         .with_function("gui_get_text", gui_get_text::func)
         .with_function("gui_set_visible", gui_set_visible::func)

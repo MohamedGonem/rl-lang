@@ -1,5 +1,6 @@
 use crate::{evaluator::Evaluator, stdlib::gui::GuiHandle, values::Value};
 use rl_ast::statements::HandleKind;
+use rl_utils::{errors::Error, span::Span};
 
 pub fn insert_handle(eval: &mut Evaluator, handle: GuiHandle) -> Value {
     let id = eval.gui_next_handle;
@@ -11,6 +12,12 @@ pub fn insert_handle(eval: &mut Evaluator, handle: GuiHandle) -> Value {
     }
 }
 
+pub fn attach_child(eval: &mut Evaluator, window_id: u64, child_id: u64) {
+    if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id) {
+        w.children.push(child_id);
+    }
+}
+
 pub fn require_window(eval: &Evaluator, window_id: u64, fn_name: &str) -> Result<(), String> {
     match eval.gui_handles.get(&window_id) {
         Some(GuiHandle::Window(_)) => Ok(()),
@@ -19,20 +26,27 @@ pub fn require_window(eval: &Evaluator, window_id: u64, fn_name: &str) -> Result
     }
 }
 
-/// Removes a window handle and all of its child widget handles. Used both by
-/// `gui_close` and by `gui_run` when a secondary window's native close
-/// button is clicked. No-op if `id` isn't a window (or doesn't exist).
-pub fn close_window(eval: &mut Evaluator, id: u64) {
-    if let Some(GuiHandle::Window(w)) = eval.gui_handles.remove(&id) {
-        for child in w.children {
-            eval.gui_handles.remove(&child);
-        }
+/// Reports a callback error the same way top-level rl-lang errors are
+/// reported, instead of silently discarding it.
+pub fn report_callback_err(result: Result<Value, Error>) {
+    if let Err(e) = result {
+        e.report_to_stderr();
     }
 }
 
-pub fn attach_child(eval: &mut Evaluator, window_id: u64, child_id: u64) {
-    if let Some(GuiHandle::Window(w)) = eval.gui_handles.get_mut(&window_id) {
-        w.children.push(child_id);
+/// Removes a window handle and all of its child widget handles, firing the
+/// window's `on_close` callback (if any) first. Used both by `gui_close` and
+/// by `gui_run` when a window's native close button is clicked. No-op if
+/// `id` isn't a window (or doesn't exist).
+pub fn close_window(eval: &mut Evaluator, id: u64) {
+    let Some(GuiHandle::Window(w)) = eval.gui_handles.remove(&id) else {
+        return;
+    };
+    for child in &w.children {
+        eval.gui_handles.remove(child);
+    }
+    if let Some(cb) = w.on_close {
+        report_callback_err(eval.call_value(cb, vec![], Span::dummy()));
     }
 }
 
