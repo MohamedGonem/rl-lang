@@ -158,6 +158,7 @@ Feature flags:
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubyPaws39"><img src="https://avatars.githubusercontent.com/u/280778337?v=4?s=100" width="100px;" alt="RubyPaws39"/><br /><sub><b>RubyPaws39</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=RubyPaws39" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/CapThunder19"><img src="https://avatars.githubusercontent.com/u/161865581?v=4?s=100" width="100px;" alt="Anirudh Patwal"/><br /><sub><b>Anirudh Patwal</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=CapThunder19" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://naimish.xyz"><img src="https://avatars.githubusercontent.com/u/206333897?v=4?s=100" width="100px;" alt="Naimish"/><br /><sub><b>Naimish</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=theroguevigilante" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ajaythxkur"><img src="https://avatars.githubusercontent.com/u/62602303?v=4?s=100" width="100px;" alt="Ajay Thakur"/><br /><sub><b>Ajay Thakur</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=ajaythxkur" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>
