@@ -17,8 +17,6 @@ mod temp_dir;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::fs::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("fs")
         .with_function("mkdir", mkdir::std_mkdir)

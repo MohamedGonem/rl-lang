@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vnl, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vnl, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_move_file(_: &mut Evaluator, src: String, dst: String) -> Value {
+pub fn std_move_file(_: &mut Vm, src: String, dst: String) -> VmValue {
     if let Err(e) = std::fs::rename(&src, &dst) {
         return verr!(vs!(format!(
             "move_file: failed to move \"{}\" to \"{}\": {}",

@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_copy_file(_: &mut Evaluator, src: String, dst: String) -> Value {
+pub fn std_copy_file(_: &mut Vm, src: String, dst: String) -> VmValue {
     let bytes = match std::fs::copy(&src, &dst) {
         Ok(b) => b,
         Err(e) => {

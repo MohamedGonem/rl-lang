@@ -1,10 +1,10 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_rename_file(_: &mut Evaluator, path: String, new_name: String) -> Value {
+pub fn std_rename_file(_: &mut Vm, path: String, new_name: String) -> VmValue {
     let old_path = std::path::Path::new(&path);
     let new_path = match old_path.parent() {
         Some(parent) => parent.join(&new_name),
