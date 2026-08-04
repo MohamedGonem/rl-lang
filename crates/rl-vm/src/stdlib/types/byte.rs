@@ -1,27 +1,27 @@
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::common::{vby, verr, vok, vs},
-    values::Value,
+    values::VmValue,
 };
 
-pub fn std_is_byte(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::Byte(_))
+pub fn std_is_byte(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Byte(_))
 }
 
-pub fn std_to_byte(_: &mut Evaluator, value: Value) -> Value {
+pub fn std_to_byte(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Integer(v) => v as u8,
-        Value::Byte(v) => v,
-        Value::Float(v) => v as u8,
-        Value::Bool(v) => {
+        VmValue::Int(v) => v as u8,
+        VmValue::Byte(v) => v,
+        VmValue::Float(v) => v as u8,
+        VmValue::Bool(v) => {
             if v {
                 1u8
             } else {
                 0u8
             }
         }
-        Value::Char(v) => v as u8,
-        Value::String(s) => {
+        VmValue::Char(v) => v as u8,
+        VmValue::Str(s) => {
             let s = s.trim();
             if s.starts_with("0x") || s.starts_with("0X") {
                 match u8::from_str_radix(&s[2..], 16) {

@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn func(_: &mut Evaluator, value: Value) -> Value {
+pub fn func(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Integer(v) => format!("{:x}", v),
-        Value::Byte(v) => format!("{:x}", v),
-        Value::Char(v) => format!("{:x}", v as u32),
-        Value::String(s) => s.bytes().map(|b| format!("{:x}", b)).collect::<String>(),
+        VmValue::Int(v) => format!("{:x}", v),
+        VmValue::Byte(v) => format!("{:x}", v),
+        VmValue::Char(v) => format!("{:x}", v as u32),
+        VmValue::Str(s) => s.bytes().map(|b| format!("{:x}", b)).collect::<String>(),
 
         other => {
             return verr!(vs!(format!(

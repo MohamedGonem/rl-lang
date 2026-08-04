@@ -1,27 +1,27 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vi, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vi, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_is_int(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::Integer(_))
+pub fn std_is_int(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Int(_))
 }
 
-pub fn std_to_int(_: &mut Evaluator, value: Value) -> Value {
+pub fn std_to_int(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Integer(v) => v,
-        Value::Byte(v) => v as i64,
-        Value::Float(v) => v as i64,
-        Value::Bool(v) => {
+        VmValue::Int(v) => v,
+        VmValue::Byte(v) => v as i64,
+        VmValue::Float(v) => v as i64,
+        VmValue::Bool(v) => {
             if v {
                 1
             } else {
                 0
             }
         }
-        Value::Char(v) => v as i64,
-        Value::String(s) => {
+        VmValue::Char(v) => v as i64,
+        VmValue::Str(s) => {
             let s = s.trim();
             if s.starts_with("0x") || s.starts_with("0X") {
                 match i64::from_str_radix(&s[2..], 16) {

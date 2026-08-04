@@ -1,26 +1,26 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vf, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_is_float(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::Float(_))
+pub fn std_is_float(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Float(_))
 }
 
-pub fn std_to_float(_: &mut Evaluator, value: Value) -> Value {
+pub fn std_to_float(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Float(f) => f,
-        Value::Integer(i) => i as f64,
-        Value::Byte(i) => i as f64,
-        Value::Bool(b) => {
+        VmValue::Float(f) => f,
+        VmValue::Int(i) => i as f64,
+        VmValue::Byte(i) => i as f64,
+        VmValue::Bool(b) => {
             if b {
                 1.0
             } else {
                 0.0
             }
         }
-        Value::String(s) => match s.trim().parse::<f64>() {
+        VmValue::Str(s) => match s.trim().parse::<f64>() {
             Ok(f) => f,
             Err(_) => return verr!(vs!(format!("cannot parse \"{}\" as float", s))),
         },

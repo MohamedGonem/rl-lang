@@ -17,8 +17,6 @@ mod string;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::types::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("types")
         .with_function("to_bin", bin::func)

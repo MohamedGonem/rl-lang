@@ -1,25 +1,25 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{vc, verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{vc, verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_is_char(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::Char(_))
+pub fn std_is_char(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Char(_))
 }
 
-pub fn std_to_char(_: &mut Evaluator, value: Value) -> Value {
+pub fn std_to_char(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Char(c) => c,
-        Value::Integer(i) => match char::from_u32(i as u32) {
+        VmValue::Char(c) => c,
+        VmValue::Int(i) => match char::from_u32(i as u32) {
             Some(c) => c,
             None => return verr!(vs!(format!("{} is not a valid unicode codepoint", i))),
         },
-        Value::Byte(i) => match char::from_u32(i as u32) {
+        VmValue::Byte(i) => match char::from_u32(i as u32) {
             Some(c) => c,
             None => return verr!(vs!(format!("{} is not a valid unicode codepoint", i))),
         },
-        Value::String(s) => {
+        VmValue::Str(s) => {
             let mut chars = s.chars();
             match (chars.next(), chars.next()) {
                 (Some(c), None) => c,

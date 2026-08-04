@@ -1,21 +1,21 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
-pub fn std_is_string(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::String(_))
+pub fn std_is_string(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Str(_))
 }
 
-pub fn std_to_string(_: &mut Evaluator, value: Value) -> Value {
+pub fn std_to_string(_: &mut Vm, value: VmValue) -> VmValue {
     let result = match value {
-        Value::Integer(v) => format!("{}", v),
-        Value::Byte(v) => format!("{}", v),
-        Value::Float(v) => format!("{}", v),
-        Value::Bool(v) => format!("{}", v),
-        Value::Char(v) => v.to_string(),
-        Value::String(s) => s,
+        VmValue::Int(v) => format!("{}", v),
+        VmValue::Byte(v) => format!("{}", v),
+        VmValue::Float(v) => format!("{}", v),
+        VmValue::Bool(v) => format!("{}", v),
+        VmValue::Char(v) => v.to_string(),
+        VmValue::Str(s) => s.to_string(),
 
         other => {
             return verr!(vs!(format!(

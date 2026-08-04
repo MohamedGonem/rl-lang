@@ -1,5 +1,5 @@
-use crate::{evaluator::Evaluator, values::Value};
+use crate::{Vm, values::VmValue};
 
-pub fn func(_: &mut Evaluator, value: Value) -> bool {
-    matches!(value, Value::Null)
+pub fn func(_: &mut Vm, value: VmValue) -> bool {
+    matches!(value, VmValue::Null)
 }
