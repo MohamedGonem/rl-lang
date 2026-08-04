@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TCP_CONNECT: FnEntry = FnEntry {
     signature: "tcp_connect(addr)",
     description: "connects to \"host:port\" as a client and returns a stream handle",
-    example: r#"
-get std::net::tcp_connect
+    example: r#"get std::net::tcp_connect
 
 dec int stream = result_unwrap(tcp_connect("example.com:80"))"#,
     expected_output: None,

@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static EXEC_LINES: FnEntry = FnEntry {
     signature: "exec_lines(cmd)",
     description: "runs a shell command and returns its stdout split into an array of lines",
-    example: r#"
-get std::process::exec_lines
+    example: r#"get std::process::exec_lines
 
 dec arr[string] files = exec_lines("ls src")?"#,
     expected_output: None,

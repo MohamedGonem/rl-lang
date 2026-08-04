@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static HTTP_REQUEST_URL: FnEntry = FnEntry {
     signature: "http_request_url(req)",
     description: "returns the requested path, including query string",
-    example: r#"
-get std::http::http_request_url
+    example: r#"get std::http::http_request_url
 
 http_request_url(req)"#,
     expected_output: None,

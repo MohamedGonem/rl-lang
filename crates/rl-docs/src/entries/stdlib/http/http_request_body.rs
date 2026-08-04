@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static HTTP_REQUEST_BODY: FnEntry = FnEntry {
     signature: "http_request_body(req)",
     description: "reads the request body as a string; the body can only be read once",
-    example: r#"
-get std::http::http_request_body
+    example: r#"get std::http::http_request_body
 
 dec string body = result_unwrap(http_request_body(req))"#,
     expected_output: None,

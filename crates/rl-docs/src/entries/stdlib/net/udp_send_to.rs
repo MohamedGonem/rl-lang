@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static UDP_SEND_TO: FnEntry = FnEntry {
     signature: "udp_send_to(socket, data, addr)",
     description: "sends `data` to `addr` directly, without needing a connected peer",
-    example: r#"
-get std::net::udp_send_to
+    example: r#"get std::net::udp_send_to
 
 result_unwrap(udp_send_to(socket, "ping", "127.0.0.1:9001"))"#,
     expected_output: None,

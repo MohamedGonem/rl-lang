@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static UDP_RECV: FnEntry = FnEntry {
     signature: "udp_recv(socket, max_bytes)",
     description: "receives up to `max_bytes` from the socket's connected peer",
-    example: r#"
-get std::net::udp_recv
+    example: r#"get std::net::udp_recv
 
 dec string data = result_unwrap(udp_recv(socket, 1024))"#,
     expected_output: None,

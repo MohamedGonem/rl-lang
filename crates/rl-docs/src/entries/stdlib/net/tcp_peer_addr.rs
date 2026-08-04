@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TCP_PEER_ADDR: FnEntry = FnEntry {
     signature: "tcp_peer_addr(stream)",
     description: "returns the remote address of a connected TCP stream",
-    example: r#"
-get std::net::tcp_peer_addr
+    example: r#"get std::net::tcp_peer_addr
 
 tcp_peer_addr(stream)"#,
     expected_output: None,

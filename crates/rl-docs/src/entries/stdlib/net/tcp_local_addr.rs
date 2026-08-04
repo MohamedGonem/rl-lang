@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TCP_LOCAL_ADDR: FnEntry = FnEntry {
     signature: "tcp_local_addr(stream)",
     description: "returns the local address of a connected TCP stream",
-    example: r#"
-get std::net::tcp_local_addr
+    example: r#"get std::net::tcp_local_addr
 
 tcp_local_addr(stream)"#,
     expected_output: None,

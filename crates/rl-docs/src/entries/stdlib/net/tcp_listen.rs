@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TCP_LISTEN: FnEntry = FnEntry {
     signature: "tcp_listen(addr)",
     description: "binds a TCP listener to \"host:port\" and returns a listener handle",
-    example: r#"
-get std::net::tcp_listen
+    example: r#"get std::net::tcp_listen
 
 dec int listener = result_unwrap(tcp_listen("127.0.0.1:7878"))"#,
     expected_output: None,

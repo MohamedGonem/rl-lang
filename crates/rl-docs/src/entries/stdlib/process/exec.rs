@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static EXEC: FnEntry = FnEntry {
     signature: "exec(cmd)",
     description: "runs a shell command and returns its stdout as a trimmed string",
-    example: r#"
-get std::process::exec
+    example: r#"get std::process::exec
 
 dec string out = exec("echo hello")?"#,
     expected_output: None,

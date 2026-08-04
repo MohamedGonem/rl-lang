@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static GUI_ON_CLICK: FnEntry = FnEntry {
     signature: "gui_on_click(handle, function)",
     description: "registers `function` as the click callback for the button `handle`, replacing any callback set earlier. `function` is called with no arguments each time the user clicks the button during `gui_run`, after that frame's render pass has fully finished - it's free to call any other `std::gui` function, including mutating other widgets, calling `gui_close`, or calling `gui_quit`",
-    example: r#"
-get std::gui::gui_window
+    example: r#"get std::gui::gui_window
 get std::gui::gui_button
 get std::gui::gui_label
 get std::gui::gui_on_click

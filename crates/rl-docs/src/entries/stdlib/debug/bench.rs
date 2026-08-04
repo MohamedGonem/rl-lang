@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static BENCH: FnEntry = FnEntry {
     signature: "bench(function, iterations)",
     description: "calls a zero-argument function or lambda `iterations` times and returns the total elapsed time in milliseconds",
-    example: r#"
-get std::debug::bench
+    example: r#"get std::debug::bench
 get std::math::factorial
 get std::io::println
 
