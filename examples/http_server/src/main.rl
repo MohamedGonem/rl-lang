@@ -43,19 +43,19 @@ fn query_param(string url, string key) -> string {
 /// routing on the request path: `/`, `/time`, `/hits`, `/echo`, and a
 /// catch-all 404 for everything else.
 fn main() {
-    dec result[int] start_result = http_server_start("127.0.0.1:8080")
+    dec result[handle] start_result = http_server_start("127.0.0.1:8080")
     if (is_err(start_result)) {
         println("could not start server:")
         println(result_unwrap_err(start_result))
         return
     }
 
-    dec int server = result_unwrap(start_result)
+    dec handle server = result_unwrap(start_result)
     dec int hits = 0
     println("serving on http://127.0.0.1:8080  (Ctrl+C to stop)")
 
     while (true) {
-        dec int req = result_unwrap(http_server_recv(server))
+        dec handle req = result_unwrap(http_server_recv(server))
         dec string method = result_unwrap(http_request_method(req))
         dec string url = result_unwrap(http_request_url(req))
         dec string path = path_only(url)

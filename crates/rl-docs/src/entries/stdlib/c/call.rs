@@ -7,7 +7,7 @@ pub static CALL: FnEntry = FnEntry {
 get std::c::call
 get std::c::close
 
-dec int h = result_unwrap(compile("int add(int a, int b) { return a + b; }"))
+dec handle h = result_unwrap(compile("int add(int a, int b) { return a + b; }"))
 
 // 1. Bare call - works, but untyped: nothing here catches a wrong
 //    arg_types entry, a swapped arg order, or a typo'd ret_type until

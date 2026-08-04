@@ -6,7 +6,7 @@ pub static SOUND_WAIT: FnEntry = FnEntry {
     example: r#"get play_file_async, sound_wait from std::audio
 get std::res::result_unwrap
 
-dec int sound = result_unwrap(play_file_async("assets/music.ogg"))
+dec handle sound = result_unwrap(play_file_async("assets/music.ogg"))
 result_unwrap(sound_wait(sound))"#,
     expected_output: None,
     returns: "result[null]",
