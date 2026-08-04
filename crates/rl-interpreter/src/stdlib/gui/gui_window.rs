@@ -22,6 +22,8 @@ pub fn func(eval: &mut Evaluator, title: String, width: i64, height: i64) -> Val
             pending_position: None,
             decorated: true,
             icon: None,
+            on_close: None,
+            on_key: None,
         }),
     );
     vok!(handle)

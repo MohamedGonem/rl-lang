@@ -22,6 +22,9 @@ mod gui_label;
 mod gui_number_input;
 mod gui_on_change;
 mod gui_on_click;
+mod gui_on_close;
+mod gui_on_key;
+mod gui_on_submit;
 mod gui_progress_bar;
 mod gui_quit;
 mod gui_radio_group;
@@ -76,6 +79,8 @@ pub struct WindowState {
     pub pending_position: Option<(f32, f32)>,
     pub decorated: bool,
     pub icon: Option<(u32, u32, Vec<u8>)>,
+    pub on_close: Option<Value>,
+    pub on_key: Option<Value>,
 }
 
 pub struct ButtonState {
@@ -199,6 +204,9 @@ pub fn module() -> Module {
         .with_function("gui_is_visible", gui_is_visible::func)
         .with_function("gui_on_click", gui_on_click::func)
         .with_function("gui_on_change", gui_on_change::func)
+        .with_function("gui_on_submit", gui_on_submit::func)
+        .with_function("gui_on_key", gui_on_key::func)
+        .with_function("gui_on_close", gui_on_close::func)
         .with_function("gui_is_checked", gui_is_checked::func)
         .with_function("gui_set_checked", gui_set_checked::func)
         .with_function("gui_get_selected_index", gui_get_selected_index::func)
