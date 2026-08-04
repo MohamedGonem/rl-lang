@@ -3908,14 +3908,21 @@ name = "rl-vm"
 version = "0.3.0"
 dependencies = [
  "cpal",
+ "crossterm",
  "eframe",
  "libffi",
  "libloading",
  "rl-ast",
+ "rl-checker",
  "rl-lexer",
+ "rl-parser",
+ "rl-resolver",
  "rl-utils",
  "rodio",
+ "shell-words",
  "symphonia",
+ "tiny_http",
+ "ureq",
  "zstd",
 ]
 
