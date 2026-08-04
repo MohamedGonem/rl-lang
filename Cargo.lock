@@ -3908,6 +3908,7 @@ name = "rl-vm"
 version = "0.3.0"
 dependencies = [
  "cpal",
+ "eframe",
  "libffi",
  "libloading",
  "rl-ast",
