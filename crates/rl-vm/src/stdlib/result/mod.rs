@@ -7,8 +7,6 @@ mod is_ok;
 mod result_map;
 mod result_unwrap;
 
-pub use rl_commons::keywords::result::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("res")
         .with_function("is_ok", is_ok::func)

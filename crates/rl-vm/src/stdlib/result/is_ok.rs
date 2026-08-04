@@ -1,6 +1,6 @@
-use crate::evaluator::Evaluator;
-use crate::values::Value;
+use crate::Vm;
+use crate::values::VmValue;
 
-pub fn func(_: &mut Evaluator, value: Value) -> bool {
+pub fn func(_: &mut Vm, value: VmValue) -> bool {
     value.is_ok()
 }

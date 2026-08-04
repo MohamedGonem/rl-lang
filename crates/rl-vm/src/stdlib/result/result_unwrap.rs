@@ -1,42 +1,37 @@
-use rl_utils::{errors::Error, span::Span};
+use crate::{
+    values::VmValue,
+    vm_logic::{Vm, VmError},
+};
 
-use crate::{evaluator::Evaluator, values::Value};
-
-pub fn std_unwrap(eval: &mut Evaluator, v: Value, span: Span) -> Result<Value, Error> {
+pub fn std_unwrap(eval: &mut Vm, v: VmValue) -> Result<VmValue, VmError> {
     match v {
-        Value::Ok(inner) => Ok(*inner),
-        Value::Err(v) => Err(eval.err(format!("result_unwrap: called on Err({})", v), span)),
-        other => Err(eval.err(
-            format!("result_unwrap: expected result, got {}", other.type_name()),
-            span,
-        )),
+        VmValue::Ok(inner) => Ok(*inner),
+        VmValue::Err(v) => Err(eval.err(format!("result_unwrap: called on Err({})", v))),
+        other => Err(eval.err(format!(
+            "result_unwrap: expected result, got {}",
+            other.type_name()
+        ))),
     }
 }
 
-pub fn std_unwrap_err(eval: &mut Evaluator, v: Value, span: Span) -> Result<Value, Error> {
+pub fn std_unwrap_err(eval: &mut Vm, v: VmValue) -> Result<VmValue, VmError> {
     match v {
-        Value::Err(inner) => Ok(*inner),
-        Value::Ok(v) => Err(eval.err(format!("result_unwrap_err: called on ok({})", v), span)),
-        other => Err(eval.err(
-            format!(
-                "result_unwrap_err: expected result, got {}",
-                other.type_name()
-            ),
-            span,
-        )),
+        VmValue::Err(inner) => Ok(*inner),
+        VmValue::Ok(v) => Err(eval.err(format!("result_unwrap_err: called on ok({})", v))),
+        other => Err(eval.err(format!(
+            "result_unwrap_err: expected result, got {}",
+            other.type_name()
+        ))),
     }
 }
 
-pub fn std_unwrap_or(eval: &mut Evaluator, v: Value, b: Value, span: Span) -> Result<Value, Error> {
+pub fn std_unwrap_or(eval: &mut Vm, v: VmValue, b: VmValue) -> Result<VmValue, VmError> {
     match v {
-        Value::Ok(inner) => Ok(*inner),
-        Value::Err(_) => Ok(b),
-        other => Err(eval.err(
-            format!(
-                "result_unwrap_or: expected result, got {}",
-                other.type_name()
-            ),
-            span,
-        )),
+        VmValue::Ok(inner) => Ok(*inner),
+        VmValue::Err(_) => Ok(b),
+        other => Err(eval.err(format!(
+            "result_unwrap_or: expected result, got {}",
+            other.type_name()
+        ))),
     }
 }
