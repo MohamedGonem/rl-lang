@@ -26,6 +26,7 @@ mod gui_quit;
 mod gui_radio_group;
 mod gui_remove;
 mod gui_run;
+mod gui_separator;
 mod gui_set_checked;
 mod gui_set_pos;
 mod gui_set_progress;
@@ -56,6 +57,7 @@ pub enum GuiHandle {
     RadioGroup(SelectState),
     Slider(SliderState),
     ProgressBar(ProgressState),
+    Separator(SeparatorState),
     Image(ImageState),
 }
 
@@ -141,8 +143,16 @@ pub struct ProgressState {
     pub y: f32,
     pub width: f32,
     pub visible: bool,
-
 }
+
+pub struct SeparatorState {
+    pub window: u64,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub visible: bool,
+}
+
 pub struct ImageState {
     pub window: u64,
     pub x: f32,
@@ -165,6 +175,7 @@ pub fn module() -> Module {
         .with_function("gui_slider", gui_slider::func)
         .with_function("gui_number_input", gui_number_input::func)
         .with_function("gui_progress_bar", gui_progress_bar::func)
+        .with_function("gui_separator", gui_separator::func)
         .with_function("gui_image", gui_image::func)
         .with_function("gui_set_text", gui_set_text::func)
         .with_function("gui_get_text", gui_get_text::func)
