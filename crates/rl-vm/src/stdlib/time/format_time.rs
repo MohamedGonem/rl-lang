@@ -7,9 +7,9 @@
 //! `%Y` (4-digit year), `%m` (month), `%d` (day), `%H` (hour), `%M` (minute), `%S` (second).
 
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vok, vs},
-    values::Value,
+    Vm,
+    stdlib::macros::{verr, vok, vs},
+    values::VmValue,
 };
 
 pub fn unix_to_parts(timestamp: i64) -> (i32, u32, u32, u32, u32, u32) {
@@ -66,7 +66,7 @@ fn apply_pattern(
         .replace("%S", &format!("{:02}", second))
 }
 
-pub fn format_time(_: &mut Evaluator, timestamp: i64, pattern: String) -> Value {
+pub fn format_time(_: &mut Vm, timestamp: i64, pattern: String) -> VmValue {
     if timestamp < 0 {
         return verr!(vs!("timestamp is negative".to_string()));
     }
@@ -76,7 +76,7 @@ pub fn format_time(_: &mut Evaluator, timestamp: i64, pattern: String) -> Value 
     )))
 }
 
-pub fn date_str(_: &mut Evaluator, timestamp: i64) -> Value {
+pub fn date_str(_: &mut Vm, timestamp: i64) -> VmValue {
     if timestamp < 0 {
         return verr!(vs!("timestamp is negative".to_string()));
     }
@@ -86,7 +86,7 @@ pub fn date_str(_: &mut Evaluator, timestamp: i64) -> Value {
     )))
 }
 
-pub fn time_str(_: &mut Evaluator, timestamp: i64) -> Value {
+pub fn time_str(_: &mut Vm, timestamp: i64) -> VmValue {
     if timestamp < 0 {
         return verr!(vs!("timestamp is negative".to_string()));
     }

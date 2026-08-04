@@ -1,28 +1,25 @@
 use crate::{
-    evaluator::Evaluator,
+    Vm,
     stdlib::{
         common::{verr, vi, vok, vs},
         time::format_time::unix_to_parts,
     },
-    values::Value,
+    values::VmValue,
 };
-use rl_ast::statements::TypeAnnotation;
+use std::rc::Rc;
 
-pub fn time_parts(_: &mut Evaluator, timestamp: i64) -> Value {
+pub fn time_parts(_: &mut Vm, timestamp: i64) -> VmValue {
     if timestamp < 0 {
         return verr!(vs!("timestamp is negative".to_string()));
     }
 
     let (year, month, day, hour, minute, second) = unix_to_parts(timestamp);
-    vok!(Value::Values {
-        items_type: TypeAnnotation::Int,
-        items: vec![
-            vi!(year as i64),
-            vi!(month as i64),
-            vi!(day as i64),
-            vi!(hour as i64),
-            vi!(minute as i64),
-            vi!(second as i64),
-        ],
-    })
+    vok!(VmValue::Arr(Rc::new(vec![
+        vi!(year as i64),
+        vi!(month as i64),
+        vi!(day as i64),
+        vi!(hour as i64),
+        vi!(minute as i64),
+        vi!(second as i64),
+    ],)))
 }

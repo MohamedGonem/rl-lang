@@ -12,8 +12,6 @@ mod time_parts;
 
 use crate::native::Module;
 
-pub use rl_commons::keywords::time::KEYWORDS;
-
 pub fn module() -> Module {
     Module::new("time")
         .with_function("time_now", now::now)
