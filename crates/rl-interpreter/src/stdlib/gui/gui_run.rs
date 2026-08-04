@@ -1,13 +1,15 @@
 use eframe::egui;
 use rl_ast::statements::HandleKind;
-use rl_utils::errors::Error;
 use rl_utils::span::Span;
 
 use crate::{
     evaluator::Evaluator,
     stdlib::{
         common::{extract_handle, verr, vnl, vok, vs},
-        gui::{GuiHandle, common::close_window},
+        gui::{
+            GuiHandle,
+            common::{close_window, report_callback_err},
+        },
     },
     values::Value,
 };
@@ -18,12 +20,14 @@ enum WidgetSnapshot {
         label: String,
         x: f32,
         y: f32,
+        z: i32,
     },
     Label {
         id: u64,
         text: String,
         x: f32,
         y: f32,
+        z: i32,
     },
     Checkbox {
         id: u64,
@@ -31,6 +35,7 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         checked: bool,
+        z: i32,
     },
     Textbox {
         id: u64,
@@ -38,6 +43,9 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         width: f32,
+        multiline: bool,
+        height: f32,
+        z: i32,
     },
     Dropdown {
         id: u64,
@@ -46,6 +54,7 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         width: f32,
+        z: i32,
     },
     RadioGroup {
         id: u64,
@@ -53,6 +62,7 @@ enum WidgetSnapshot {
         selected: usize,
         x: f32,
         y: f32,
+        z: i32,
     },
     Slider {
         id: u64,
@@ -62,6 +72,8 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         width: f32,
+        drag_only: bool,
+        z: i32,
     },
     ProgressBar {
         id: u64,
@@ -69,12 +81,42 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         width: f32,
+        z: i32,
+    },
+    Separator {
+        id: u64,
+        x: f32,
+        y: f32,
+        width: f32,
+        z: i32,
+    },
+    Image {
+        id: u64,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        texture_width: u32,
+        texture_height: u32,
+        rgba: std::sync::Arc<Vec<u8>>,
+        z: i32,
     },
 }
 
-fn report_callback_err(result: Result<Value, Error>) {
-    if let Err(e) = result {
-        e.report_to_stderr();
+impl WidgetSnapshot {
+    fn z(&self) -> i32 {
+        match self {
+            WidgetSnapshot::Button { z, .. }
+            | WidgetSnapshot::Label { z, .. }
+            | WidgetSnapshot::Checkbox { z, .. }
+            | WidgetSnapshot::Textbox { z, .. }
+            | WidgetSnapshot::Dropdown { z, .. }
+            | WidgetSnapshot::RadioGroup { z, .. }
+            | WidgetSnapshot::Slider { z, .. }
+            | WidgetSnapshot::ProgressBar { z, .. }
+            | WidgetSnapshot::Separator { z, .. }
+            | WidgetSnapshot::Image { z, .. } => *z,
+        }
     }
 }
 
@@ -84,6 +126,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
     };
     let background = win.background;
     let children = win.children.clone();
+    let enter_pressed = ctx.input(|i| i.key_pressed(egui::Key::Enter));
 
     egui::Area::new(egui::Id::new(("rl_gui_window_bg", window_id)))
         .order(egui::Order::Background)
@@ -102,7 +145,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
             );
         });
 
-    let snapshots: Vec<WidgetSnapshot> = children
+    let mut snapshots: Vec<WidgetSnapshot> = children
         .iter()
         .filter_map(|id| match eval.gui_handles.get(id) {
             Some(GuiHandle::Button(b)) if b.visible => Some(WidgetSnapshot::Button {
@@ -110,12 +153,14 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 label: b.label.clone(),
                 x: b.x,
                 y: b.y,
+                z: b.z,
             }),
             Some(GuiHandle::Label(l)) if l.visible => Some(WidgetSnapshot::Label {
                 id: *id,
                 text: l.text.clone(),
                 x: l.x,
                 y: l.y,
+                z: l.z,
             }),
             Some(GuiHandle::Checkbox(c)) if c.visible => Some(WidgetSnapshot::Checkbox {
                 id: *id,
@@ -123,6 +168,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x: c.x,
                 y: c.y,
                 checked: c.checked,
+                z: c.z,
             }),
             Some(GuiHandle::Textbox(t)) if t.visible => Some(WidgetSnapshot::Textbox {
                 id: *id,
@@ -130,6 +176,9 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x: t.x,
                 y: t.y,
                 width: t.width,
+                multiline: t.multiline,
+                height: t.height,
+                z: t.z,
             }),
             Some(GuiHandle::Dropdown(s)) if s.visible => Some(WidgetSnapshot::Dropdown {
                 id: *id,
@@ -138,6 +187,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x: s.x,
                 y: s.y,
                 width: s.width,
+                z: s.z,
             }),
             Some(GuiHandle::RadioGroup(s)) if s.visible => Some(WidgetSnapshot::RadioGroup {
                 id: *id,
@@ -145,6 +195,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 selected: s.selected,
                 x: s.x,
                 y: s.y,
+                z: s.z,
             }),
             Some(GuiHandle::Slider(s)) if s.visible => Some(WidgetSnapshot::Slider {
                 id: *id,
@@ -154,6 +205,8 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x: s.x,
                 y: s.y,
                 width: s.width,
+                drag_only: s.drag_only,
+                z: s.z,
             }),
             Some(GuiHandle::ProgressBar(p)) if p.visible => Some(WidgetSnapshot::ProgressBar {
                 id: *id,
@@ -161,20 +214,44 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x: p.x,
                 y: p.y,
                 width: p.width,
+                z: p.z,
+            }),
+            Some(GuiHandle::Separator(s)) if s.visible => Some(WidgetSnapshot::Separator {
+                id: *id,
+                x: s.x,
+                y: s.y,
+                width: s.width,
+                z: s.z,
+            }),
+            Some(GuiHandle::Image(img)) if img.visible => Some(WidgetSnapshot::Image {
+                id: *id,
+                x: img.x,
+                y: img.y,
+                width: img.width,
+                height: img.height,
+                texture_width: img.rgba.0,
+                texture_height: img.rgba.1,
+                rgba: img.rgba.2.clone(),
+                z: img.z,
             }),
             _ => None,
         })
         .collect();
 
+    snapshots.sort_by_key(WidgetSnapshot::z);
+
     let mut clicked: Vec<u64> = Vec::new();
     let mut changed_checkbox: Vec<(u64, bool)> = Vec::new();
     let mut changed_text: Vec<(u64, String)> = Vec::new();
+    let mut submitted: Vec<(u64, String)> = Vec::new();
     let mut changed_selection: Vec<(u64, usize)> = Vec::new();
     let mut changed_value: Vec<(u64, f64)> = Vec::new();
 
     for snap in &snapshots {
         match snap {
-            WidgetSnapshot::Button { id, label, x, y } => {
+            WidgetSnapshot::Button {
+                id, label, x, y, ..
+            } => {
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_button", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| ui.button(label))
@@ -183,7 +260,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                     clicked.push(*id);
                 }
             }
-            WidgetSnapshot::Label { id, text, x, y } => {
+            WidgetSnapshot::Label { id, text, x, y, .. } => {
                 egui::Area::new(egui::Id::new(("rl_gui_label", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| ui.label(text));
@@ -194,6 +271,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x,
                 y,
                 checked,
+                ..
             } => {
                 let mut checked = *checked;
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_checkbox", *id)))
@@ -210,14 +288,24 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x,
                 y,
                 width,
+                multiline,
+                height,
+                ..
             } => {
                 let mut text = text.clone();
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_textbox", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        ui.add_sized([*width, 20.0], egui::TextEdit::singleline(&mut text))
+                        if *multiline {
+                            ui.add_sized([*width, *height], egui::TextEdit::multiline(&mut text))
+                        } else {
+                            ui.add_sized([*width, 20.0], egui::TextEdit::singleline(&mut text))
+                        }
                     })
                     .inner;
+                if !multiline && resp.lost_focus() && enter_pressed {
+                    submitted.push((*id, text.clone()));
+                }
                 if resp.changed() {
                     changed_text.push((*id, text));
                 }
@@ -229,6 +317,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x,
                 y,
                 width,
+                ..
             } => {
                 let mut sel = *selected;
                 egui::Area::new(egui::Id::new(("rl_gui_dropdown", *id)))
@@ -253,6 +342,7 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 selected,
                 x,
                 y,
+                ..
             } => {
                 let mut sel = *selected;
                 egui::Area::new(egui::Id::new(("rl_gui_radio", *id)))
@@ -276,15 +366,21 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x,
                 y,
                 width,
+                drag_only,
+                ..
             } => {
                 let mut v = *value;
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_slider", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        ui.add_sized(
-                            [*width, 20.0],
-                            egui::Slider::new(&mut v, *min..=*max).show_value(true),
-                        )
+                        if *drag_only {
+                            ui.add(egui::DragValue::new(&mut v).range(*min..=*max))
+                        } else {
+                            ui.add_sized(
+                                [*width, 20.0],
+                                egui::Slider::new(&mut v, *min..=*max).show_value(true),
+                            )
+                        }
                     })
                     .inner;
                 if resp.changed() {
@@ -297,11 +393,51 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 x,
                 y,
                 width,
+                ..
             } => {
                 egui::Area::new(egui::Id::new(("rl_gui_progress", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
                         ui.add_sized([*width, 20.0], egui::ProgressBar::new(*value))
+                    });
+            }
+            WidgetSnapshot::Separator {
+                id, x, y, width, ..
+            } => {
+                egui::Area::new(egui::Id::new(("rl_gui_separator", *id)))
+                    .fixed_pos(egui::pos2(*x, *y))
+                    .show(ctx, |ui| {
+                        ui.allocate_ui(egui::vec2(*width, 6.0), |ui| {
+                            ui.separator();
+                        });
+                    });
+            }
+            WidgetSnapshot::Image {
+                id,
+                x,
+                y,
+                width,
+                height,
+                texture_width,
+                texture_height,
+                rgba,
+                ..
+            } => {
+                let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                    [*texture_width as usize, *texture_height as usize],
+                    rgba,
+                );
+                let texture = ctx.load_texture(
+                    format!("rl_gui_image_{}", id),
+                    color_image,
+                    egui::TextureOptions::default(),
+                );
+                let sized =
+                    egui::load::SizedTexture::new(texture.id(), egui::vec2(*width, *height));
+                egui::Area::new(egui::Id::new(("rl_gui_image", *id)))
+                    .fixed_pos(egui::pos2(*x, *y))
+                    .show(ctx, |ui| {
+                        ui.add(egui::Image::from_texture(sized));
                     });
             }
         }
@@ -313,6 +449,16 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
                 t.text = text.clone();
                 t.on_change.clone()
             }
+            _ => None,
+        };
+        if let Some(cb) = callback {
+            report_callback_err(eval.call_value(cb, vec![Value::String(text)], Span::dummy()));
+        }
+    }
+
+    for (id, text) in submitted {
+        let callback = match eval.gui_handles.get(&id) {
+            Some(GuiHandle::Textbox(t)) => t.on_submit.clone(),
             _ => None,
         };
         if let Some(cb) = callback {
@@ -372,6 +518,37 @@ fn render_window(eval: &mut Evaluator, ctx: &egui::Context, window_id: u64) {
             report_callback_err(eval.call_value(cb, vec![], Span::dummy()));
         }
     }
+
+    let key_names: Vec<String> = ctx.input(|i| {
+        i.events
+            .iter()
+            .filter_map(|e| match e {
+                egui::Event::Key {
+                    key,
+                    pressed: true,
+                    repeat: false,
+                    ..
+                } => Some(format!("{:?}", key)),
+                _ => None,
+            })
+            .collect()
+    });
+
+    if !key_names.is_empty() {
+        let on_key = match eval.gui_handles.get(&window_id) {
+            Some(GuiHandle::Window(w)) => w.on_key.clone(),
+            _ => None,
+        };
+        if let Some(cb) = on_key {
+            for key_name in key_names {
+                report_callback_err(eval.call_value(
+                    cb.clone(),
+                    vec![Value::String(key_name)],
+                    Span::dummy(),
+                ));
+            }
+        }
+    }
 }
 
 struct ViewportState {
@@ -415,6 +592,10 @@ impl eframe::App for RlGuiApp<'_> {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         let eval = &mut *self.eval;
+
+        if ctx.input(|i| i.viewport().close_requested()) {
+            close_window(eval, self.window);
+        }
 
         let Some(state) = take_viewport_state(eval, self.window) else {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
