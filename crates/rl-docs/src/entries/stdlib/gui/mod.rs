@@ -10,16 +10,23 @@ mod gui_get_selected;
 mod gui_get_selected_index;
 mod gui_get_text;
 mod gui_get_value;
+mod gui_get_z;
+mod gui_image;
 mod gui_is_checked;
 mod gui_is_visible;
 mod gui_label;
+mod gui_number_input;
 mod gui_on_change;
 mod gui_on_click;
+mod gui_on_close;
+mod gui_on_key;
+mod gui_on_submit;
 mod gui_progress_bar;
 mod gui_quit;
 mod gui_radio_group;
 mod gui_remove;
 mod gui_run;
+mod gui_separator;
 mod gui_set_checked;
 mod gui_set_pos;
 mod gui_set_progress;
@@ -27,7 +34,9 @@ mod gui_set_selected_index;
 mod gui_set_text;
 mod gui_set_value;
 mod gui_set_visible;
+mod gui_set_z;
 mod gui_slider;
+mod gui_textarea;
 mod gui_textbox;
 mod gui_window;
 mod gui_window_set_background;
@@ -39,7 +48,7 @@ mod gui_window_set_title;
 
 pub static GUI: StdEntry = StdEntry {
     name: "gui",
-    description: "a native desktop GUI toolkit (egui/eframe) for building windows out of absolutely-positioned widgets - buttons, labels, checkboxes, textboxes, dropdowns, radio groups, sliders, and progress bars",
+    description: "a native desktop GUI toolkit (egui/eframe) for building one or more windows out of absolutely-positioned, z-orderable widgets - buttons, labels, checkboxes, textboxes, textareas, dropdowns, radio groups, sliders, number inputs, progress bars, separators, and images - with click/change/submit/key/close callbacks",
     functions: FUNCTIONS,
     since: Some("v0.4.0"),
     unstable: true,
@@ -56,10 +65,14 @@ static FUNCTIONS: &[&FnEntry] = &[
     &gui_label::GUI_LABEL,
     &gui_checkbox::GUI_CHECKBOX,
     &gui_textbox::GUI_TEXTBOX,
+    &gui_textarea::GUI_TEXTAREA,
     &gui_dropdown::GUI_DROPDOWN,
     &gui_radio_group::GUI_RADIO_GROUP,
     &gui_slider::GUI_SLIDER,
+    &gui_number_input::GUI_NUMBER_INPUT,
     &gui_progress_bar::GUI_PROGRESS_BAR,
+    &gui_separator::GUI_SEPARATOR,
+    &gui_image::GUI_IMAGE,
     // control functions
     &gui_set_text::GUI_SET_TEXT,
     &gui_get_text::GUI_GET_TEXT,
@@ -76,6 +89,8 @@ static FUNCTIONS: &[&FnEntry] = &[
     &gui_get_progress::GUI_GET_PROGRESS,
     &gui_set_pos::GUI_SET_POS,
     &gui_get_pos::GUI_GET_POS,
+    &gui_set_z::GUI_SET_Z,
+    &gui_get_z::GUI_GET_Z,
     &gui_remove::GUI_REMOVE,
     &gui_window_set_title::GUI_WINDOW_SET_TITLE,
     &gui_window_set_background::GUI_WINDOW_SET_BACKGROUND,
@@ -86,6 +101,9 @@ static FUNCTIONS: &[&FnEntry] = &[
     // event functions
     &gui_on_click::GUI_ON_CLICK,
     &gui_on_change::GUI_ON_CHANGE,
+    &gui_on_submit::GUI_ON_SUBMIT,
+    &gui_on_key::GUI_ON_KEY,
+    &gui_on_close::GUI_ON_CLOSE,
     // lifecycle functions
     &gui_run::GUI_RUN,
     &gui_close::GUI_CLOSE,

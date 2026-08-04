@@ -13,6 +13,6 @@ dec (int, int) pos = result_unwrap(gui_get_pos(button))"#,
     expected_output: None,
     returns: "result[(int, int)]",
     errors: Some("err(string) for an unknown handle, or a handle that's a window"),
-    see_also: &["gui_set_pos"],
+    see_also: &["gui_set_pos", "gui_get_z"],
     since: Some("v0.4.0"),
 };

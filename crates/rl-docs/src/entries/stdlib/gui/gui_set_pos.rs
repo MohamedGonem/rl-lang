@@ -13,6 +13,6 @@ gui_set_pos(button, 100, 150)?"#,
     expected_output: None,
     returns: "result[null]",
     errors: Some("err(string) for an unknown handle, or a handle that's a window"),
-    see_also: &["gui_get_pos"],
+    see_also: &["gui_get_pos", "gui_set_z"],
     since: Some("v0.4.0"),
 };
