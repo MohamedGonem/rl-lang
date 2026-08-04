@@ -1,15 +1,15 @@
 use crate::{
-    evaluator::Evaluator,
     stdlib::common::{extract_string, verr, vok, vs},
-    values::Value,
+    values::VmValue,
+    vm_logic::Vm,
 };
-use rl_ast::statements::TypeAnnotation;
 use rl_checker::TypeChecker;
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::source::SourceFile;
+use std::rc::Rc;
 
-pub fn func(_: &mut Evaluator, value: Value) -> Value {
+pub fn func(_: &mut Vm, value: VmValue) -> VmValue {
     let code = match extract_string(value, "check") {
         Ok(s) => s,
         Err(e) => return verr!(vs!(e)),
@@ -34,13 +34,12 @@ pub fn func(_: &mut Evaluator, value: Value) -> Value {
     let errors = checker.check(&statements);
 
     if errors.is_empty() {
-        return vok!(Value::Null);
+        return vok!(VmValue::Null);
     }
-    verr!(Value::Values {
-        items_type: TypeAnnotation::String,
-        items: errors
+    verr!(VmValue::Arr(Rc::new(
+        errors
             .iter()
             .map(|e| vs!(e.message().to_string()))
-            .collect(),
-    })
+            .collect()
+    )))
 }

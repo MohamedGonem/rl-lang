@@ -1,5 +1,5 @@
-use crate::{evaluator::Evaluator, stdlib::common::vs, values::Value};
+use crate::{Vm, stdlib::macros::vs, values::VmValue};
 
-pub fn func(_: &mut Evaluator) -> Value {
+pub fn func(_: &mut Vm) -> VmValue {
     vs!(env!("CARGO_PKG_VERSION").to_string())
 }

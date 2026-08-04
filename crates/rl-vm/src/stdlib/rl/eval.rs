@@ -1,50 +1,18 @@
 use crate::{
-    evaluator::Evaluator,
     stdlib::common::{extract_string, verr, vok, vs},
-    values::Value,
+    stdlib::rl::common::compile_and_run,
+    values::VmValue,
+    vm_logic::Vm,
 };
-use rl_lexer::tokenizer::Tokenizer;
-use rl_parser::parser_logic::Parser;
-use rl_utils::source::SourceFile;
 
-pub fn func(eval: &mut Evaluator, value: Value) -> Value {
+pub fn func(_: &mut Vm, value: VmValue) -> VmValue {
     let code = match extract_string(value, "eval") {
         Ok(s) => s,
         Err(e) => return verr!(vs!(e)),
     };
 
-    let source = SourceFile::new("<eval>", code);
-
-    let tokens = match Tokenizer::lex(source.clone()) {
-        Ok(t) => t,
-        Err(e) => return verr!(vs!(e.message().to_string())),
-    };
-
-    let (ast, statements) = match Parser::parse(tokens, source) {
-        Ok(s) => s,
-        Err(e) => return verr!(vs!(e.message().to_string())),
-    };
-
-    let statements = eval.resolver.ast_arena.merge_statements(ast, statements);
-
-    let mut resolver = std::mem::take(&mut eval.resolver);
-    resolver.push_scope();
-    let resolved = resolver.resolve_statements(statements);
-    resolver.pop_scope();
-    eval.resolver = resolver;
-
-    let prev_buffer = eval.output_buffer.take();
-    eval.output_buffer = Some(String::new());
-    eval.environment.push(vec![]);
-
-    let result = eval.evaluate_block(&resolved);
-
-    eval.environment.pop();
-    let captured = eval.output_buffer.take().unwrap_or_default();
-    eval.output_buffer = prev_buffer;
-
-    match result {
-        Ok(_) => vok!(vs!(captured)),
-        Err(e) => verr!(vs!(e.message().to_string())),
+    match compile_and_run(code, "<eval>") {
+        Ok(v) => vok!(v),
+        Err(e) => verr!(vs!(e)),
     }
 }

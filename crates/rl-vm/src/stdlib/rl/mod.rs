@@ -1,6 +1,7 @@
 //! `std::rl`
 
 mod check;
+pub mod common;
 mod eval;
 mod eval_isolated;
 mod lex;
@@ -8,8 +9,6 @@ mod rl_version;
 mod source_name;
 
 use crate::native::Module;
-
-pub use rl_commons::keywords::rl::KEYWORDS;
 
 pub fn module() -> Module {
     Module::new("rl")

@@ -1,8 +1,8 @@
-use crate::{evaluator::Evaluator, stdlib::common::vs, values::Value};
+use crate::{stdlib::macros::vs, values::VmValue, vm_logic::Vm};
 
-pub fn func(eval: &mut Evaluator) -> Value {
-    match &eval.source_file {
+pub fn func(eval: &mut Vm) -> VmValue {
+    match eval.source_file() {
         Some(f) => vs!(f.name.to_string()),
-        None => Value::Null,
+        None => VmValue::Null,
     }
 }
