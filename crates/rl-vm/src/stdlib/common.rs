@@ -5,6 +5,10 @@ use rl_utils::{
     span::Span,
 };
 
+// Re-exported so mirrored stdlib files can import the value-construction
+// macros from either `common` (as in `rl-interpreter`) or `macros`.
+pub(crate) use crate::stdlib::macros::{try_fn, vb, vby, verr, vi, vnl, vok, vs};
+
 pub fn check_arity_range(
     args: &[VmValue],
     expected_from: usize,
@@ -40,7 +44,7 @@ pub fn check_type(value: &VmValue, expected: &str, name: &str) -> Result<(), Str
         | (VmValue::Null, "none" | "null")
         | (VmValue::Ok(_), "ok")
         | (VmValue::Tuple(_), "tuple" | "()")
-        | (VmValue::Arr { .. }, "arr") => Ok(()),
+        | (VmValue::Arr(_), "arr") => Ok(()),
 
         (other_val, other_exp) => Err(format!(
             "{}: expected {} type, got {}",

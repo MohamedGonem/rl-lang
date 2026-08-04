@@ -27,6 +27,7 @@ fn rt_err(message: impl Into<String>) -> VmError {
 pub type NativeFn = Rc<dyn Fn(&mut Vm, Vec<VmValue>) -> Result<VmValue, VmError>>;
 
 /// A named collection of [`VmNativeFn`]s, optionally containing sub-[`Module`]s.
+#[derive(Clone)]
 pub struct Module {
     /// The module name as used in import paths (e.g. `"io"`, `"math"`).
     pub name: String,

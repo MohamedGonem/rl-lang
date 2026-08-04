@@ -127,6 +127,19 @@ pub struct Vm {
     /// click callbacks have run, so the window closes on the next frame instead
     /// of being torn down mid-callback.
     pub(crate) gui_quit_requested: bool,
+    /// Side-table of native TCP/UDP resources (`std::net`), keyed by handle id.
+    pub(crate) net_handles: HashMap<u64, crate::stdlib::net::NetHandle>,
+    /// Next handle id to hand out for `std::net` resources; only ever increments.
+    pub(crate) net_next_handle: u64,
+    /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
+    pub(crate) http_handles: HashMap<u64, crate::stdlib::http::HttpHandle>,
+    /// Next handle id to hand out for `std::http` resources; only ever increments.
+    pub(crate) http_next_handle: u64,
+    /// PRNG state for `std::random`, seeded from the system clock at startup.
+    pub(crate) rng: crate::stdlib::random::xoshiro::Xoshiro256,
+    /// Number of leading `std::env::args()` entries to skip when reporting
+    /// `std::process::args()` (defaults to 1 - the program name itself).
+    pub user_args_offset: usize,
 }
 
 impl Vm {
@@ -149,6 +162,12 @@ impl Vm {
             gui_handles: HashMap::new(),
             gui_next_handle: 1,
             gui_quit_requested: false,
+            net_handles: HashMap::new(),
+            net_next_handle: 1,
+            http_handles: HashMap::new(),
+            http_next_handle: 1,
+            rng: Default::default(),
+            user_args_offset: 1,
         }
     }
 
@@ -174,6 +193,18 @@ impl Vm {
     pub fn err(&self, message: impl Into<String>) -> VmError {
         let err = Error::at(Reason::Runtime, message, self.current_span);
         self.attach_location(err)
+    }
+
+    /// [`Span`] of the instruction currently executing. Native functions
+    /// (which don't receive a `Span` argument) can use this to anchor errors
+    /// or re-enter the interpreter via [`Vm::call_value`] at the right spot.
+    pub fn current_span(&self) -> Span {
+        self.current_span
+    }
+
+    /// Original source attached via [`Vm::with_source_file`], if any.
+    pub(crate) fn source_file(&self) -> Option<&SourceFile> {
+        self.source.as_ref()
     }
 
     /// Re-anchors an error built without span/source context - e.g. deep

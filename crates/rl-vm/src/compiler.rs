@@ -144,6 +144,7 @@ impl<'a> Compiler<'a> {
                         self.ast,
                         body,
                         params.len(),
+                        self.stdlib.clone(),
                         self.source.clone(),
                     )?;
                     let func = VmValue::Function(Rc::new(VmFunction {
@@ -408,16 +409,13 @@ impl<'a> Compiler<'a> {
             }
 
             StatementKind::ResolvedFunctionDeclaration {
-                name,
-                slot,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 let func_chunk = Self::compile_function_chunk(
                     self.ast,
                     body,
                     params.len(),
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
                 let func = VmValue::Function(Rc::new(VmFunction {
@@ -425,9 +423,11 @@ impl<'a> Compiler<'a> {
                     arity: params.len(),
                     chunk: func_chunk,
                 }));
+                let slot = self.next_slot;
+                self.next_slot += 1;
                 self.emit_const(func, span);
                 self.chunk.write_op(OpCode::DefineLocal, span);
-                self.chunk.write_u16(*slot as u16, span);
+                self.chunk.write_u16(slot, span);
                 Ok(())
             }
 
@@ -938,6 +938,7 @@ impl<'a> Compiler<'a> {
                     param_count,
                     captured_scope_bases,
                     outer_next_slot,
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
 
@@ -1043,10 +1044,12 @@ impl<'a> Compiler<'a> {
         ast: &Ast,
         body: &[Statement],
         param_count: usize,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases.push(0);
         sub.next_slot = param_count as u16;
         sub.compile_body(body)?;
@@ -1063,10 +1066,12 @@ impl<'a> Compiler<'a> {
         param_count: usize,
         captured_scope_bases: &[u16],
         outer_next_slot: u16,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases = captured_scope_bases.to_vec();
         sub.scope_bases.push(outer_next_slot);
         sub.next_slot = outer_next_slot + param_count as u16;
