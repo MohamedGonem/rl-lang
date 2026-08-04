@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static RESOLVE: FnEntry = FnEntry {
     signature: "resolve(host_port)",
     description: "resolves \"host:port\" via DNS and returns the resolved IP addresses as strings",
-    example: r#"
-get std::net::resolve
+    example: r#"get std::net::resolve
 
 dec array[string] ips = result_unwrap(resolve("example.com:80"))"#,
     expected_output: None,

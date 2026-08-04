@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static HTTP_GET: FnEntry = FnEntry {
     signature: "http_get(url)",
     description: "performs an HTTP GET request, returning `(status, body)`; non-2xx statuses are still a successful result, not an error",
-    example: r#"
-get std::http::http_get
+    example: r#"get std::http::http_get
 
 dec (int, string) resp = result_unwrap(http_get("https://example.com"))"#,
     expected_output: None,

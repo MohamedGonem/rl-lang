@@ -3,9 +3,10 @@ use crate::entry::FnEntry;
 pub static SOUND_GET_VOLUME: FnEntry = FnEntry {
     signature: "sound_get_volume(handle)",
     description: "returns the volume last set with sound_set_volume (defaults to 1.0), independent of set_master_volume",
-    example: r#"get std::audio::sound_get_volume
+    example: r#"get play_file_async, sound_get_volume from std::audio
 get std::res::result_unwrap
 
+dec handle sound = result_unwrap(play_file_async("assets/music.ogg"))
 dec float volume = result_unwrap(sound_get_volume(sound))"#,
     expected_output: None,
     returns: "result[float]",

@@ -3,15 +3,13 @@ use crate::entry::FnEntry;
 pub static MOVE_FILE: FnEntry = FnEntry {
     signature: "move_file(src, dst)",
     description: "moves a file from src to dst",
-    example: r#"
-get std::fs::move_file
+    example: r#"get std::fs::move_file
 
 move_file("/tmp/a.txt", "/tmp/b.txt")?"#,
     expected_output: None,
     returns: "result[null]",
     errors: Some(
-        r#"
-Will return errors on the following:
+        r#"Will return errors on the following:
 
 - `src` does not exist
 - user lacks permissions to view contents
