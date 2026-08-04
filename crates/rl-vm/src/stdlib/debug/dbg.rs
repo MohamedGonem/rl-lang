@@ -1,13 +1,7 @@
-use crate::{evaluator::Evaluator, values::Value};
+use crate::{values::VmValue, vm_logic::Vm};
 
-pub fn func(eval: &mut Evaluator, value: Value) -> Value {
+pub fn func(_: &mut Vm, value: VmValue) -> VmValue {
     let text = format!("[dbg] {} ({})\n", value, value.type_name());
-
-    if let Some(buffer) = &mut eval.output_buffer {
-        buffer.push_str(&text);
-    } else {
-        eprint!("{}", text);
-    }
-
+    eprint!("{}", text);
     value
 }

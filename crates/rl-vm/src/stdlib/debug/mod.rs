@@ -18,8 +18,6 @@ mod todo;
 mod type_of;
 mod unreachable;
 
-pub use rl_commons::keywords::debug::KEYWORDS;
-
 pub fn module() -> Module {
     use crate::native::Module;
     Module::new("debug")

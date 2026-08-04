@@ -1,12 +1,14 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::common::{verr, vf, vok, vs},
-    values::Value,
+    stdlib::macros::{verr, vf, vok, vs},
+    values::VmValue,
+    vm_logic::Vm,
 };
-use rl_utils::span::Span;
 
-pub fn func(eval: &mut Evaluator, function: Value, iterations_val: Value) -> Value {
-    if !matches!(function, Value::Function { .. }) {
+pub fn func(eval: &mut Vm, function: VmValue, iterations_val: VmValue) -> VmValue {
+    if !matches!(
+        &function,
+        VmValue::Function { .. } | VmValue::Native(_) | VmValue::Closure { .. }
+    ) {
         return verr!(vs!(format!(
             "bench: expects a function or lambda, got {}",
             function.type_name()
@@ -14,7 +16,7 @@ pub fn func(eval: &mut Evaluator, function: Value, iterations_val: Value) -> Val
     }
 
     let iterations = match iterations_val {
-        Value::Integer(n) if n > 0 => n as u64,
+        VmValue::Int(n) if n > 0 => n as u64,
         other => {
             return verr!(vs!(format!(
                 "bench: expects a positive int for iterations, got {}",
@@ -25,7 +27,7 @@ pub fn func(eval: &mut Evaluator, function: Value, iterations_val: Value) -> Val
 
     let start = std::time::Instant::now();
     for _ in 0..iterations {
-        if let Err(e) = eval.call_value(function.clone(), vec![], Span::dummy()) {
+        if let Err(e) = eval.call_value(function.clone(), vec![], eval.current_span()) {
             return verr!(vs!(format!(
                 "bench: error executing the function: {}",
                 e.message()

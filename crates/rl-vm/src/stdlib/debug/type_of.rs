@@ -1,5 +1,5 @@
-use crate::{evaluator::Evaluator, stdlib::common::vs, values::Value};
+use crate::{Vm, stdlib::macros::vs, values::VmValue};
 
-pub fn func(_: &mut Evaluator, v: Value) -> Value {
+pub fn func(_: &mut Vm, v: VmValue) -> VmValue {
     vs!(v.type_name().to_string())
 }

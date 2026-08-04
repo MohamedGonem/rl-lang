@@ -1,6 +1,9 @@
-use crate::{evaluator::Evaluator, stdlib::debug::common::assert_cmp, values::Value};
-use rl_utils::{errors::Error, span::Span};
+use crate::{
+    stdlib::debug::common::assert_cmp,
+    values::VmValue,
+    vm_logic::{Vm, VmError},
+};
 
-pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
-    assert_cmp(eval, args, span, "assert_gt", |a, b| a > b)
+pub fn func(eval: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+    assert_cmp(eval, args, "assert_gt", |a, b| a > b)
 }

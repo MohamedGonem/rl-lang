@@ -1,32 +1,32 @@
 use crate::{
-    evaluator::Evaluator,
-    stdlib::{common::extract_string, debug::common::assert_eq_message},
-    values::Value,
+    stdlib::common::extract_string,
+    stdlib::debug::common::assert_eq_message,
+    values::VmValue,
+    vm_logic::{Vm, VmError},
 };
-use rl_utils::{errors::Error, span::Span};
 
-pub fn func(eval: &mut Evaluator, args: Vec<Value>, span: Span) -> Result<Value, Error> {
+pub fn func(eval: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
     if args.len() < 2 || args.len() > 3 {
-        return Err(eval.err(
-            format!("assert_ne: expects 2 or 3 arguments, got {}", args.len()),
-            span,
-        ));
+        return Err(eval.err(format!(
+            "assert_ne: expects 2 or 3 arguments, got {}",
+            args.len()
+        )));
     }
 
     let (a, b) = (&args[0], &args[1]);
     if a == b {
-        let err = match assert_eq_message(a, b, args.get(2), "assert_eq", false) {
-            Value::Ok(k) => *k,
-            Value::Err(e) => *e,
+        let err = match assert_eq_message(a, b, args.get(2), "assert_ne", false) {
+            VmValue::Ok(k) => *k,
+            VmValue::Err(e) => *e,
             _ => {
                 unreachable!()
             }
         };
-        let err_string = match extract_string(err, "assert_eq") {
+        let err_string = match extract_string(err, "assert_ne") {
             Err(a) | Ok(a) => a,
         };
 
-        return Err(eval.err(err_string, span));
+        return Err(eval.err(err_string));
     }
-    Ok(Value::Null)
+    Ok(VmValue::Null)
 }
