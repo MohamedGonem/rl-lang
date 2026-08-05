@@ -7,6 +7,7 @@ ARCH="$3"
 OUT_DIR="$4"
 
 mkdir -p "$OUT_DIR"
+OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 
 declare -A ENGINE_FEATURES=(
   ["rl"]="treewalker,vm"
