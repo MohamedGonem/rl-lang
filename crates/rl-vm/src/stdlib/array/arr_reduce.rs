@@ -33,8 +33,8 @@ pub fn std_arr_reduce(
 
     for item in items.iter() {
         result = eval.call_value(
-            function.clone(),
-            vec![result, (*item).clone()],
+            &function,
+            &[result, (*item).clone()],
             eval.current_span(),
         )?;
     }

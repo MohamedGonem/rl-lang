@@ -26,7 +26,7 @@ pub fn std_arr_find(eval: &mut Vm, array: VmValue, function: VmValue) -> Result<
 
     for item in items.iter() {
         let mapped_item =
-            eval.call_value(function.clone(), vec![(*item).clone()], eval.current_span())?;
+            eval.call_value(&function, std::slice::from_ref(item), eval.current_span())?;
         if let VmValue::Bool(true) = mapped_item {
             return Ok(vok!((*item).clone()));
         }

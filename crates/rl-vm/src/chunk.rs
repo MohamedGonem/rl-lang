@@ -224,4 +224,19 @@ impl Chunk {
     pub fn read_u16(&self, offset: usize) -> u16 {
         u16::from_le_bytes([self.code[offset], self.code[offset + 1]])
     }
+
+    /// Inverse function of write_u16, without bounds checks.
+    ///
+    /// # Safety
+    /// `offset` and `offset + 1` must be valid indices into `code`. That's
+    /// only true for bytecode emitted by this compiler (`write_u16` always
+    /// appends exactly two bytes), mirroring [`OpCode::from_u8_unchecked`].
+    #[inline(always)]
+    pub unsafe fn read_u16_unchecked(&self, offset: usize) -> u16 {
+        debug_assert!(offset + 1 < self.code.len(), "operand read past end of code");
+        unsafe {
+            let p = self.code.as_ptr().add(offset);
+            u16::from_le_bytes([*p, *p.add(1)])
+        }
+    }
 }

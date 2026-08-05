@@ -29,7 +29,7 @@ pub fn std_arr_for_each(
     }
 
     for item in items.iter() {
-        eval.call_value(function.clone(), vec![(*item).clone()], eval.current_span())?;
+        eval.call_value(&function, std::slice::from_ref(item), eval.current_span())?;
     }
 
     Ok(vok!(VmValue::Null))
