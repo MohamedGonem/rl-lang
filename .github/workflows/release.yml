@@ -62,14 +62,24 @@ jobs:
         with:
           path: artifacts
 
+      - name: Detect pre-release
+        id: detect
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
           generate_release_notes: true
-          # Auto-flags the GitHub release as a pre-release when the tag
-          # has a SemVer pre-release part (e.g. v0.3.0-rc.1, v0.2.0-beta.2)
-          prerelease: auto
+          # Flags the release as a pre-release when the tag has a SemVer
+          # pre-release part (e.g. v0.3.0-rc.1, v0.2.0-beta.2). The input is
+          # a strict boolean - it is computed here instead of in YAML.
+          prerelease: ${{ steps.detect.outputs.value }}
 
   announce:
     name: Announce on Discord
