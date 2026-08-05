@@ -5,15 +5,16 @@
 //! - rl-lang reserved keywords, spelled exactly as the lexer expects them
 //! - `std::<module>` and `std::<module>::<function>` paths, sourced from
 //!   [`rl_docs::entries`] so this stays in sync with the real stdlib
-//! - names currently bound in the evaluator: top-level functions, `record`
-//!   types, and `tag` types
+//! - names currently bound in the evaluator backend: top-level functions,
+//!   variables, `record` types, and `tag` types
 //!
 //! [`logic_loop`](crate::logic_loop) owns the actual `Tab`-cycling behavior
 //! (which candidate is showing, wrapping on repeated presses); this module
 //! only answers "what could this word become".
 
 use rl_docs::entries;
-use rl_interpreter::evaluator::Evaluator;
+
+use crate::backend::ReplBackend;
 
 /// All `:`-prefixed REPL meta-commands, kept in sync with [`crate::command_handler`].
 pub const COMMANDS: &[&str] = &[
@@ -73,7 +74,7 @@ pub fn word_at_cursor(input: &str, cursor_pos: usize) -> (usize, String) {
 ///
 /// `word == ""` matches everything in scope, which is intentional - pressing
 /// `Tab` on an empty word starts a full cycle through every known name.
-pub fn candidates(word: &str, evaluator: &Evaluator) -> Vec<String> {
+pub fn candidates(word: &str, backend: &dyn ReplBackend) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
 
     if word.starts_with(':') {
@@ -96,25 +97,10 @@ pub fn candidates(word: &str, evaluator: &Evaluator) -> Vec<String> {
     );
 
     out.extend(
-        evaluator
-            .fn_names
-            .keys()
-            .filter(|n| n.starts_with(word))
-            .cloned(),
-    );
-    out.extend(
-        evaluator
-            .records
-            .keys()
-            .filter(|n| n.starts_with(word))
-            .cloned(),
-    );
-    out.extend(
-        evaluator
-            .tags
-            .keys()
-            .filter(|n| n.starts_with(word))
-            .cloned(),
+        backend
+            .candidate_names()
+            .into_iter()
+            .filter(|n| n.starts_with(word)),
     );
 
     for module in entries::stdlib_entries() {

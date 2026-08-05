@@ -25,17 +25,16 @@ use std::{fs, path::PathBuf};
 use ratatui::style::{Modifier, Style};
 use rl_docs::entries;
 
-use crate::{lines_types::OutputLine, theme, utils::push_error};
-use rl_interpreter::evaluator::Evaluator;
+use crate::{backend::ReplBackend, lines_types::OutputLine, theme, utils::push_error};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::source::SourceFile;
 
-/// Dispatches a `:command` string, mutating `output`, `evaluator`, and `attached` as needed.
+/// Dispatches a `:command` string, mutating `output`, `backend`, and `attached` as needed.
 pub fn handle_command(
     cmd: &str,
     output: &mut Vec<OutputLine>,
-    evaluator: &mut Evaluator,
+    backend: &mut dyn ReplBackend,
     attached: &mut Vec<PathBuf>,
 ) {
     let parts: Vec<&str> = cmd.splitn(2, ' ').collect();
@@ -186,22 +185,14 @@ pub fn handle_command(
                             return;
                         }
                     };
-                    let (_file_ast, stmts) = match Parser::parse(tokens, source.clone()) {
+                    let (file_ast, stmts) = match Parser::parse(tokens, source.clone()) {
                         Ok(s) => s,
                         Err(e) => {
                             push_error(output, &e);
                             return;
                         }
                     };
-                    evaluator.set_source_file(source);
-                    let mut ok = true;
-                    for stmt in &stmts {
-                        if let Err(e) = evaluator.evaluate_statement(stmt) {
-                            push_error(output, &e);
-                            ok = false;
-                            break;
-                        }
-                    }
+                    let ok = backend.attach_parsed(source, file_ast, stmts, output);
                     if ok {
                         attached.push(path.clone());
                         output.push(OutputLine::Info(format!("attached {}", path.display())));
@@ -235,7 +226,7 @@ pub fn handle_command(
         }
 
         ":reset" => {
-            *evaluator = Evaluator::default().with_stdlib();
+            backend.reset();
             attached.clear();
             output.clear();
             output.push(OutputLine::Info("environment reset".into()));
