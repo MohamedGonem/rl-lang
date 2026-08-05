@@ -93,6 +93,11 @@ pub enum OpCode {
     /// currently on top of the stack (without popping it), and inserts
     /// the resolved callable just below it
     LookupMethod = 43,
+    /// `value as type` - pops a value, casts it to the numeric type
+    /// encoded in the u16 operand (see `CastTarget` in `compiler.rs`),
+    /// and pushes the result. Errors on non-numeric sources or values
+    /// that don't fit the target type.
+    Cast = 44,
 }
 
 impl OpCode {
@@ -102,7 +107,7 @@ impl OpCode {
     #[inline(always)]
     pub fn from_u8_unchecked(byte: u8) -> Self {
         debug_assert!(
-            byte <= OpCode::LookupMethod as u8,
+            byte <= OpCode::Cast as u8,
             "corrupt bytecode: opcode {byte}"
         );
         unsafe { std::mem::transmute::<u8, OpCode>(byte) }
@@ -156,6 +161,7 @@ impl OpCode {
             41 => OpCode::RegisterMethod,
             42 => OpCode::LookupAssoc,
             43 => OpCode::LookupMethod,
+            44 => OpCode::Cast,
             other => panic!("corrupt bytecode: unknown opcode byte {other}"),
         }
     }
