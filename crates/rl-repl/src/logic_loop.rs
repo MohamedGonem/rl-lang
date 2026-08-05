@@ -34,6 +34,7 @@
 //!        |- complete --> eval_input --> output buffer
 //! ```
 use super::{
+    backend::ReplBackend,
     command_handler::handle_command,
     completion::{self, CompletionState},
     depth_checker::is_complete,
@@ -55,17 +56,18 @@ use ratatui::{
         Wrap,
     },
 };
-use rl_interpreter::evaluator::Evaluator;
 use std::path::PathBuf;
 
 /// Runs the REPL event loop until the user exits with `Ctrl+C` or `:exit`.
 ///
-/// Initializes a fresh [`Evaluator`] with the stdlib loaded, then enters a
-/// draw-then-poll loop: renders the current state, blocks on the next key
-/// event, and dispatches it. Returns an [`io::Result`] so terminal errors
-/// propagate cleanly to [`start_repl`].
-pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
-    let mut evaluator = Evaluator::default().with_stdlib();
+/// Drives `backend` (either execution engine) from the shared UI code, then
+/// enters a draw-then-poll loop: renders the current state, blocks on the
+/// next key event, and dispatches it. Returns an [`io::Result`] so terminal
+/// errors propagate cleanly to the caller.
+pub fn run_repl(
+    terminal: &mut DefaultTerminal,
+    backend: &mut dyn ReplBackend,
+) -> std::io::Result<()> {
     let mut output: Vec<OutputLine> = vec![
         OutputLine::Info(format!(
             "rl-lang v{} - type :help for commands",
@@ -251,7 +253,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                             break;
                         }
                         output.push(OutputLine::Input(line.clone()));
-                        handle_command(line.trim(), &mut output, &mut evaluator, &mut attached);
+                        handle_command(line.trim(), &mut output, backend, &mut attached);
                         if !line.trim().is_empty() {
                             history.push(line);
                         }
@@ -284,7 +286,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                             history.push(full.trim().to_string());
                         }
 
-                        let success = eval_input(full.trim(), &mut evaluator, &mut output);
+                        let success = eval_input(full.trim(), backend, &mut output);
                         if success {
                             output.push(OutputLine::ValidInput(full.trim().to_string()));
                         }
@@ -352,7 +354,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                         cursor_pos = state.word_start + state.word_len;
                     } else {
                         let (word_start, word) = completion::word_at_cursor(&input_buf, cursor_pos);
-                        let cands = completion::candidates(&word, &evaluator);
+                        let cands = completion::candidates(&word, backend);
                         if let Some(first) = cands.first().cloned() {
                             let start_byte = char_to_byte(&input_buf, word_start);
                             let end_byte = char_to_byte(&input_buf, cursor_pos);

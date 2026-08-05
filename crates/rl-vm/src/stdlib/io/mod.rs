@@ -1,7 +1,7 @@
 //! `std::io` - input/output: reading from stdin, reading/writing files, printing.
 //!
-//! `print` and `println` write directly to stdout (the VM has no
-//! `output_buffer` like the interpreter's LSP/REPL path).
+//! `print` and `println` write to [`Vm::output_buffer`] when set (the REPL
+//! captures per-input output there), otherwise directly to stdout.
 //!
 //! `eprint` raises a runtime error rather than writing to stderr, so errors
 //! surface through rl's normal error reporting pipeline.
@@ -35,14 +35,23 @@ pub fn module() -> Module {
         .with_function("read_bytes", read_bytes::std_read_bytes)
 }
 
-fn std_print(_: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+fn std_print(vm: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
     let text = args.iter().map(|v| v.to_string()).collect::<String>();
-    print!("{}", text);
+    if let Some(buffer) = &mut vm.output_buffer {
+        buffer.push_str(&text);
+    } else {
+        print!("{}", text);
+    }
     Ok(VmValue::Null)
 }
 
-fn std_println(_: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
+fn std_println(vm: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
     let text = args.iter().map(|v| v.to_string()).collect::<String>();
-    println!("{}", text);
+    if let Some(buffer) = &mut vm.output_buffer {
+        buffer.push_str(&text);
+        buffer.push('\n');
+    } else {
+        println!("{}", text);
+    }
     Ok(VmValue::Null)
 }

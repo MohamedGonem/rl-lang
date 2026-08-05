@@ -81,6 +81,30 @@ impl<'a> Compiler<'a> {
         self
     }
 
+    /// Replaces the stdlib module tree this compiler resolves imports and
+    /// `std::` calls against. The REPL passes the previous session's module
+    /// here so `get x from std::io` bindings survive across inputs (the
+    /// compiler mutates its own `stdlib` in place when it compiles an
+    /// [`StatementKind::Import`]).
+    pub fn with_stdlib(mut self, stdlib: Module) -> Self {
+        self.stdlib = stdlib;
+        self
+    }
+
+    /// The stdlib module tree this compiler uses, after any imports it
+    /// compiled have been folded in. Used by the REPL to persist imports
+    /// across inputs.
+    pub fn stdlib(&self) -> &Module {
+        &self.stdlib
+    }
+
+    /// Seeds the global slot counter, so a REPL input can continue assigning
+    /// globals from where the persistent resolver's global scope left off.
+    pub fn with_global_slot_base(mut self, base: u16) -> Self {
+        self.next_slot = base;
+        self
+    }
+
     /// Builds a [`Reason::Compile`] error anchored at `span`, with source
     /// attached when known.
     fn err(&self, message: impl Into<String>, span: Span) -> CompileError {
@@ -102,12 +126,11 @@ impl<'a> Compiler<'a> {
     /// Entry function
     /// returns compiled Chunk
     /// stops on first error
-    /// will consume and discard the Compiler
-    pub fn compile(mut self, statements: &[Statement]) -> Result<Chunk, CompileError> {
+    pub fn compile(&mut self, statements: &[Statement]) -> Result<Chunk, CompileError> {
         self.compile_body(statements)?;
         let end_span = statements.last().map(|s| s.span).unwrap_or_default();
         self.chunk.write_op(OpCode::Return, end_span);
-        Ok(self.chunk)
+        Ok(std::mem::take(&mut self.chunk))
     }
 
     /// Statement entry function
@@ -992,6 +1015,10 @@ impl<'a> Compiler<'a> {
                 self.chunk.write_op(OpCode::BuildClosure, span);
                 self.chunk.write_u16(const_idx, span);
                 self.chunk.write_u16(capture_start, span);
+            }
+
+            ExpressionKind::Identifier(name) => {
+                return Err(self.err(format!("undefined variable '{}'", name), span));
             }
 
             other => {

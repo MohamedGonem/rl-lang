@@ -14,6 +14,7 @@
 //! | `lsp` | start the LSP server over stdio (`lsp` feature) |
 mod logic_loops;
 use clap::{Parser, Subcommand};
+#[cfg(feature = "docs")]
 use rl_docs::{
     concept_to_markdown, docs_to_json,
     entries::{concept_entries, stdlib_entries, tutorial_entries},
@@ -26,7 +27,9 @@ use rl_tooling::workflows::generate;
 use rl_tooling::{format::format_tokens, package::EmbeddedProgram};
 use std::path::PathBuf;
 
-use crate::logic_loops::{eval_loop, lexing_loop, parsing_loop};
+use crate::logic_loops::{lexing_loop, parsing_loop};
+#[cfg(feature = "treewalker")]
+use crate::logic_loops::eval_loop;
 #[cfg(feature = "lsp")]
 use rl_lsp::run_lsp;
 use rl_tooling::dev::read_rl_toml;
@@ -72,6 +75,7 @@ enum Commands {
     },
 
     /// Start the interactive TUI REPL
+    #[cfg(feature = "repl")]
     #[command(long_about = "Start an interactive read-eval-print loop with syntax \
                              highlighting and history, running in the terminal.")]
     Repl,
@@ -124,6 +128,7 @@ enum Commands {
     },
 
     /// Print language reference and stdlib documentation
+    #[cfg(feature = "docs")]
     #[command(
         long_about = "Print rl's language reference, stdlib docs, and tutorials.\n\n\
                        With no TOPIC, prints everything. With a TOPIC, searches names \
@@ -258,27 +263,33 @@ fn main() {
             let sf = SourceFile::new("program", source);
             let tokens = lexing_loop(sf.clone());
             let (ast, statements) = parsing_loop(sf.clone(), tokens);
-            if cfg!(feature = "eval") {
+            #[cfg(feature = "treewalker")]
+            {
                 eval_loop(sf, ast, statements, 1);
+                return;
             }
-            return;
-        }
-        Some(EmbeddedProgram::Bytecode(bytes)) => {
-            #[cfg(all(feature = "eval", feature = "vm"))]
+            #[cfg(not(feature = "treewalker"))]
             {
-                use crate::logic_loops::run_rlc_bytes;
-                run_rlc_bytes(&bytes, "program");
-            }
-            #[cfg(not(all(feature = "eval", feature = "vm")))]
-            {
-                let _ = bytes;
+                let _ = (sf, ast, statements);
                 eprintln!(
-                    "error: running vm-packaged binaries requires the `eval` and `vm` features"
+                    "error: running source-packaged binaries requires the `treewalker` feature"
                 );
                 std::process::exit(1);
             }
-            #[allow(unreachable_code)]
-            return;
+        }
+        Some(EmbeddedProgram::Bytecode(bytes)) => {
+            #[cfg(feature = "vm")]
+            {
+                use crate::logic_loops::run_rlc_bytes;
+                run_rlc_bytes(&bytes, "program");
+                return;
+            }
+            #[cfg(not(feature = "vm"))]
+            {
+                let _ = bytes;
+                eprintln!("error: running vm-packaged binaries requires the `vm` feature");
+                std::process::exit(1);
+            }
         }
         None => {}
     }
@@ -295,15 +306,15 @@ fn main() {
             let is_rlc = file.extension().and_then(|e| e.to_str()) == Some("rlc");
 
             if is_rlc {
-                #[cfg(all(feature = "eval", feature = "vm"))]
+                #[cfg(feature = "vm")]
                 {
                     use crate::logic_loops::run_rlc_file;
                     run_rlc_file(&file);
                     return;
                 }
-                #[cfg(not(all(feature = "eval", feature = "vm")))]
+                #[cfg(not(feature = "vm"))]
                 {
-                    eprintln!("error: running .rlc files requires the `eval` and `vm` features");
+                    eprintln!("error: running .rlc files requires the `vm` feature");
                     std::process::exit(1);
                 }
             }
@@ -322,13 +333,6 @@ fn main() {
             let source = SourceFile::new(&*path, source_text);
             let tokens = lexing_loop(source.clone());
             let (ast, statements) = parsing_loop(source.clone(), tokens);
-            // temporary solution
-            // should be updated when:
-            // *_loop accept refernce instead
-            // `vm` and `cranelift` get separate compile command so it wouldn't
-            // need the recompilation on every run step
-            // thus no check every time
-            #[cfg(feature = "eval")]
             {
                 let tokens = lexing_loop(source.clone());
                 let (checker_ast, checker_statements) = parsing_loop(source.clone(), tokens);
@@ -350,28 +354,34 @@ fn main() {
                 }
             }
             if vm {
-                #[cfg(all(feature = "eval", feature = "vm"))]
+                #[cfg(feature = "vm")]
                 crate::logic_loops::vm_loop(source, ast, statements);
                 #[cfg(not(feature = "vm"))]
                 {
                     eprintln!("error: --vm requires the `vm` feature");
                     std::process::exit(1)
                 }
-                #[cfg(not(feature = "eval"))]
-                {
-                    eprintln!("error: --vm requires the `eval` feature");
-                    std::process::exit(1)
-                }
             } else if cranelift {
-                #[cfg(all(feature = "cranelift", feature = "vm", feature = "eval"))]
+                #[cfg(feature = "cranelift")]
                 crate::logic_loops::cranelift_loop(source, ast, statements);
-                #[cfg(not(all(feature = "eval", feature = "cranelift", feature = "vm")))]
+                #[cfg(not(feature = "cranelift"))]
                 {
-                    eprintln!("error: --cranelift requires the vm eval and cranelift features");
+                    eprintln!("error: --cranelift requires the `cranelift` feature (which implies `vm`)");
                     std::process::exit(1)
                 }
-            } else if cfg!(feature = "eval") {
+            } else {
+                #[cfg(feature = "treewalker")]
                 eval_loop(source, ast, statements, 3);
+                #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
+                crate::logic_loops::vm_loop(source, ast, statements);
+                #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
+                {
+                    let _ = (&ast, &statements);
+                    eprintln!(
+                        "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
+                    );
+                    std::process::exit(1);
+                }
             }
         }
 
@@ -389,8 +399,17 @@ fn main() {
             let source = SourceFile::new(&*config.project.entry, source_text);
             let tokens = lexing_loop(source.clone());
             let (ast, statements) = parsing_loop(source.clone(), tokens);
-            if cfg!(feature = "eval") {
-                eval_loop(source, ast, statements, 3);
+            #[cfg(feature = "treewalker")]
+            eval_loop(source, ast, statements, 3);
+            #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
+            crate::logic_loops::vm_loop(source, ast, statements);
+            #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
+            {
+                let _ = (&ast, &statements);
+                eprintln!(
+                    "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
+                );
+                std::process::exit(1);
             }
         }
 
@@ -410,30 +429,24 @@ fn main() {
             let tokens = lexing_loop(source.clone());
             let (ast, statements) = parsing_loop(source.clone(), tokens);
 
-            #[cfg(feature = "eval")]
-            {
-                use rl_checker::TypeChecker;
-                let base_dir = file
-                    .parent()
-                    .map(std::path::Path::to_path_buf)
-                    .unwrap_or_else(|| std::path::PathBuf::from("."));
-                let mut checker = TypeChecker::new()
-                    .with_source_file(source)
-                    .with_ast_arena(ast)
-                    .with_base_dir(base_dir);
-                let errors = checker.check(&statements);
-                if errors.is_empty() {
-                    println!("ok");
-                } else {
-                    for e in errors {
-                        e.report_to_stderr();
-                    }
-                    std::process::exit(1);
+            use rl_checker::TypeChecker;
+            let base_dir = file
+                .parent()
+                .map(std::path::Path::to_path_buf)
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            let mut checker = TypeChecker::new()
+                .with_source_file(source)
+                .with_ast_arena(ast)
+                .with_base_dir(base_dir);
+            let errors = checker.check(&statements);
+            if errors.is_empty() {
+                println!("ok");
+            } else {
+                for e in errors {
+                    e.report_to_stderr();
                 }
+                std::process::exit(1);
             }
-
-            #[cfg(not(feature = "eval"))]
-            println!("ok");
         }
 
         Commands::Workflows { check, package } => {
@@ -448,6 +461,7 @@ fn main() {
             create_project(&name, no_git);
         }
 
+        #[cfg(feature = "docs")]
         Commands::Docs {
             topic,
             json,
@@ -464,7 +478,6 @@ fn main() {
             tui,
         } => {
             if generate {
-                #[cfg(feature = "eval")]
                 {
                     let config = read_rl_toml();
                     let path = std::path::PathBuf::from(&config.project.entry);
@@ -706,6 +719,7 @@ fn main() {
                         eprintln!("error: docs tui failed: {}", e);
                         std::process::exit(1);
                     }
+                    return;
                 }
                 #[cfg(not(feature = "docs-tui"))]
                 {
@@ -714,7 +728,6 @@ fn main() {
                     );
                     std::process::exit(1);
                 }
-                return;
             }
 
             let rendered = if json {
@@ -755,9 +768,19 @@ fn main() {
             }
         }
 
+        #[cfg(feature = "repl")]
         Commands::Repl => {
-            #[cfg(feature = "repl")]
-            rl_repl::start_repl();
+            #[cfg(feature = "vm")]
+            rl_repl::start_vm_repl();
+
+            #[cfg(all(not(feature = "vm"), feature = "treewalker"))]
+            rl_repl::start_treewalker_repl();
+
+            #[cfg(all(not(feature = "vm"), not(feature = "treewalker")))]
+            {
+                eprintln!("error: repl requires the 'treewalker' or 'vm' feature to be enabled");
+                std::process::exit(1);
+            }
         }
 
         #[cfg(feature = "lsp")]
@@ -776,7 +799,7 @@ fn main() {
             });
 
             if vm {
-                #[cfg(all(feature = "eval", feature = "vm"))]
+                #[cfg(feature = "vm")]
                 {
                     use crate::logic_loops::compile_to_chunk;
 
@@ -817,9 +840,9 @@ fn main() {
                     let bytecode = rl_vm::serialize_chunk(&chunk, Some(&line_index));
                     package_vm(&bytecode, &output);
                 }
-                #[cfg(not(all(feature = "eval", feature = "vm")))]
+                #[cfg(not(feature = "vm"))]
                 {
-                    eprintln!("error: `package --vm` requires the `eval` and `vm` features");
+                    eprintln!("error: `package --vm` requires the `vm` feature");
                     std::process::exit(1);
                 }
             } else {
@@ -849,7 +872,7 @@ fn main() {
         }
 
         Commands::Compile { file, output } => {
-            #[cfg(all(feature = "eval", feature = "vm"))]
+            #[cfg(feature = "vm")]
             {
                 use crate::logic_loops::compile_to_chunk;
                 let path = file
@@ -899,10 +922,10 @@ fn main() {
                 }
                 println!("compiled '{}' -> '{}'", file.display(), out_path.display());
             }
-            #[cfg(not(all(feature = "eval", feature = "vm")))]
+            #[cfg(not(feature = "vm"))]
             {
                 let _ = (file, output);
-                eprintln!("error: `compile` requires the `eval` and `vm` features");
+                eprintln!("error: `compile` requires the `vm` feature");
                 std::process::exit(1);
             }
         }
