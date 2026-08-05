@@ -134,7 +134,7 @@ fn try_package_payload(payload: &[u8], magic: &[u8], output_path: &str) -> std::
     Ok(())
 }
 
-fn bundle(entry_path: &str) -> std::io::Result<String> {
+pub fn bundle(entry_path: &str) -> std::io::Result<String> {
     let mut visited = HashSet::new();
     bundle_inner(Path::new(entry_path), &mut visited)
 }
