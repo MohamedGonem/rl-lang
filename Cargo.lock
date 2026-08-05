@@ -3860,7 +3860,9 @@ dependencies = [
  "rl-interpreter",
  "rl-lexer",
  "rl-parser",
+ "rl-resolver",
  "rl-utils",
+ "rl-vm",
 ]
 
 [[package]]
