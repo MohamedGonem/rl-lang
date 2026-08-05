@@ -151,6 +151,7 @@ pub struct Vm {
     /// Number of leading `std::env::args()` entries to skip when reporting
     /// `std::process::args()` (defaults to 1 - the program name itself).
     pub user_args_offset: usize,
+    pub output_buffer: Option<String>,
 }
 
 impl Vm {
@@ -180,6 +181,7 @@ impl Vm {
             http_next_handle: 1,
             rng: Default::default(),
             user_args_offset: 1,
+            output_buffer: None,
         }
     }
 
