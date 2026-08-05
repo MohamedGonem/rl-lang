@@ -4,7 +4,7 @@ use crate::chunk::{Chunk, OpCode};
 use crate::native::Module;
 use crate::stdlib;
 use crate::values::{VmFunction, VmValue};
-use rl_ast::statements::MatchPattern;
+use rl_ast::statements::{MatchPattern, TypeAnnotation};
 use rl_ast::{
     Ast, ExprId, nodes::ExpressionKind, statements::Statement, statements::StatementKind,
 };
@@ -25,6 +25,23 @@ enum ContinueTarget {
     Backward(usize),
     #[allow(unused)]
     Forward,
+}
+
+/// Numeric type codes for `OpCode::Cast`, matching the operand written by
+/// the compiler and read by the `Cast` handler in `vm_logic.rs`. Mirrors the
+/// numeric `TypeAnnotation` targets the interpreter's `evaluator.rs` casts to.
+struct CastTarget;
+impl CastTarget {
+    const INT: u16 = 0;
+    const FLOAT: u16 = 1;
+    const UINT: u16 = 2;
+    const SFLOAT: u16 = 3;
+    const SUINT: u16 = 4;
+    const SINT: u16 = 5;
+    const BBYTE: u16 = 6;
+    const BSBYTE: u16 = 7;
+    const BYTE: u16 = 8;
+    const SBYTE: u16 = 9;
 }
 
 struct LoopCtx {
@@ -909,6 +926,30 @@ impl<'a> Compiler<'a> {
                     },
                     span,
                 );
+            }
+
+            ExpressionKind::Cast { value, target_type } => {
+                self.compile_expr(*value)?;
+                let code = match target_type {
+                    TypeAnnotation::Int => CastTarget::INT,
+                    TypeAnnotation::UInt => CastTarget::UINT,
+                    TypeAnnotation::SInt => CastTarget::SINT,
+                    TypeAnnotation::SUInt => CastTarget::SUINT,
+                    TypeAnnotation::Float => CastTarget::FLOAT,
+                    TypeAnnotation::SFloat => CastTarget::SFLOAT,
+                    TypeAnnotation::Byte => CastTarget::BYTE,
+                    TypeAnnotation::SByte => CastTarget::SBYTE,
+                    TypeAnnotation::BByte => CastTarget::BBYTE,
+                    TypeAnnotation::BSByte => CastTarget::BSBYTE,
+                    other => {
+                        return Err(self.err(
+                            format!("unsupported cast target type {other:?}"),
+                            span,
+                        ));
+                    }
+                };
+                self.chunk.write_op(OpCode::Cast, span);
+                self.chunk.write_u16(code, span);
             }
 
             ExpressionKind::ResolvedLambda {
