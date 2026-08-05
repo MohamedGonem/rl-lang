@@ -94,4 +94,16 @@ impl Resolver {
         }
         None
     }
+
+    pub fn global_names(&self) -> &[String] {
+        &self.scopes[0]
+    }
+
+    pub fn global_slot_count(&self) -> usize {
+        self.scopes[0].len()
+    }
+
+    pub fn truncate_global_scope(&mut self, len: usize) {
+        self.scopes[0].truncate(len);
+    }
 }
