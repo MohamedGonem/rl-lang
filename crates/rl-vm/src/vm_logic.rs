@@ -192,6 +192,18 @@ impl Vm {
         self
     }
 
+    pub fn set_source_file(&mut self, source: SourceFile) {
+        self.source = Some(source);
+    }
+
+    pub fn reset_transient(&mut self) {
+        self.stack.clear();
+        self.locals.clear();
+        self.scope_starts.clear();
+        self.current_chunk = std::ptr::null();
+        self.current_ip = 0;
+    }
+
     /// Attaches a [`LineIndex`] so runtime errors can still report a
     /// precise `file:line:col` location when no source text is available
     /// (see the `line_index` field docs). No-op when `source` is also set -
