@@ -151,6 +151,9 @@ pub struct Vm {
     /// Number of leading `std::env::args()` entries to skip when reporting
     /// `std::process::args()` (defaults to 1 - the program name itself).
     pub user_args_offset: usize,
+    /// When set, `std::io::print`/`std::io::println` append into this buffer
+    /// instead of writing to stdout. The REPL sets this per-input so `print`
+    /// output lands in the output area instead of cluttering the terminal.
     pub output_buffer: Option<String>,
 }
 
@@ -192,10 +195,18 @@ impl Vm {
         self
     }
 
+    /// Sets the source text on an already-constructed [`Vm`] (the builder
+    /// form [`Vm::with_source_file`] consumes `self`, which doesn't work for
+    /// the REPL's persistent `Vm`). Runtime errors render ariadne snippets
+    /// against this text.
     pub fn set_source_file(&mut self, source: SourceFile) {
         self.source = Some(source);
     }
 
+    /// Clears per-execution transient state - the value stack, locals, and
+    /// scope table - while preserving globals and native side-tables. The
+    /// REPL calls this after a runtime error so the next input starts from a
+    /// clean stack instead of reusing a torn-down one.
     pub fn reset_transient(&mut self) {
         self.stack.clear();
         self.locals.clear();

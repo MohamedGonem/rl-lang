@@ -81,15 +81,25 @@ impl<'a> Compiler<'a> {
         self
     }
 
+    /// Replaces the stdlib module tree this compiler resolves imports and
+    /// `std::` calls against. The REPL passes the previous session's module
+    /// here so `get x from std::io` bindings survive across inputs (the
+    /// compiler mutates its own `stdlib` in place when it compiles an
+    /// [`StatementKind::Import`]).
     pub fn with_stdlib(mut self, stdlib: Module) -> Self {
         self.stdlib = stdlib;
         self
     }
 
+    /// The stdlib module tree this compiler uses, after any imports it
+    /// compiled have been folded in. Used by the REPL to persist imports
+    /// across inputs.
     pub fn stdlib(&self) -> &Module {
         &self.stdlib
     }
 
+    /// Seeds the global slot counter, so a REPL input can continue assigning
+    /// globals from where the persistent resolver's global scope left off.
     pub fn with_global_slot_base(mut self, base: u16) -> Self {
         self.next_slot = base;
         self

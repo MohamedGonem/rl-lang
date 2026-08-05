@@ -95,14 +95,30 @@ impl Resolver {
         None
     }
 
+    /// Names declared in the persistent global scope (`scopes[0]`), in slot
+    /// order. The global scope survives across [`resolve_program`] calls, so
+    /// a REPL that keeps one [`Resolver`] alive can use this to expose
+    /// user-defined names for tab-completion and to seed the VM compiler's
+    /// global slot counter.
+    ///
+    /// [`resolve_program`]: crate::Resolver::resolve_program
     pub fn global_names(&self) -> &[String] {
         &self.scopes[0]
     }
 
+    /// Number of names currently declared in the persistent global scope.
+    /// The next top-level declaration made through [`resolve_program`] gets
+    /// exactly this as its global slot.
     pub fn global_slot_count(&self) -> usize {
         self.scopes[0].len()
     }
 
+    /// Truncates the persistent global scope back to `len` names.
+    ///
+    /// Used by the VM REPL: if resolution declares globals but compilation
+    /// subsequently fails, the chunk never runs, so those slots never get set
+    /// in the VM. Rolling the global scope back keeps the resolver's slot
+    /// count in sync with what actually executed.
     pub fn truncate_global_scope(&mut self, len: usize) {
         self.scopes[0].truncate(len);
     }
