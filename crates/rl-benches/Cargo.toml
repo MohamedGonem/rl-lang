@@ -9,7 +9,9 @@ publish = false
 rl-ast.workspace = true
 rl-lexer.workspace = true
 rl-parser.workspace = true
+rl-resolver.workspace = true
 rl-interpreter.workspace = true
+rl-vm.workspace = true
 rl-utils.workspace = true
 criterion = { version = "0.5", features = ["html_reports"] }
 
@@ -23,4 +25,12 @@ harness = false
 
 [[bench]]
 name = "pipeline"
+harness = false
+
+[[bench]]
+name = "vm"
+harness = false
+
+[[bench]]
+name = "compare"
 harness = false
