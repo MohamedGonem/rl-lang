@@ -46,3 +46,26 @@ fn levenshtein(a: &str, b: &str) -> usize {
     }
     prev[b.len()]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::levenshtein;
+    use super::closest_match;
+
+
+    #[test]
+    fn test_levenshtein() {
+        assert_eq!(levenshtein("rust", "rlang"), 4);
+        assert_eq!(levenshtein("ferris", ""), 6);
+        assert_eq!(levenshtein("", "ferris"), 6);
+        assert_eq!(levenshtein("monad", "monad"), 0);
+    }
+
+    #[test]
+    fn test_closest_match() {
+        let target = "println(\"foo\"";
+        let correct_closest_match = "println(\"foo\")";
+        assert_eq!(closest_match(target, [correct_closest_match, "alice", "bob"]), Some(correct_closest_match));
+        assert_eq!(closest_match(target, ["alice", "bob", "charlie"]), None);
+    }
+}
