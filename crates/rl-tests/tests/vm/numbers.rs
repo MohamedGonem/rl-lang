@@ -14,6 +14,47 @@ fn basic_variable_arithemtic() {
 }
 
 #[test]
+fn uint_arithmetic() {
+    let result = common::compile_and_run(r#"(1000 as uint) + (1 as uint)"#).expect("vm run failed");
+    assert_eq!(result, VmValue::UInt(1001))
+}
+
+#[test]
+fn uint_multiplication() {
+    let result = common::compile_and_run(r#"(10 as uint) * (5 as uint)"#).expect("vm run failed");
+    assert_eq!(result, VmValue::UInt(50))
+}
+
+#[test]
+fn uint_division() {
+    let result = common::compile_and_run(r#"(10 as uint) / (3 as uint)"#).expect("vm run failed");
+    assert_eq!(result, VmValue::UInt(3))
+}
+
+#[test]
+fn small_uint_arithmetic() {
+    let result = common::compile_and_run(r#"(1000 as small uint) + (1 as small uint)"#)
+        .expect("vm run failed");
+    assert_eq!(result, VmValue::SUInt(1001))
+}
+
+#[test]
+fn uint_comparison() {
+    let result = common::compile_and_run(r#"(1 as uint) < (2 as uint)"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Bool(true))
+}
+
+#[test]
+fn uint_overflow_is_error() {
+    assert!(common::compile_and_run(r#"(18446744073709551615 as uint) + (1 as uint)"#).is_err());
+}
+
+#[test]
+fn uint_underflow_is_error() {
+    assert!(common::compile_and_run(r#"(1 as uint) - (2 as uint)"#).is_err());
+}
+
+#[test]
 fn cast_value_to_int() {
     let result = common::compile_and_run("65.5 as int").expect("vm run failed");
     assert_eq!(result, VmValue::Int(65));

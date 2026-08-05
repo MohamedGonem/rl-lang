@@ -891,6 +891,7 @@ impl Evaluator {
                 fn as_i128(v: &Value) -> Option<i128> {
                     match v {
                         Value::Integer(n) => Some(*n as i128),
+                        Value::UInteger(n) => Some(*n as i128),
                         Value::SInteger(n) => Some(*n as i128),
                         Value::SUInteger(n) => Some(*n as i128),
                         Value::Byte(n) => Some(*n as i128),
@@ -906,6 +907,7 @@ impl Evaluator {
                 fn as_f64(v: &Value) -> Option<f64> {
                     match v {
                         Value::Integer(n) => Some(*n as f64),
+                        Value::UInteger(n) => Some(*n as f64),
                         Value::SInteger(n) => Some(*n as f64),
                         Value::SUInteger(n) => Some(*n as f64),
                         Value::Byte(n) => Some(*n as f64),
