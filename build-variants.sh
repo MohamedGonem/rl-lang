@@ -36,7 +36,7 @@ declare -A ACTUAL_NAME=(
   ["rl_treewalker_no_repl"]="rlp_nr"
   ["rl_treewalker_no_docs_repl"]="rlp_ndr"
   ["rl_treewalker_debug"]="rlpd"
-  ["rl_treewaler_debug_no_docs"]="rlpd_nd"
+  ["rl_treewalker_debug_no_docs"]="rlpd_nd"
   ["rl_treewalker_debug_no_repl"]="rlpd_nr"
   ["rl_treewalker_debug_no_docs_repl"]="rlpd_ndr"
   ["rl_lsp"]="rlsp"
@@ -85,7 +85,7 @@ features_for() {
 
   local feats="${ENGINE_FEATURES[$base]:-}"
   if [ -z "$feats" ]; then
-    echo "unknown base '$base' derived from variant '$variant'" >$2
+    echo "unknown base '$base' derived from variant '$variant'" >&2
     exit 1
   fi
 
@@ -129,7 +129,7 @@ main() {
     if [ "$PLATFORM" = "windows" ]; then
       bin_src="target/${TARGET}/release/rl.exe"
     else
-      bin_src="target/${target}/release/rl"
+      bin_src="target/${TARGET}/release/rl"
     fi
 
     if [ ! -f "$bin_src" ]; then
