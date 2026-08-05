@@ -69,6 +69,7 @@ cpal = "0.17"
 symphonia = { version = "0.5", features = ["all"] }
 eframe = "0.35"
 shell-words = "1.1"
+tempfile = "3.27.0"
 
 [profile.release]
 opt-level = 3
