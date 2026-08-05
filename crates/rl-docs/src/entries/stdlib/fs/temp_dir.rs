@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TEMP_DIR: FnEntry = FnEntry {
     signature: "temp_dir()",
     description: "returns the path of the system's temporary directory",
-    example: r#"
-get std::fs::temp_dir
+    example: r#"get std::fs::temp_dir
 get std::io::println
 
 println(temp_dir())"#,

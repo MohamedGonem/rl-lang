@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static ASSERT: FnEntry = FnEntry {
     signature: "assert(cond, msg?)",
     description: "errors if `cond` is false, using `msg` if provided or the default \"assertion failed\"",
-    example: r#"
-get std::debug::assert
+    example: r#"get std::debug::assert
 
 assert(1 + 1 == 2)
 assert(false, \"should never happen\")"#,

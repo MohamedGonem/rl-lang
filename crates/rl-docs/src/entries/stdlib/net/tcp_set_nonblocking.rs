@@ -3,9 +3,10 @@ use crate::entry::FnEntry;
 pub static TCP_SET_NONBLOCKING: FnEntry = FnEntry {
     signature: "tcp_set_nonblocking(stream, flag)",
     description: "toggles nonblocking mode; reads/writes return immediately with a `WouldBlock`-style error instead of blocking",
-    example: r#"
+    example: r#"get std::net::tcp_connect
 get std::net::tcp_set_nonblocking
 
+dec handle stream = result_unwrap(tcp_connect("example.com:80"))
 result_unwrap(tcp_set_nonblocking(stream, true))"#,
     expected_output: None,
     returns: "Result[null]",

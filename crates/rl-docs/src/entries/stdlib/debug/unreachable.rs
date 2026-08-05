@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static UNREACHABLE: FnEntry = FnEntry {
     signature: "unreachable(msg?)",
     description: "marks a code path that should never execute; errors immediately if it is ever reached",
-    example: r#"
-get std::debug::unreachable
+    example: r#"get std::debug::unreachable
 
 match true {
     true => {}

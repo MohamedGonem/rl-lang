@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static PANIC: FnEntry = FnEntry {
     signature: "panic(msg?)",
     description: "unconditionally errors with `msg`, or \"explicit panic\" if omitted; signals a programming bug rather than a recoverable failure value",
-    example: r#"
-get std::debug::panic
+    example: r#"get std::debug::panic
 
 panic("unreachable configuration")"#,
     expected_output: None,

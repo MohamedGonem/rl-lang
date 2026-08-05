@@ -8,6 +8,7 @@ pub mod collections;
 mod common;
 pub mod debug;
 pub mod fs;
+pub mod gui;
 pub mod http;
 pub mod io;
 pub mod len;

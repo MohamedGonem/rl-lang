@@ -43,8 +43,7 @@ impl Evaluator {
                             return_type: Some(return_type.clone()),
                             captured_env: vec![],
                         });
-                        self.impl_methods
-                            .insert(format!("{record}::{name}"), func);
+                        self.impl_methods.insert(format!("{record}::{name}"), func);
                     }
                 }
             }
@@ -62,6 +61,19 @@ impl Evaluator {
                 // initialiser's runtime type *is* the declared type.
                 let effective_type = if *type_annotation == TypeAnnotation::Infer {
                     val_type
+                } else if type_annotation.contains_handle_infer() {
+                    match type_annotation.resolve_handle_infer(&val_type) {
+                        Some(resolved) => resolved,
+                        None => {
+                            return Err(self.err(
+                                                format!(
+                                                    "`dec handle` requires a std module call returning a handle, got {:?}",
+                                                    val_type
+                                                ),
+                                                statement.span,
+                                            ));
+                        }
+                    }
                 } else {
                     if !Self::types_compatible(&val_type, type_annotation)
                         && val_type != *type_annotation

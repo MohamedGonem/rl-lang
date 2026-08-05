@@ -4,7 +4,7 @@ use crate::chunk::{Chunk, OpCode};
 use crate::native::Module;
 use crate::stdlib;
 use crate::values::{VmFunction, VmValue};
-use rl_ast::statements::MatchPattern;
+use rl_ast::statements::{MatchPattern, TypeAnnotation};
 use rl_ast::{
     Ast, ExprId, nodes::ExpressionKind, statements::Statement, statements::StatementKind,
 };
@@ -25,6 +25,23 @@ enum ContinueTarget {
     Backward(usize),
     #[allow(unused)]
     Forward,
+}
+
+/// Numeric type codes for `OpCode::Cast`, matching the operand written by
+/// the compiler and read by the `Cast` handler in `vm_logic.rs`. Mirrors the
+/// numeric `TypeAnnotation` targets the interpreter's `evaluator.rs` casts to.
+struct CastTarget;
+impl CastTarget {
+    const INT: u16 = 0;
+    const FLOAT: u16 = 1;
+    const UINT: u16 = 2;
+    const SFLOAT: u16 = 3;
+    const SUINT: u16 = 4;
+    const SINT: u16 = 5;
+    const BBYTE: u16 = 6;
+    const BSBYTE: u16 = 7;
+    const BYTE: u16 = 8;
+    const SBYTE: u16 = 9;
 }
 
 struct LoopCtx {
@@ -144,6 +161,7 @@ impl<'a> Compiler<'a> {
                         self.ast,
                         body,
                         params.len(),
+                        self.stdlib.clone(),
                         self.source.clone(),
                     )?;
                     let func = VmValue::Function(Rc::new(VmFunction {
@@ -408,16 +426,13 @@ impl<'a> Compiler<'a> {
             }
 
             StatementKind::ResolvedFunctionDeclaration {
-                name,
-                slot,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 let func_chunk = Self::compile_function_chunk(
                     self.ast,
                     body,
                     params.len(),
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
                 let func = VmValue::Function(Rc::new(VmFunction {
@@ -425,9 +440,11 @@ impl<'a> Compiler<'a> {
                     arity: params.len(),
                     chunk: func_chunk,
                 }));
+                let slot = self.next_slot;
+                self.next_slot += 1;
                 self.emit_const(func, span);
                 self.chunk.write_op(OpCode::DefineLocal, span);
-                self.chunk.write_u16(*slot as u16, span);
+                self.chunk.write_u16(slot, span);
                 Ok(())
             }
 
@@ -911,6 +928,30 @@ impl<'a> Compiler<'a> {
                 );
             }
 
+            ExpressionKind::Cast { value, target_type } => {
+                self.compile_expr(*value)?;
+                let code = match target_type {
+                    TypeAnnotation::Int => CastTarget::INT,
+                    TypeAnnotation::UInt => CastTarget::UINT,
+                    TypeAnnotation::SInt => CastTarget::SINT,
+                    TypeAnnotation::SUInt => CastTarget::SUINT,
+                    TypeAnnotation::Float => CastTarget::FLOAT,
+                    TypeAnnotation::SFloat => CastTarget::SFLOAT,
+                    TypeAnnotation::Byte => CastTarget::BYTE,
+                    TypeAnnotation::SByte => CastTarget::SBYTE,
+                    TypeAnnotation::BByte => CastTarget::BBYTE,
+                    TypeAnnotation::BSByte => CastTarget::BSBYTE,
+                    other => {
+                        return Err(self.err(
+                            format!("unsupported cast target type {other:?}"),
+                            span,
+                        ));
+                    }
+                };
+                self.chunk.write_op(OpCode::Cast, span);
+                self.chunk.write_u16(code, span);
+            }
+
             ExpressionKind::ResolvedLambda {
                 params,
                 body,
@@ -938,6 +979,7 @@ impl<'a> Compiler<'a> {
                     param_count,
                     captured_scope_bases,
                     outer_next_slot,
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
 
@@ -1043,10 +1085,12 @@ impl<'a> Compiler<'a> {
         ast: &Ast,
         body: &[Statement],
         param_count: usize,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases.push(0);
         sub.next_slot = param_count as u16;
         sub.compile_body(body)?;
@@ -1063,10 +1107,12 @@ impl<'a> Compiler<'a> {
         param_count: usize,
         captured_scope_bases: &[u16],
         outer_next_slot: u16,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases = captured_scope_bases.to_vec();
         sub.scope_bases.push(outer_next_slot);
         sub.next_slot = outer_next_slot + param_count as u16;

@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::chunk::{Chunk, OpCode};
+use crate::stdlib::gui::GuiHandle;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
@@ -118,6 +119,27 @@ pub struct Vm {
     /// Global volume scalar set via `std::audio::set_master_volume`, applied
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub(crate) audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub(crate) gui_handles: HashMap<u64, GuiHandle>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub(crate) gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub(crate) gui_quit_requested: bool,
+    /// Side-table of native TCP/UDP resources (`std::net`), keyed by handle id.
+    pub(crate) net_handles: HashMap<u64, crate::stdlib::net::NetHandle>,
+    /// Next handle id to hand out for `std::net` resources; only ever increments.
+    pub(crate) net_next_handle: u64,
+    /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
+    pub(crate) http_handles: HashMap<u64, crate::stdlib::http::HttpHandle>,
+    /// Next handle id to hand out for `std::http` resources; only ever increments.
+    pub(crate) http_next_handle: u64,
+    /// PRNG state for `std::random`, seeded from the system clock at startup.
+    pub(crate) rng: crate::stdlib::random::xoshiro::Xoshiro256,
+    /// Number of leading `std::env::args()` entries to skip when reporting
+    /// `std::process::args()` (defaults to 1 - the program name itself).
+    pub user_args_offset: usize,
 }
 
 impl Vm {
@@ -137,6 +159,15 @@ impl Vm {
             audio_next_handle: 1,
             audio_output_device: None,
             audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
+            net_handles: HashMap::new(),
+            net_next_handle: 1,
+            http_handles: HashMap::new(),
+            http_next_handle: 1,
+            rng: Default::default(),
+            user_args_offset: 1,
         }
     }
 
@@ -162,6 +193,18 @@ impl Vm {
     pub fn err(&self, message: impl Into<String>) -> VmError {
         let err = Error::at(Reason::Runtime, message, self.current_span);
         self.attach_location(err)
+    }
+
+    /// [`Span`] of the instruction currently executing. Native functions
+    /// (which don't receive a `Span` argument) can use this to anchor errors
+    /// or re-enter the interpreter via [`Vm::call_value`] at the right spot.
+    pub fn current_span(&self) -> Span {
+        self.current_span
+    }
+
+    /// Original source attached via [`Vm::with_source_file`], if any.
+    pub(crate) fn source_file(&self) -> Option<&SourceFile> {
+        self.source.as_ref()
     }
 
     /// Re-anchors an error built without span/source context - e.g. deep
@@ -192,6 +235,44 @@ impl Vm {
     pub fn run_and_return(&mut self, chunk: &Chunk) -> Result<VmValue, VmError> {
         self.run(chunk)?;
         Ok(self.stack.pop().unwrap_or(VmValue::Null))
+    }
+
+    /// Calls an arbitrary callable `VmValue` (a user function, closure, or
+    /// native function) with the given arguments and returns its result.
+    ///
+    /// Used by native stdlib modules (e.g. `std::gui`) that need to invoke
+    /// an rl-lang callback value from Rust - outside the normal `Call`
+    /// opcode dispatch path, e.g. from an egui event callback. Builds a
+    /// tiny synthetic `Chunk` (`Const` callee, `Const` per arg, `Call`,
+    /// `Return`) and runs it via `Vm::run_and_return`; `self.stack`,
+    /// `self.locals`, and `self.scope_starts` are ordinary fields, so this
+    /// is safe to call reentrantly from inside an already-running
+    /// dispatch loop (e.g. from within a native function's own body).
+    pub fn call_value(
+        &mut self,
+        callee: VmValue,
+        args: Vec<VmValue>,
+        span: Span,
+    ) -> Result<VmValue, VmError> {
+        let mut chunk = Chunk::new();
+        let arg_count = args.len() as u16;
+
+        let callee_idx = chunk.add_constant(callee);
+        chunk.write_op(OpCode::Const, span);
+        chunk.write_u16(callee_idx, span);
+
+        for arg in args {
+            let idx = chunk.add_constant(arg);
+            chunk.write_op(OpCode::Const, span);
+            chunk.write_u16(idx, span);
+        }
+
+        chunk.write_op(OpCode::Call, span);
+        chunk.write_u16(arg_count, span);
+
+        chunk.write_op(OpCode::Return, span);
+
+        self.run_and_return(&chunk)
     }
 
     /// Vm entry function
@@ -755,6 +836,14 @@ impl Vm {
                     let insert_pos = self.stack.len() - 1;
                     self.stack.insert(insert_pos, VmValue::Function(func));
                 }
+
+                OpCode::Cast => {
+                    let code = chunk!().read_u16(ip) as usize;
+                    ip += 2;
+                    let value = self.pop()?;
+                    let cast = self.cast(value, code)?;
+                    self.stack.push(cast);
+                }
             }
         }
     }
@@ -832,6 +921,95 @@ impl Vm {
                 Ok(VmValue::Map(entries))
             }
             other => Err(self.err(format!("cannot index into {}", other.type_name()))),
+        }
+    }
+
+    /// Runs `value as <type>` for the given numeric target `code`
+    /// (see `CastTarget` in `compiler.rs`). Mirrors `rl-interpreter`'s
+    /// cast evaluation (`evaluator.rs`): sources are widened to `i128`/`f64`,
+    /// then narrowed via checked `try_from` into the target type.
+    fn cast(&self, value: VmValue, code: usize) -> Result<VmValue, VmError> {
+        fn as_i128(v: &VmValue) -> Option<i128> {
+            match v {
+                VmValue::Int(n) => Some(*n as i128),
+                VmValue::SInt(n) => Some(*n as i128),
+                VmValue::SUInt(n) => Some(*n as i128),
+                VmValue::Byte(n) => Some(*n as i128),
+                VmValue::SByte(n) => Some(*n as i128),
+                VmValue::BByte(n) => Some(*n as i128),
+                VmValue::BSByte(n) => Some(*n as i128),
+                VmValue::Float(f) => Some(*f as i128),
+                VmValue::SFloat(f) => Some(*f as i128),
+                _ => None,
+            }
+        }
+
+        fn as_f64(v: &VmValue) -> Option<f64> {
+            match v {
+                VmValue::Int(n) => Some(*n as f64),
+                VmValue::SInt(n) => Some(*n as f64),
+                VmValue::SUInt(n) => Some(*n as f64),
+                VmValue::Byte(n) => Some(*n as f64),
+                VmValue::SByte(n) => Some(*n as f64),
+                VmValue::BByte(n) => Some(*n as f64),
+                VmValue::BSByte(n) => Some(*n as f64),
+                VmValue::Float(f) => Some(*f),
+                VmValue::SFloat(f) => Some(*f as f64),
+                _ => None,
+            }
+        }
+
+        let bad_cast = || {
+            self.err(format!(
+                "invalid cast: cannot cast {}:{} to {:?}",
+                value.type_name(),
+                value,
+                cast_target_name(code)
+            ))
+        };
+
+        match code {
+            // Int
+            0 => as_i128(&value)
+                .map(|n| VmValue::Int(n as i64))
+                .ok_or_else(bad_cast),
+            // Float
+            1 => as_f64(&value).map(VmValue::Float).ok_or_else(bad_cast),
+            // UInt
+            2 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u64::try_from(n).map(VmValue::UInt).map_err(|_| bad_cast())),
+            // SFloat
+            3 => as_f64(&value)
+                .map(|f| VmValue::SFloat(f as f32))
+                .ok_or_else(bad_cast),
+            // SUInt
+            4 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u32::try_from(n).map(VmValue::SUInt).map_err(|_| bad_cast())),
+            // SInt
+            5 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| i32::try_from(n).map(VmValue::SInt).map_err(|_| bad_cast())),
+            // BByte
+            6 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u16::try_from(n).map(VmValue::BByte).map_err(|_| bad_cast())),
+            // BSByte
+            7 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| i16::try_from(n).map(VmValue::BSByte).map_err(|_| bad_cast())),
+            // Byte
+            8 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u8::try_from(n).map(VmValue::Byte).map_err(|_| bad_cast())),
+            // SByte
+            9 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| i8::try_from(n).map(VmValue::SByte).map_err(|_| bad_cast())),
+            other => Err(self.err(format!(
+                "corrupt bytecode: unknown cast target {other}"
+            ))),
         }
     }
 
@@ -922,5 +1100,23 @@ impl Vm {
 impl Default for Vm {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Maps a `CastTarget` code to its `TypeAnnotation` debug name, used in the
+/// `invalid cast` error message (matches the interpreter's `{:?}` output).
+fn cast_target_name(code: usize) -> &'static str {
+    match code {
+        0 => "Int",
+        1 => "Float",
+        2 => "UInt",
+        3 => "SFloat",
+        4 => "SUInt",
+        5 => "SInt",
+        6 => "BByte",
+        7 => "BSByte",
+        8 => "Byte",
+        9 => "SByte",
+        _ => "unknown",
     }
 }

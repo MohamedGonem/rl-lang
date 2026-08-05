@@ -148,6 +148,7 @@ impl Parser {
         let mut names = vec![first];
         if self.match_type(&[TokenType::Comma]) {
             loop {
+                self.match_type(&[TokenType::Newline]);
                 match self.peek() {
                     TokenType::Identifier(name) => {
                         self.advance();

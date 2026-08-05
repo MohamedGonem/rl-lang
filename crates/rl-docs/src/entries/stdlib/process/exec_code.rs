@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static EXEC_CODE: FnEntry = FnEntry {
     signature: "exec_code(cmd)",
     description: "runs a shell command and returns its exit code as an int",
-    example: r#"
-get std::process::exec_code
+    example: r#"get std::process::exec_code
 
 dec int code = exec_code("ls /nonexistent")?"#,
     expected_output: None,

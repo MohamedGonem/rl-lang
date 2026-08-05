@@ -3,44 +3,47 @@ use {
         nodes::ExpressionKind,
         statements::{StatementKind, TypeAnnotation},
     },
-    rl_utils::span::Span,
 };
 
-use crate::{assert_array_decl, assert_decl, common};
+use crate::common::{self, span_of, span_up_to, span_whole};
+use crate::{assert_array_decl, assert_decl};
 
 #[test]
 fn dec_int() {
+    let source = "dec int x = 1000";
     assert_decl!(
-        "dec int x = 1000",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Int,
-        value: ExpressionKind::Integer(1000), Span::new(12, 16),
-        span: Span::new(0, 16),
+        value: ExpressionKind::Integer(1000), span_of(source, "1000"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_int() {
+    let source = "CONST int x = 1000";
     assert_decl!(
-        "CONST int x = 1000",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CInt,
-        value: ExpressionKind::Integer(1000), Span::new(14, 18),
-        span: Span::new(0, 18),
+        value: ExpressionKind::Integer(1000), span_of(source, "1000"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn dec_float() {
+    let source = "dec float x = 1000.0";
     assert_decl!(
-        "dec float x = 1000.0",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Float,
-        value: ExpressionKind::Float(1000.0), Span::new(14, 20),
-        span: Span::new(0, 20),
+        value: ExpressionKind::Float(1000.0), span_of(source, "1000.0"),
+        span: span_whole(source),
     );
 }
 
@@ -185,133 +188,144 @@ fn const_sbyte() {
 
 #[test]
 fn const_float() {
+    let source = "CONST float x = 1000.0";
     assert_decl!(
-        "CONST float x = 1000.0",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CFloat,
-        value: ExpressionKind::Float(1000.0), Span::new(16, 22),
-        span: Span::new(0, 22),
+        value: ExpressionKind::Float(1000.0), span_of(source, "1000.0"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn dec_string() {
+    let source = "dec string x = \"hi\"";
     assert_decl!(
-        "dec string x = \"hi\"",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::String,
-        value: ExpressionKind::String("hi".to_string()), Span::new(15, 19),
-        span: Span::new(0, 19),
+        value: ExpressionKind::String("hi".to_string()), span_of(source, "\"hi\""),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_string() {
+    let source = "CONST string x = \"hi\"";
     assert_decl!(
-        "CONST string x = \"hi\"",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CString,
-        value: ExpressionKind::String("hi".to_string()), Span::new(17, 21),
-        span: Span::new(0, 21),
+        value: ExpressionKind::String("hi".to_string()), span_of(source, "\"hi\""),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn dec_char() {
+    let source = "dec char x = 'x'";
     assert_decl!(
-        "dec char x = 'x'",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Char,
-        value: ExpressionKind::Character('x'), Span::new(13, 16),
-        span: Span::new(0, 16),
+        value: ExpressionKind::Character('x'), span_of(source, "'x'"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_char() {
+    let source = "CONST char x = 'x'";
     assert_decl!(
-        "CONST char x = 'x'",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CChar,
-        value: ExpressionKind::Character('x'), Span::new(15, 18),
-        span: Span::new(0, 18),
+        value: ExpressionKind::Character('x'), span_of(source, "'x'"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn dec_bool() {
+    let source = "dec bool x = true";
     assert_decl!(
-        "dec bool x = true",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Bool,
-        value: ExpressionKind::Bool(true), Span::new(13, 17),
-        span: Span::new(0, 17),
+        value: ExpressionKind::Bool(true), span_of(source, "true"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_bool() {
+    let source = "CONST bool x = false";
     assert_decl!(
-        "CONST bool x = false",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CBool,
-        value: ExpressionKind::Bool(false), Span::new(15, 20),
-        span: Span::new(0, 20),
+        value: ExpressionKind::Bool(false), span_of(source, "false"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn dec_byte() {
+    let source = "dec byte x = 65 as byte";
     assert_decl!(
-        "dec byte x = 65 as byte",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Byte,
-        value: ExpressionKind::Byte(65), Span::new(13, 15),
-        span: Span::new(0, 15),
+        value: ExpressionKind::Byte(65), span_of(source, "65"),
+        span: span_up_to(source, "65"),
     );
 }
 
 #[test]
 fn const_byte() {
+    let source = "CONST byte x = 65 as byte";
     assert_decl!(
-        "CONST byte x = 65 as byte",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::CByte,
-        value: ExpressionKind::Byte(65), Span::new(15, 17),
-        span: Span::new(0, 17),
+        value: ExpressionKind::Byte(65), span_of(source, "65"),
+        span: span_up_to(source, "65"),
     );
 }
 
 #[test]
 fn dec_array() {
+    let source = "dec arr[int] x = [1]";
     assert_array_decl!(
-        "dec arr[int] x = [1]",
+        source,
         StatementKind::Array,
         name: "x",
         type_annotation: TypeAnnotation::Int,
-        item: ExpressionKind::Integer(1), Span::new(18, 19),
-        span: Span::new(0, 20),
+        item: ExpressionKind::Integer(1), span_of(source, "1"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_array() {
+    let source = "CONST arr[int] x = [1]";
     assert_array_decl!(
-        "CONST arr[int] x = [1]",
+        source,
         StatementKind::ConstantArray,
         name: "x",
         type_annotation: TypeAnnotation::Int,
-        item: ExpressionKind::Integer(1), Span::new(20, 21),
-        span: Span::new(0, 22),
+        item: ExpressionKind::Integer(1), span_of(source, "1"),
+        span: span_whole(source),
     );
 }
 
@@ -319,24 +333,26 @@ fn const_array() {
 // so this one *can* go through assert_decl! directly.
 #[test]
 fn dec_fn() {
+    let source = "dec fn x = fn(){}";
     assert_decl!(
-        "dec fn x = fn(){}",
+        source,
         StatementKind::VariableDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Fn,
-        value: ExpressionKind::Lambda { params: vec![], return_type: None, body: vec![] }, Span::new(11, 17),
-        span: Span::new(0, 17),
+        value: ExpressionKind::Lambda { params: vec![], return_type: None, body: vec![] }, span_of(source, "fn(){}"),
+        span: span_whole(source),
     );
 }
 
 #[test]
 fn const_fn() {
+    let source = "CONST fn x = fn(){}";
     assert_decl!(
-        "CONST fn x = fn(){}",
+        source,
         StatementKind::ConstantDeclaration,
         name: "x",
         type_annotation: TypeAnnotation::Fn,
-        value: ExpressionKind::Lambda { params: vec![], return_type: None, body: vec![] }, Span::new(13, 19),
-        span: Span::new(0, 19),
+        value: ExpressionKind::Lambda { params: vec![], return_type: None, body: vec![] }, span_of(source, "fn(){}"),
+        span: span_whole(source),
     );
 }

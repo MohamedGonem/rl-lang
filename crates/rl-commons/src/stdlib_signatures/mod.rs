@@ -18,6 +18,7 @@ pub mod collections;
 pub mod constants;
 pub mod debug;
 pub mod fs;
+pub mod gui;
 pub mod http;
 pub mod io;
 pub mod math;

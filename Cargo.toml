@@ -67,10 +67,17 @@ zstd = "0.13"
 rodio = { version = "0.22.2", default-features = false, features = ["playback", "symphonia-all"] }
 cpal = "0.17"
 symphonia = { version = "0.5", features = ["all"] }
-
+eframe = "0.35"
 shell-words = "1.1"
 
 [profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+# Benchmarks should reflect the same optimisations as shipped releases,
+# otherwise the numbers misrepresent the real binaries.
+[profile.bench]
 opt-level = 3
 lto = true
 codegen-units = 1

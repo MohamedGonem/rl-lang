@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TYPE_OF: FnEntry = FnEntry {
     signature: "type_of(value)",
     description: "returns the runtime type name of `value` as a string (e.g. \"int\", \"array\"); complements the `is_*` checks in std::types by naming the type instead of testing for one",
-    example: r#"
-get std::debug::type_of
+    example: r#"get std::debug::type_of
 get std::io::println
 
 dec string a = type_of(5)
