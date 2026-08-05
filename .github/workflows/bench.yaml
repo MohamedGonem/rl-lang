@@ -50,8 +50,7 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          cargo bench -p rl-benches ${{ steps.select.outputs.args }} -- \
-            --warm-up-time 0.5 --measurement-time 2 --noplot
+          cargo bench -p rl-benches ${{ steps.select.outputs.args }}
 
       - name: Upload criterion report
         uses: actions/upload-artifact@v4
