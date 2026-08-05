@@ -136,7 +136,7 @@ Feature flags:
 | Flag        | State              | Description  |
 | :---------: | :----------------: | :----------: |
 | `run`       | `On` by default    | -            |
-| `eval`      | `On` by default    | This flag for actually running the code ( weather in `interpreter` or `vm )            |
+| `eval`      | `On` by default    | This flag for actually running the code ( whether in `interpreter` or `vm )            |
 | `vm`        | `On` by default    | This flag for `vm` backend         |
 | `cranelift` | `Off` experimental | This flag for `cranelift` backend used for native compilations             |
 | `repl`      | `On` by default    | This flag for the interactive TUI shell `REPL`             |
