@@ -1,7 +1,7 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rl_benches::*;
 
-fn bench_v0_1_4_lexer(c: &mut Criterion) {
+fn bench_lexer(c: &mut Criterion) {
     let mut group = c.benchmark_group("v0.1.4/lexer");
     group.measurement_time(std::time::Duration::from_secs(10));
     group.sample_size(200);
@@ -88,5 +88,5 @@ fn bench_v0_1_4_lexer(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches_v0_1_4_lexer, bench_v0_1_4_lexer);
-criterion_main!(benches_v0_1_4_lexer);
+criterion_group!(benches_lexer, bench_lexer);
+criterion_main!(benches_lexer);
