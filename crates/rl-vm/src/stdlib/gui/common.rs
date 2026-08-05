@@ -46,7 +46,7 @@ pub fn close_window(eval: &mut Vm, id: u64) {
         eval.gui_handles.remove(child);
     }
     if let Some(cb) = w.on_close {
-        report_callback_err(eval.call_value(cb, vec![], Span::dummy()));
+        report_callback_err(eval.call_value(&cb, &[], Span::dummy()));
     }
 }
 

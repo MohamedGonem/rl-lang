@@ -27,7 +27,7 @@ pub fn func(eval: &mut Vm, function: VmValue, iterations_val: VmValue) -> VmValu
 
     let start = std::time::Instant::now();
     for _ in 0..iterations {
-        if let Err(e) = eval.call_value(function.clone(), vec![], eval.current_span()) {
+        if let Err(e) = eval.call_value(&function, &[], eval.current_span()) {
             return verr!(vs!(format!(
                 "bench: error executing the function: {}",
                 e.message()

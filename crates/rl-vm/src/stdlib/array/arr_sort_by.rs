@@ -34,8 +34,8 @@ pub fn std_arr_sort_by(
         let mut j = i;
         while j > 0 {
             let result = eval.call_value(
-                function.clone(),
-                vec![items[j - 1].clone(), items[j].clone()],
+                &function,
+                &[items[j - 1].clone(), items[j].clone()],
                 eval.current_span(),
             )?;
 

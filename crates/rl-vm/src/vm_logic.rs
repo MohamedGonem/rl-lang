@@ -242,48 +242,118 @@ impl Vm {
     ///
     /// Used by native stdlib modules (e.g. `std::gui`) that need to invoke
     /// an rl-lang callback value from Rust - outside the normal `Call`
-    /// opcode dispatch path, e.g. from an egui event callback. Builds a
-    /// tiny synthetic `Chunk` (`Const` callee, `Const` per arg, `Call`,
-    /// `Return`) and runs it via `Vm::run_and_return`; `self.stack`,
-    /// `self.locals`, and `self.scope_starts` are ordinary fields, so this
-    /// is safe to call reentrantly from inside an already-running
-    /// dispatch loop (e.g. from within a native function's own body).
+    /// opcode dispatch path, e.g. from an egui event callback. Dispatches
+    /// directly on the callee instead of building a synthetic chunk:
+    /// native functions are invoked synchronously, and user functions /
+    /// closures get their own call frame executed to completion via the
+    /// shared [`Vm::run_frames`] loop. `self.stack`, `self.locals`, and
+    /// `self.scope_starts` are ordinary fields, so this is safe to call
+    /// reentrantly from inside an already-running dispatch loop (e.g. from
+    /// within a native function's own body).
     pub fn call_value(
         &mut self,
-        callee: VmValue,
-        args: Vec<VmValue>,
-        span: Span,
+        callee: &VmValue,
+        args: &[VmValue],
+        _span: Span,
     ) -> Result<VmValue, VmError> {
-        let mut chunk = Chunk::new();
-        let arg_count = args.len() as u16;
+        self.invoke_callable(callee, args)
+    }
 
-        let callee_idx = chunk.add_constant(callee);
-        chunk.write_op(OpCode::Const, span);
-        chunk.write_u16(callee_idx, span);
-
-        for arg in args {
-            let idx = chunk.add_constant(arg);
-            chunk.write_op(OpCode::Const, span);
-            chunk.write_u16(idx, span);
+    /// Direct callable dispatch backing [`Vm::call_value`] (synchronous
+    /// invocation). Binds the arguments into a fresh scope and pushes a
+    /// single call frame for user functions and closures; runs native
+    /// functions inline.
+    fn invoke_callable(
+        &mut self,
+        callee: &VmValue,
+        args: &[VmValue],
+    ) -> Result<VmValue, VmError> {
+        match callee {
+            VmValue::Native(native) => {
+                (native.func)(self, args.to_vec()).map_err(|e| self.annotate(e))
+            }
+            VmValue::Function(func) => {
+                if args.len() != func.arity {
+                    return Err(self.err(format!(
+                        "{} expects {} args, got {}",
+                        func.name,
+                        func.arity,
+                        args.len()
+                    )));
+                }
+                let base = self.locals.len();
+                self.locals.resize(base + args.len(), VmValue::Null);
+                for (i, arg) in args.iter().enumerate() {
+                    self.locals[base + i] = arg.clone();
+                }
+                self.scope_starts.push(base);
+                let scope_base = self.scope_starts.len() - 1;
+                self.run_call_frame(FrameSource::Func(func.clone()), scope_base)
+            }
+            VmValue::Closure {
+                func,
+                captured,
+                capture_start,
+            } => {
+                if args.len() != func.arity {
+                    return Err(self.err(format!(
+                        "closure expects {} args, got {}",
+                        func.arity,
+                        args.len()
+                    )));
+                }
+                let base = self.locals.len();
+                self.locals
+                    .resize(base + (*capture_start) as usize, VmValue::Null);
+                self.locals.extend_from_slice(captured);
+                let params_start = base + (*capture_start) as usize + captured.len();
+                self.locals.resize(params_start + args.len(), VmValue::Null);
+                for (i, arg) in args.iter().enumerate() {
+                    self.locals[params_start + i] = arg.clone();
+                }
+                self.scope_starts.push(base);
+                let scope_base = self.scope_starts.len() - 1;
+                self.run_call_frame(FrameSource::Func(func.clone()), scope_base)
+            }
+            other => Err(self.err(format!("cannot call {other:?}"))),
         }
+    }
 
-        chunk.write_op(OpCode::Call, span);
-        chunk.write_u16(arg_count, span);
-
-        chunk.write_op(OpCode::Return, span);
-
-        self.run_and_return(&chunk)
+    /// Executes a single fresh call frame to completion, returning the value
+    /// its `Return` left on the stack. Used by [`Vm::invoke_callable`] to
+    /// run a user function / closure synchronously without routing through
+    /// the `Call` opcode.
+    fn run_call_frame(
+        &mut self,
+        source: FrameSource<'_>,
+        scope_base: usize,
+    ) -> Result<VmValue, VmError> {
+        let frames = vec![CallFrame {
+            source,
+            ip: 0,
+            scope_base,
+        }];
+        self.run_frames(frames)?;
+        Ok(self.stack.pop().unwrap_or(VmValue::Null))
     }
 
     /// Vm entry function
     pub fn run(&mut self, chunk: &Chunk) -> Result<(), VmError> {
-        let mut frames: Vec<CallFrame> = vec![CallFrame {
+        let frames = vec![CallFrame {
             source: FrameSource::Top(chunk),
             ip: 0,
             scope_base: self.scope_starts.len(),
         }];
+        self.run_frames(frames)
+    }
 
-        // caching method
+    /// Runs a stack of call frames to completion.
+    ///
+    /// The dispatch loop lives here so it can be reused both for whole
+    /// programs (`run`) and for synchronous callable invocations
+    /// (`call_value`), which avoids constructing a synthetic chunk on every
+    /// higher-order callback call.
+    fn run_frames(&mut self, mut frames: Vec<CallFrame>) -> Result<(), VmError> {
         let mut cur_chunk: *const Chunk = frames[0].source.chunk();
         let mut ip: usize = 0;
         let mut scope_base: usize = frames[0].scope_base;

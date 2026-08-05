@@ -482,8 +482,8 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
         };
         if let Some(cb) = callback {
             report_callback_err(eval.call_value(
-                cb,
-                vec![VmValue::Str(text.into())],
+                &cb,
+                &[VmValue::Str(text.into())],
                 Span::dummy(),
             ));
         }
@@ -496,8 +496,8 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
         };
         if let Some(cb) = callback {
             report_callback_err(eval.call_value(
-                cb,
-                vec![VmValue::Str(text.into())],
+                &cb,
+                &[VmValue::Str(text.into())],
                 Span::dummy(),
             ));
         }
@@ -512,7 +512,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(cb, vec![VmValue::Bool(checked)], Span::dummy()));
+            report_callback_err(eval.call_value(&cb, &[VmValue::Bool(checked)], Span::dummy()));
         }
     }
 
@@ -525,7 +525,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(cb, vec![VmValue::Int(sel as i64)], Span::dummy()));
+            report_callback_err(eval.call_value(&cb, &[VmValue::Int(sel as i64)], Span::dummy()));
         }
     }
 
@@ -538,7 +538,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(cb, vec![VmValue::Float(v)], Span::dummy()));
+            report_callback_err(eval.call_value(&cb, &[VmValue::Float(v)], Span::dummy()));
         }
     }
 
@@ -548,7 +548,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(cb, vec![], Span::dummy()));
+            report_callback_err(eval.call_value(&cb, &[], Span::dummy()));
         }
     }
 
@@ -575,8 +575,8 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
         if let Some(cb) = on_key {
             for key_name in key_names {
                 report_callback_err(eval.call_value(
-                    cb.clone(),
-                    vec![VmValue::Str(key_name.into())],
+                    &cb,
+                    &[VmValue::Str(key_name.into())],
                     Span::dummy(),
                 ));
             }

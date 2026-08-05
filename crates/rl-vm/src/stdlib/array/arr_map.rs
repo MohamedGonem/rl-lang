@@ -29,7 +29,7 @@ pub fn std_arr_map(eval: &mut Vm, array: VmValue, function: VmValue) -> Result<V
 
     for item in items.iter() {
         let mapped_item =
-            eval.call_value(function.clone(), vec![(*item).clone()], eval.current_span())?;
+            eval.call_value(&function, std::slice::from_ref(item), eval.current_span())?;
         result.push(mapped_item);
     }
 
