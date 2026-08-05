@@ -14,4 +14,4 @@ rl-utils.workspace = true
 rl-vm.workspace = true
 rl-commons.workspace = true
 rl-tooling.workspace = true
-tempfile = "3.27.0"
+tempfile.workspace = true
