@@ -324,6 +324,16 @@ use super::Error;
     }
 
     #[test]
+    fn test_span_override() {
+        let span_override = Span::new(1, 5);
+        let error = Error::at(Reason::Parse, "syntax error", Span::new(0, 0))
+            .with_span(span_override);
+
+        assert_eq!(error.message(), "syntax error");
+        assert_eq!(error.span(), Some(span_override));
+    }
+
+    #[test]
     fn test_error_reason_string() {
         let reason = ErrorReason::init(Reason::Interpreter, Some(vec!["stack overflow".to_string()]));
         assert_eq!(reason.get_type_string(), "Interpreter Error");
