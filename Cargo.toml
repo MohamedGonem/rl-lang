@@ -74,3 +74,10 @@ shell-words = "1.1"
 opt-level = 3
 lto = true
 codegen-units = 1
+
+# Benchmarks should reflect the same optimisations as shipped releases,
+# otherwise the numbers misrepresent the real binaries.
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
