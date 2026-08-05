@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="rl-lang/rl-lang"
-INSTALL_DIR="${RL_INSSTALL_DIR:-$HOME/.local/bin}"
+INSTALL_DIR="${RL_INSTALL_DIR:-$HOME/.local/bin}"
 
 BASES=(rl rl_debug rl_vm rl_vm_debug rl_treewalker rl_treewalker_debug)
 SUFFIXES=("" "_no_docs" "_no_repl" "_no_docs_repl")
@@ -29,7 +29,7 @@ declare -A ACTUAL_NAME=(
   ["rl_treewalker_no_repl"]="rlp_nr"
   ["rl_treewalker_no_docs_repl"]="rlp_ndr"
   ["rl_treewalker_debug"]="rlpd"
-  ["rl_treewaler_debug_no_docs"]="rlpd_nd"
+  ["rl_treewalker_debug_no_docs"]="rlpd_nd"
   ["rl_treewalker_debug_no_repl"]="rlpd_nr"
   ["rl_treewalker_debug_no_docs_repl"]="rlpd_ndr"
   ["rl_lsp"]="rlsp"
@@ -46,9 +46,9 @@ build_variant_list() {
 
 print_menu() {
   local i=1
-  echo "Select a build to install"
+  echo "Select a build to install:"
   while IFS= read -r v; do
-    printf "\t%2d) %s\n" "$i" "$v"
+    printf "  %2d) %s\n" "$i" "$v"
     i=$((i + 1))
   done < <(build_variant_list)
 }
@@ -59,9 +59,9 @@ select_variants() {
     return
   fi
 
-  print menu >&2
+  print_menu >&2
   local choices
-  read -rp "Enter number(s), comma-separated (e.g. 1,2,5), or 'all': " choices >&2
+  read -rp "Enter number(s), comma-separated (e.g. 1,3,9), or 'all': " choices >&2
 
   local all_variants
   all_variants="$(build_variant_list)"
@@ -71,7 +71,7 @@ select_variants() {
     return
   fi
 
-  local IFS='.'
+  local IFS=','
   local part
 
   for part in $choices; do
@@ -126,7 +126,7 @@ install_one() {
 
   curl -fsSL "$url" -o "$tmpdir/${asset}" || {
     echo "Failed to download $url" >&2
-    echo "Check that this variant/version combination was published" >&2
+    echo "Check that this variant/version combination was published." >&2
     return 1
   }
 
@@ -164,7 +164,7 @@ main() {
 
   if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
     echo "Add this to your shell profile:"
-    echo "\texport PATH=\"$INSTALL_DIR:\$PATH\""
+    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
   fi
 
   if [ "$failed" = "1" ]; then
