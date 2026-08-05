@@ -27,7 +27,7 @@ pub fn create_project(name: &str, no_git: bool) {
 /// Inner fallible implementation of [`create_project`].
 ///
 /// Returns [`io::Error`] if any filesystem operation or `git init` fails.
-fn try_create_project(name: &str, no_git: bool) -> io::Result<()> {
+pub fn try_create_project(name: &str, no_git: bool) -> io::Result<()> {
     let toml = format!(
         r#"[project]
 name = "{}"
