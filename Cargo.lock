@@ -3882,8 +3882,10 @@ dependencies = [
  "rl-interpreter",
  "rl-lexer",
  "rl-parser",
+ "rl-tooling",
  "rl-utils",
  "rl-vm",
+ "tempfile",
 ]
 
 [[package]]
