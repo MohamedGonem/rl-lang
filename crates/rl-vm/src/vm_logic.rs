@@ -78,6 +78,11 @@ struct CallFrame<'a> {
     source: FrameSource<'a>,
     ip: usize,
     scope_base: usize,
+    /// `scope_starts[scope_base]`, the locals base of this frame. Cached here
+    /// (instead of re-indexing the scope table at every frame switch) so
+    /// `Return`/`Propagate` can restore the caller's base from a plain struct
+    /// field read.
+    frame_base: usize,
 }
 
 pub struct Vm {
@@ -85,10 +90,16 @@ pub struct Vm {
     globals: Vec<VmValue>,
     locals: Vec<VmValue>,
     scope_starts: Vec<usize>,
-    /// [`Span`] of the instruction currently executing, refreshed once per
-    /// dispatch loop iteration in [`Vm::run`]. Every runtime error is
-    /// anchored here.
-    current_span: Span,
+    /// Byte offset of the instruction currently executing, written once per
+    /// dispatch loop iteration. The [`Span`] is *not* materialized eagerly -
+    /// it's recovered from the chunk on demand via [`Vm::cur_span`] only when
+    /// an error is built or a native function asks for it, which avoids a
+    /// per-instruction copy in the hot loop.
+    current_ip: usize,
+    /// The chunk the currently-executing instruction belongs to, kept in sync
+    /// with the dispatch loop's `cur_chunk` local so [`Vm::cur_span`] can
+    /// resolve `current_ip`. `null` when no chunk is running.
+    current_chunk: *const Chunk,
     /// Original source text, so runtime errors can render ariadne snippets.
     source: Option<SourceFile>,
     /// Byte-offset -> line/col table, used when `source` is `None` (e.g.
@@ -149,7 +160,8 @@ impl Vm {
             globals: Vec::new(),
             locals: Vec::new(),
             scope_starts: Vec::new(),
-            current_span: Span::dummy(),
+            current_ip: 0,
+            current_chunk: std::ptr::null(),
             source: None,
             line_index: None,
             impl_methods: HashMap::new(),
@@ -191,7 +203,7 @@ impl Vm {
     /// executing instruction, with source (or a line-index location)
     /// attached when known.
     pub fn err(&self, message: impl Into<String>) -> VmError {
-        let err = Error::at(Reason::Runtime, message, self.current_span);
+        let err = Error::at(Reason::Runtime, message, self.cur_span());
         self.attach_location(err)
     }
 
@@ -199,7 +211,18 @@ impl Vm {
     /// (which don't receive a `Span` argument) can use this to anchor errors
     /// or re-enter the interpreter via [`Vm::call_value`] at the right spot.
     pub fn current_span(&self) -> Span {
-        self.current_span
+        self.cur_span()
+    }
+
+    /// Resolves the span of the currently-executing instruction from the
+    /// lazily-tracked `current_ip`/`current_chunk`, without copying it on
+    /// every instruction. Falls back to a dummy span when no chunk is
+    /// running (e.g. a native function invoked before `Vm::run`).
+    fn cur_span(&self) -> Span {
+        if self.current_chunk.is_null() {
+            return Span::dummy();
+        }
+        unsafe { (*self.current_chunk).span_at(self.current_ip) }
     }
 
     /// Original source attached via [`Vm::with_source_file`], if any.
@@ -214,7 +237,7 @@ impl Vm {
     /// loop, so every native-function error still gets a correct source
     /// snippet without threading a `Span` through `FromValue`/`IntoNativeFn`.
     pub fn annotate(&self, e: VmError) -> VmError {
-        let e = e.with_span(self.current_span);
+        let e = e.with_span(self.cur_span());
         self.attach_location(e)
     }
 
@@ -332,6 +355,7 @@ impl Vm {
             source,
             ip: 0,
             scope_base,
+            frame_base: self.scope_starts.get(scope_base).copied().unwrap_or(0),
         }];
         self.run_frames(frames)?;
         Ok(self.stack.pop().unwrap_or(VmValue::Null))
@@ -343,6 +367,7 @@ impl Vm {
             source: FrameSource::Top(chunk),
             ip: 0,
             scope_base: self.scope_starts.len(),
+            frame_base: 0,
         }];
         self.run_frames(frames)
     }
@@ -355,13 +380,27 @@ impl Vm {
     /// higher-order callback call.
     fn run_frames(&mut self, mut frames: Vec<CallFrame>) -> Result<(), VmError> {
         let mut cur_chunk: *const Chunk = frames[0].source.chunk();
+        self.current_chunk = cur_chunk;
         let mut ip: usize = 0;
         let mut scope_base: usize = frames[0].scope_base;
+        // `self.scope_starts[scope_base]` - the locals base of the current
+        // call frame. Constant for the frame's lifetime (only ever written by
+        // the frame's first `PushScope`), so cache it instead of re-indexing
+        // the scope table on every local access.
+        let mut frame_base: usize = frames[0].frame_base;
 
         macro_rules! chunk {
             () => {
                 unsafe { &*cur_chunk }
             };
+        }
+        macro_rules! read_u16 {
+            () => {{
+                // SAFETY: `ip` and `ip + 1` index the current chunk's operand
+                // bytes, which the compiler always writes in full pairs (see
+                // `Chunk::write_u16`), so both are in bounds here.
+                unsafe { (&*cur_chunk).read_u16_unchecked(ip) }
+            }};
         }
 
         loop {
@@ -373,20 +412,27 @@ impl Vm {
                 }
                 let top = frames.last().unwrap();
                 cur_chunk = top.source.chunk();
+                self.current_chunk = cur_chunk;
                 ip = top.ip;
                 scope_base = top.scope_base;
+                frame_base = top.frame_base;
                 continue;
             }
 
-            let op = OpCode::from_u8_unchecked(chunk!().code[ip]);
+            // SAFETY: `ip < code.len()` was checked above and the bytecode is
+            // compiler-emitted, so the byte is a valid opcode (see
+            // `OpCode::from_u8_unchecked`).
+            let op = unsafe { OpCode::from_u8_unchecked(*(&*cur_chunk).code.as_ptr().add(ip)) };
             ip += 1;
-            self.current_span = chunk!().span_at(ip - 1);
+            self.current_ip = ip - 1;
 
             match op {
                 OpCode::Const => {
-                    let idx = chunk!().read_u16(ip) as usize;
+                    let idx = read_u16!() as usize;
                     ip += 2;
-                    let val = chunk!().constants[idx].clone();
+                    // SAFETY: `idx` was emitted by the compiler and always
+                    // points at a valid constant slot.
+                    let val = unsafe { (&*cur_chunk).constants.get_unchecked(idx).clone() };
                     self.stack.push(val);
                 }
 
@@ -417,11 +463,11 @@ impl Vm {
                     self.stack.push(out);
                 }
                 OpCode::Eq => {
-                    let (a, b) = self.pop_two()?;
+                    let (a, b) = self.pop_two_unchecked();
                     self.stack.push(VmValue::Bool(a == b));
                 }
                 OpCode::NotEq => {
-                    let (a, b) = self.pop_two()?;
+                    let (a, b) = self.pop_two_unchecked();
                     self.stack.push(VmValue::Bool(a != b));
                 }
                 OpCode::Less => self.binary_cmp(|o| o.is_lt())?,
@@ -430,25 +476,23 @@ impl Vm {
                 OpCode::GreaterEq => self.binary_cmp(|o| o.is_ge())?,
 
                 OpCode::GetLocal => {
-                    let flat = chunk!().read_u16(ip) as usize;
+                    let flat = read_u16!() as usize;
                     ip += 2;
-                    let frame_base = self.scope_starts[scope_base];
                     let val = self.locals[frame_base + flat].clone();
                     self.stack.push(val);
                 }
                 OpCode::SetLocal => {
-                    let flat = chunk!().read_u16(ip) as usize;
+                    let flat = read_u16!() as usize;
                     ip += 2;
                     let val = self
                         .stack
                         .last()
                         .cloned()
                         .ok_or_else(|| self.err("stack underflow on assignment"))?;
-                    let frame_base = self.scope_starts[scope_base];
                     self.locals[frame_base + flat] = val;
                 }
                 OpCode::GetGlobal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val =
                         self.globals.get(slot).cloned().ok_or_else(|| {
@@ -457,7 +501,7 @@ impl Vm {
                     self.stack.push(val);
                 }
                 OpCode::SetGlobal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val = self
                         .stack
@@ -470,7 +514,7 @@ impl Vm {
                     self.globals[slot] = val;
                 }
                 OpCode::DefineLocal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val = self.pop()?;
 
@@ -480,11 +524,10 @@ impl Vm {
                         }
                         self.globals[slot] = val;
                     } else {
-                        let base = self.scope_starts[scope_base];
-                        if base + slot >= self.locals.len() {
-                            self.locals.resize(base + slot + 1, VmValue::Null);
+                        if frame_base + slot >= self.locals.len() {
+                            self.locals.resize(frame_base + slot + 1, VmValue::Null);
                         }
-                        self.locals[base + slot] = val;
+                        self.locals[frame_base + slot] = val;
                     }
                 }
                 OpCode::Pop => {
@@ -500,11 +543,19 @@ impl Vm {
                     }
                     let top = frames.last().unwrap();
                     cur_chunk = top.source.chunk();
+                    self.current_chunk = cur_chunk;
                     ip = top.ip;
                     scope_base = top.scope_base;
+                    frame_base = top.frame_base;
                 }
 
-                OpCode::PushScope => self.scope_starts.push(self.locals.len()),
+                OpCode::PushScope => {
+                    let base = self.locals.len();
+                    self.scope_starts.push(base);
+                    if self.scope_starts.len() - 1 == scope_base {
+                        frame_base = base;
+                    }
+                }
                 OpCode::PopScope => {
                     let num_active = self.scope_starts.len() - scope_base;
                     let min_active = if frames.len() > 1 { 1 } else { 0 };
@@ -516,12 +567,12 @@ impl Vm {
                 }
 
                 OpCode::Jump => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     ip += offset;
                 }
                 OpCode::JumpIfFalse => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     match self.pop()? {
                         VmValue::Bool(false) => ip += offset,
@@ -534,13 +585,13 @@ impl Vm {
                     }
                 }
                 OpCode::Loop => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     ip -= offset;
                 }
 
                 OpCode::Call => {
-                    let arg_count = chunk!().read_u16(ip) as usize;
+                    let arg_count = read_u16!() as usize;
                     ip += 2;
 
                     let callee_idx = self.stack.len() - 1 - arg_count;
@@ -565,13 +616,16 @@ impl Vm {
 
                             frames.last_mut().unwrap().ip = ip;
                             cur_chunk = &func.chunk as *const Chunk;
+                            self.current_chunk = cur_chunk;
                             frames.push(CallFrame {
                                 source: FrameSource::Func(func),
                                 ip: 0,
                                 scope_base: new_scope_base,
+                                frame_base: base,
                             });
                             ip = 0;
                             scope_base = new_scope_base;
+                            frame_base = base;
                         }
 
                         VmValue::Native(native) => {
@@ -614,13 +668,16 @@ impl Vm {
 
                             frames.last_mut().unwrap().ip = ip;
                             cur_chunk = &func.chunk as *const Chunk;
+                            self.current_chunk = cur_chunk;
                             frames.push(CallFrame {
                                 source: FrameSource::Func(func),
                                 ip: 0,
                                 scope_base: new_scope_base,
+                                frame_base: base,
                             });
                             ip = 0;
                             scope_base = new_scope_base;
+                            frame_base = base;
                         }
 
                         other => return Err(self.err(format!("cannot call {other:?}"))),
@@ -649,8 +706,10 @@ impl Vm {
                             }
                             let top = frames.last().unwrap();
                             cur_chunk = top.source.chunk();
+                            self.current_chunk = cur_chunk;
                             ip = top.ip;
                             scope_base = top.scope_base;
+                            frame_base = top.frame_base;
                         }
                         other => self.stack.push(other),
                     }
@@ -662,7 +721,7 @@ impl Vm {
                 }
 
                 OpCode::BuildArr => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building array"));
@@ -672,7 +731,7 @@ impl Vm {
                 }
 
                 OpCode::BuildTuple => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building tuple"));
@@ -709,7 +768,7 @@ impl Vm {
                 }
 
                 OpCode::BuildSet => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building set"));
@@ -726,7 +785,7 @@ impl Vm {
                 }
 
                 OpCode::BuildMap => {
-                    let count = chunk!().read_u16(ip) as usize; // number of entries
+                    let count = read_u16!() as usize; // number of entries
                     ip += 2;
                     if self.stack.len() < count * 2 {
                         return Err(self.err("stack underflow building map"));
@@ -746,11 +805,11 @@ impl Vm {
                 }
 
                 OpCode::BuildRecord => {
-                    let name_idx = chunk!().read_u16(ip) as usize;
+                    let name_idx = read_u16!() as usize;
                     ip += 2;
-                    let fields_idx = chunk!().read_u16(ip) as usize;
+                    let fields_idx = read_u16!() as usize;
                     ip += 2;
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
 
                     let VmValue::Str(name) = chunk!().constants[name_idx].clone() else {
@@ -780,7 +839,7 @@ impl Vm {
                 }
 
                 OpCode::FieldGet => {
-                    let field_idx = chunk!().read_u16(ip) as usize;
+                    let field_idx = read_u16!() as usize;
                     ip += 2;
                     let VmValue::Str(field) = chunk!().constants[field_idx].clone() else {
                         return Err(self.err("corrupt bytecode: field name is not a string"));
@@ -800,7 +859,7 @@ impl Vm {
                 }
 
                 OpCode::FieldSet => {
-                    let field_idx = chunk!().read_u16(ip) as usize;
+                    let field_idx = read_u16!() as usize;
                     ip += 2;
                     let VmValue::Str(field) = chunk!().constants[field_idx].clone() else {
                         return Err(self.err("corrupt bytecode: field name is not a string"));
@@ -821,9 +880,9 @@ impl Vm {
                     self.stack.push(value);
                 }
                 OpCode::BuildClosure => {
-                    let const_idx = chunk!().read_u16(ip) as usize;
+                    let const_idx = read_u16!() as usize;
                     ip += 2;
-                    let capture_start = chunk!().read_u16(ip);
+                    let capture_start = read_u16!();
                     ip += 2;
                     let VmValue::Function(func) = chunk!().constants[const_idx].clone() else {
                         return Err(
@@ -853,9 +912,9 @@ impl Vm {
                 }
 
                 OpCode::RegisterMethod => {
-                    let key_idx = chunk!().read_u16(ip) as usize;
+                    let key_idx = read_u16!() as usize;
                     ip += 2;
-                    let func_idx = chunk!().read_u16(ip) as usize;
+                    let func_idx = read_u16!() as usize;
                     ip += 2;
 
                     let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
@@ -868,7 +927,7 @@ impl Vm {
                 }
 
                 OpCode::LookupAssoc => {
-                    let key_idx = chunk!().read_u16(ip) as usize;
+                    let key_idx = read_u16!() as usize;
                     ip += 2;
 
                     let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
@@ -883,7 +942,7 @@ impl Vm {
                 }
 
                 OpCode::LookupMethod => {
-                    let name_idx = chunk!().read_u16(ip) as usize;
+                    let name_idx = read_u16!() as usize;
                     ip += 2;
 
                     let VmValue::Str(method) = chunk!().constants[name_idx].clone() else {
@@ -908,7 +967,7 @@ impl Vm {
                 }
 
                 OpCode::Cast => {
-                    let code = chunk!().read_u16(ip) as usize;
+                    let code = read_u16!() as usize;
                     ip += 2;
                     let value = self.pop()?;
                     let cast = self.cast(value, code)?;
@@ -1102,11 +1161,6 @@ impl Vm {
     /// Helper functions that wraps the Vec::pop to return valid VmError or VmValue
     fn pop(&mut self) -> Result<VmValue, VmError> {
         self.stack.pop().ok_or_else(|| self.err("stack underflow"))
-    }
-    fn pop_two(&mut self) -> Result<(VmValue, VmValue), VmError> {
-        let b = self.pop()?;
-        let a = self.pop()?;
-        Ok((a, b))
     }
 
     /// Helper function for arth operations
