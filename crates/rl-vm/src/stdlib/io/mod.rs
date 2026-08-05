@@ -1,8 +1,19 @@
-//! `std::io` - VM stdlib. Only `print`/`println` for now, since they're
-//! variadic and every `VmValue` variant already has a `Display` impl.
+//! `std::io` - input/output: reading from stdin, reading/writing files, printing.
 //!
-//! Unlike the interpreter's version, there's no `output_buffer` so
-//! it will write to stdout directly
+//! `print` and `println` write directly to stdout (the VM has no
+//! `output_buffer` like the interpreter's LSP/REPL path).
+//!
+//! `eprint` raises a runtime error rather than writing to stderr, so errors
+//! surface through rl's normal error reporting pipeline.
+
+mod append_file;
+mod delete_file;
+mod eprint;
+mod input;
+mod read_bytes;
+mod read_file;
+mod read_lines;
+mod write_file;
 
 use crate::native::Module;
 use crate::values::VmValue;
@@ -10,8 +21,18 @@ use crate::vm_logic::{Vm, VmError};
 
 pub fn module() -> Module {
     Module::new("io")
+        .with_raw_function("read", input::std_read)
+        .with_raw_function("read_int", input::std_read_int)
+        .with_raw_function("read_float", input::std_read_float)
+        .with_function("read_file", read_file::std_read_file)
+        .with_function("read_lines", read_lines::std_read_lines)
+        .with_function("delete_file", delete_file::std_delete_file)
+        .with_function("write_file", write_file::std_write_file)
+        .with_function("append_file", append_file::std_append_file)
         .with_raw_function("print", std_print)
         .with_raw_function("println", std_println)
+        .with_function("eprint", eprint::std_eprint)
+        .with_function("read_bytes", read_bytes::std_read_bytes)
 }
 
 fn std_print(_: &mut Vm, args: Vec<VmValue>) -> Result<VmValue, VmError> {
