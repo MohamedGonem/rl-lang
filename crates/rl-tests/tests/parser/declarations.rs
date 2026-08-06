@@ -1,8 +1,6 @@
-use {
-    rl_ast::{
-        nodes::ExpressionKind,
-        statements::{StatementKind, TypeAnnotation},
-    },
+use rl_ast::{
+    nodes::ExpressionKind,
+    statements::{StatementKind, TypeAnnotation},
 };
 
 use crate::common::{self, span_of, span_up_to, span_whole};

@@ -4,7 +4,6 @@ use crate::common::eval_program;
 
 use crate::interpreter::arrays::common::int_array;
 
-
 #[test]
 fn arr_push() {
     let ev = eval_program(

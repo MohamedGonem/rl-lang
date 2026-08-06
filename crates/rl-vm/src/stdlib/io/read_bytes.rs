@@ -1,4 +1,8 @@
-use crate::{Vm, stdlib::macros::{vby, verr, vok, vs}, values::VmValue};
+use crate::{
+    Vm,
+    stdlib::macros::{vby, verr, vok, vs},
+    values::VmValue,
+};
 use std::rc::Rc;
 
 pub fn std_read_bytes(_: &mut Vm, file: String) -> VmValue {

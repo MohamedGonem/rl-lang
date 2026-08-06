@@ -132,7 +132,8 @@ fn assign_uint() {
 
 #[test]
 fn assign_small_uint() {
-    let evaluator = eval_program("dec small uint x = 42 as small uint\nx = 3 as small uint").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = 42 as small uint\nx = 3 as small uint").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(3)));
 }
 
@@ -144,7 +145,8 @@ fn compound_assign_uint() {
 
 #[test]
 fn compound_assign_small_uint() {
-    let evaluator = eval_program("dec small uint x = 42 as small uint\nx += 3 as small uint").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = 42 as small uint\nx += 3 as small uint").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(45)));
 }
 

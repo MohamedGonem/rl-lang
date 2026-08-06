@@ -1,7 +1,7 @@
 use rl_ast::nodes::ExpressionKind;
 
-use crate::common::{self, span_of, span_whole};
 use crate::assert_while;
+use crate::common::{self, span_of, span_whole};
 
 #[test]
 fn while_loop() {

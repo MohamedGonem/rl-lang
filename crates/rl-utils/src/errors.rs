@@ -284,9 +284,13 @@ impl Error {
 
 #[cfg(test)]
 mod tests {
-    use crate::{errors::{ErrorReason, Reason}, source::SourceFile, span::Span};
+    use crate::{
+        errors::{ErrorReason, Reason},
+        source::SourceFile,
+        span::Span,
+    };
 
-use super::Error;
+    use super::Error;
 
     #[test]
     fn error_basic() {
@@ -317,17 +321,16 @@ use super::Error;
         let span = Span::new(0, 5);
         let source_file = SourceFile::new("main.rl", "print(\"foobar\")".to_string());
 
-        let err = Error::at(Reason::Lexer, "bad token", span)
-            .with_source_file(&source_file);
-        
+        let err = Error::at(Reason::Lexer, "bad token", span).with_source_file(&source_file);
+
         assert_eq!(err.span(), Some(span));
     }
 
     #[test]
     fn test_span_override() {
         let span_override = Span::new(1, 5);
-        let error = Error::at(Reason::Parse, "syntax error", Span::new(0, 0))
-            .with_span(span_override);
+        let error =
+            Error::at(Reason::Parse, "syntax error", Span::new(0, 0)).with_span(span_override);
 
         assert_eq!(error.message(), "syntax error");
         assert_eq!(error.span(), Some(span_override));
@@ -335,7 +338,10 @@ use super::Error;
 
     #[test]
     fn test_error_reason_string() {
-        let reason = ErrorReason::init(Reason::Interpreter, Some(vec!["stack overflow".to_string()]));
+        let reason = ErrorReason::init(
+            Reason::Interpreter,
+            Some(vec!["stack overflow".to_string()]),
+        );
         assert_eq!(reason.get_type_string(), "Interpreter Error");
     }
 }

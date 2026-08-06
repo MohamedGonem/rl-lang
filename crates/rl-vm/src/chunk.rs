@@ -233,7 +233,10 @@ impl Chunk {
     /// appends exactly two bytes), mirroring [`OpCode::from_u8_unchecked`].
     #[inline(always)]
     pub unsafe fn read_u16_unchecked(&self, offset: usize) -> u16 {
-        debug_assert!(offset + 1 < self.code.len(), "operand read past end of code");
+        debug_assert!(
+            offset + 1 < self.code.len(),
+            "operand read past end of code"
+        );
         unsafe {
             let p = self.code.as_ptr().add(offset);
             u16::from_le_bytes([*p, *p.add(1)])

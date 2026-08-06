@@ -1,7 +1,7 @@
 mod common;
 mod declaration;
-mod index_lookup;
 mod errors;
-mod operations;
+mod index_lookup;
 mod loops;
 mod mutation;
+mod operations;
