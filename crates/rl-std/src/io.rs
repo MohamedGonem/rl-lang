@@ -1,0 +1,263 @@
+//! `std::io` - input/output: reading from stdin, reading/writing files, printing.
+//!
+//! `print` and `println` write to [`Runtime::output_buffer`] when set (the REPL
+//! captures per-input output there), otherwise directly to stdout. They are
+//! variadic and untyped: they stringify each argument via `R::display` (the old
+//! `Value::to_string`).
+//!
+//! `read`/`read_int`/`read_float` read a line from stdin. They are variadic and
+//! untyped, accepting 0 or 1 optional prompt argument (any scalar, stringified
+//! via `R::display`); with more than one argument they return an `err(..)`.
+//! `read_int`/`read_float` then parse the line and return a language
+//! `result[int]` / `result[float]`.
+//!
+//! The file functions (`read_file`, `read_lines`, `read_bytes`, `write_file`,
+//! `append_file`, `delete_file`) return a language `result[T]` value.
+//!
+//! `eprint` raises a propagating runtime error rather than writing to stderr, so
+//! errors surface through rl's normal error reporting pipeline. Ported once from
+//! the former per-runtime `stdlib/io/*.rs` copies; logic and error strings are
+//! preserved exactly.
+
+use rl_std_core::Runtime;
+use rl_std_macros::native_fn;
+use rl_utils::errors::Error;
+
+// ---- printing (variadic, untyped) -----------------------------------------
+
+#[native_fn(module = "io", untyped)]
+pub fn print<R: Runtime>(cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
+    let text = args.iter().map(|v| R::display(v)).collect::<String>();
+    if let Some(buffer) = R::output_buffer(cx) {
+        buffer.push_str(&text);
+    } else {
+        print!("{}", text);
+    }
+    R::null()
+}
+
+#[native_fn(module = "io", untyped)]
+pub fn println<R: Runtime>(cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
+    let text = args.iter().map(|v| R::display(v)).collect::<String>();
+    if let Some(buffer) = R::output_buffer(cx) {
+        buffer.push_str(&text);
+        buffer.push('\n');
+    } else {
+        println!("{}", text);
+    }
+    R::null()
+}
+
+// ---- stdin reading (variadic, untyped, 0-or-1 optional prompt) -------------
+
+/// Reads a line from stdin, returning a language `result[string]` with the
+/// trimmed line (`ok`) or a read error (`err`).
+fn read_line<R: Runtime>() -> R::Value {
+    let mut input = String::new();
+    match std::io::stdin().read_line(&mut input) {
+        Ok(_) => R::ok(R::from_string(input.trim().to_string())),
+        Err(e) => R::err(R::from_string(format!("read: failed to read line: {}", e))),
+    }
+}
+
+/// Optionally prints `prompt` (flushing stdout), then reads a line.
+fn input<R: Runtime>(prompt: Option<&R::Value>) -> R::Value {
+    match prompt {
+        None => read_line::<R>(),
+        Some(p) => {
+            use std::io::Write;
+            print!("{}", R::display(p));
+            std::io::stdout().flush().ok();
+            read_line::<R>()
+        }
+    }
+}
+
+// Optional-prompt overloads: `read()` or `read(prompt)` where `prompt` is any
+// scalar (stringified). Returns `result[string]`.
+#[native_fn(module = "io",
+    sig(-> result[string]),
+    sig(int -> result[string]),
+    sig(float -> result[string]),
+    sig(string -> result[string]),
+    sig(bool -> result[string]),
+    sig(char -> result[string]))]
+pub fn read<R: Runtime>(args: Vec<R::Value>) -> R::Value {
+    match args.len() {
+        0 => input::<R>(None),
+        1 => input::<R>(args.first()),
+        n => R::err(R::from_string(format!(
+            "read: expects 0 or 1 argument(s), got {}",
+            n
+        ))),
+    }
+}
+
+#[native_fn(module = "io",
+    sig(-> result[int]),
+    sig(int -> result[int]),
+    sig(float -> result[int]),
+    sig(string -> result[int]),
+    sig(bool -> result[int]),
+    sig(char -> result[int]))]
+pub fn read_int<R: Runtime>(args: Vec<R::Value>) -> R::Value {
+    let value = match args.len() {
+        0 => input::<R>(None),
+        1 => input::<R>(args.first()),
+        n => {
+            return R::err(R::from_string(format!(
+                "read_int: expects 0 or 1 argument(s), got {}",
+                n
+            )));
+        }
+    };
+
+    if let Some(inner) = R::as_ok_inner(&value) {
+        match R::as_str(&inner) {
+            Some(s) => match s.parse::<i64>() {
+                Ok(i) => R::ok(R::from_i64(i)),
+                Err(_) => R::err(R::from_string(format!(
+                    "read_int: \"{}\" is not a valid integer",
+                    s
+                ))),
+            },
+            None => R::err(R::from_string(format!(
+                "read_int: found unsupported type from input, got {}",
+                R::type_name(&inner)
+            ))),
+        }
+    } else if R::as_err_inner(&value).is_some() {
+        // propagate a failed read as-is (e.g. stdin read error)
+        value
+    } else {
+        R::err(R::from_string(format!(
+            "read_int: found unsupported type from input, got {}",
+            R::type_name(&value)
+        )))
+    }
+}
+
+#[native_fn(module = "io",
+    sig(-> result[float]),
+    sig(int -> result[float]),
+    sig(float -> result[float]),
+    sig(string -> result[float]),
+    sig(bool -> result[float]),
+    sig(char -> result[float]))]
+pub fn read_float<R: Runtime>(args: Vec<R::Value>) -> R::Value {
+    let value = match args.len() {
+        0 => input::<R>(None),
+        1 => input::<R>(args.first()),
+        n => {
+            return R::err(R::from_string(format!(
+                "read_float: expects 0 or 1 argument(s), got {}",
+                n
+            )));
+        }
+    };
+
+    if let Some(inner) = R::as_ok_inner(&value) {
+        match R::as_str(&inner) {
+            Some(s) => match s.parse::<f64>() {
+                Ok(f) => R::ok(R::from_f64(f)),
+                Err(_) => R::err(R::from_string(format!(
+                    "read_float: \"{}\" is not a valid float",
+                    s
+                ))),
+            },
+            None => R::err(R::from_string(format!(
+                "read_float: found unsupported type from input, got {}",
+                R::type_name(&inner)
+            ))),
+        }
+    } else if R::as_err_inner(&value).is_some() {
+        // propagate a failed read as-is (e.g. stdin read error)
+        value
+    } else {
+        R::err(R::from_string(format!(
+            "read_float: found unsupported type from input, got {}",
+            R::type_name(&value)
+        )))
+    }
+}
+
+// ---- file reading (language `result[T]`) ----------------------------------
+
+#[native_fn(module = "io")]
+pub fn read_file(file: String) -> Result<String, String> {
+    match std::fs::read_to_string(&file) {
+        Ok(d) => Ok(d),
+        Err(e) => Err(format!("read_file: failed to read \"{}\": {}", file, e)),
+    }
+}
+
+#[native_fn(module = "io")]
+pub fn read_lines(file: String) -> Result<Vec<String>, String> {
+    match std::fs::read_to_string(&file) {
+        Ok(d) => Ok(d.lines().map(String::from).collect()),
+        Err(e) => Err(format!("read_lines: failed to read \"{}\": {}", file, e)),
+    }
+}
+
+#[native_fn(module = "io")]
+pub fn read_bytes(file: String) -> Result<Vec<u8>, String> {
+    match std::fs::read(&file) {
+        Ok(d) => Ok(d),
+        Err(e) => Err(format!("read_bytes: failed to read \"{}\": {}", file, e)),
+    }
+}
+
+// ---- file writing (language `result[null]`) -------------------------------
+
+#[native_fn(module = "io")]
+pub fn write_file(file: String, content: String) -> Result<(), String> {
+    match std::fs::write(&file, content) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("write_file: failed to write \"{}\": {}", file, e)),
+    }
+}
+
+#[native_fn(module = "io")]
+pub fn append_file(file: String, content: String) -> Result<(), String> {
+    use std::io::Write;
+    let mut file_data = match std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&file)
+    {
+        Ok(fd) => fd,
+        Err(e) => {
+            return Err(format!("append_file: failed to open \"{}\": {}", file, e));
+        }
+    };
+
+    match file_data.write_all(content.as_bytes()) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("append_file: failed to append \"{}\": {}", file, e)),
+    }
+}
+
+#[native_fn(module = "io")]
+pub fn delete_file(file: String) -> Result<(), String> {
+    match std::fs::remove_file(&file) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("delete_file: failed to read \"{}\": {}", file, e)),
+    }
+}
+
+// ---- stderr (propagating runtime error) -----------------------------------
+
+#[native_fn(module = "io")]
+pub fn eprint<R: Runtime>(cx: &mut R::Cx, string: String, span: R::Span) -> Result<(), Error> {
+    Err(R::error(cx, string, span))
+}
+
+rl_std_core::native_module!("io";
+    funcs: [
+        print, println,
+        read, read_int, read_float,
+        read_file, read_lines, read_bytes,
+        write_file, append_file, delete_file,
+        eprint,
+    ],
+);

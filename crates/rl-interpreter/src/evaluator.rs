@@ -3,16 +3,18 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::{
     native::{IntoNativeFn, Module},
-    stdlib::{
-        self, audio::AudioHandle, c::CHandle, gui::GuiHandle, http::HttpHandle, net::NetHandle,
-        random::xoshiro::Xoshiro256,
-    },
+    stdlib,
     values::{FunctionData, MapKey, Value},
 };
+use rl_std::audio::AudioHandle;
+use rl_std::c::CHandle;
+use rl_std::gui::GuiHandle;
+use rl_std::http::HttpHandle;
+use rl_std::net::NetHandle;
+use rl_std_core::Xoshiro256;
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
 use rl_lexer::tokentypes::TokenType;
 use rl_resolver::Resolver;
@@ -99,7 +101,7 @@ pub struct Evaluator {
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub audio_master_volume: f32,
     /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
-    pub gui_handles: HashMap<u64, GuiHandle>,
+    pub gui_handles: HashMap<u64, GuiHandle<Value>>,
     /// Next handle id to hand out for `std::gui` resources; only ever increments.
     pub gui_next_handle: u64,
     /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
@@ -185,35 +187,64 @@ impl Evaluator {
     {
         self.root_module
             .functions
-            .insert(name.into(), f.into_native());
+            .insert(name.into(), crate::native::EvalNative::Legacy(f.into_native()));
         self
     }
 
     /// Loads the full stdlib into the root module under `std::*`.
     pub fn with_stdlib(self) -> Self {
+        use crate::runtime::EvalRuntime;
         self.with_module(
             Module::new("std")
-                .with_module(stdlib::audio::module())
-                .with_module(stdlib::math::module())
-                .with_module(stdlib::io::module())
-                .with_module(stdlib::bitwise::module())
-                .with_module(stdlib::string::module())
-                .with_module(stdlib::types::module())
-                .with_module(stdlib::array::module())
-                .with_module(stdlib::path::module())
-                .with_module(stdlib::fs::module())
-                .with_module(stdlib::random::module())
-                .with_module(stdlib::time::module())
-                .with_module(stdlib::process::module())
-                .with_module(stdlib::result::module())
-                .with_module(stdlib::terminal::module())
+                .with_module(
+                    Module::from_std("math", rl_std::math::handles::<EvalRuntime>()).with_module(
+                        Module::from_std(
+                            "consts",
+                            rl_std::math::constants::handles::<EvalRuntime>(),
+                        ),
+                    ),
+                )
+                .with_module(Module::from_std("io", rl_std::io::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "bitwise",
+                    rl_std::bitwise::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std(
+                    "str",
+                    rl_std::string::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("types", rl_std::types::handles::<EvalRuntime>()))
+                .with_module(
+                    Module::from_std("array", rl_std::array::handles::<EvalRuntime>())
+                        .with_function("len", stdlib::len::std_len),
+                )
+                .with_module(Module::from_std("path", rl_std::path::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("fs", rl_std::fs::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "random",
+                    rl_std::random::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("time", rl_std::time::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "process",
+                    rl_std::process::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("res", rl_std::result::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "term",
+                    rl_std::terminal::handles::<EvalRuntime>(),
+                ))
                 .with_module(stdlib::rl::module())
-                .with_module(stdlib::debug::module())
-                .with_module(stdlib::net::module())
-                .with_module(stdlib::http::module())
-                .with_module(stdlib::collections::module())
-                .with_module(stdlib::c::module())
-                .with_module(stdlib::gui::module()),
+                .with_module(Module::from_std("debug", rl_std::debug::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("net", rl_std::net::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("http", rl_std::http::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "collections",
+                    rl_std::collections::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("c", rl_std::c::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("audio", rl_std::audio::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("gui", rl_std::gui::handles::<EvalRuntime>())),
         )
     }
 
@@ -1293,9 +1324,12 @@ impl Evaluator {
             let f = Rc::clone(f);
             return self.call_value(Value::Function(f), args, span);
         }
-        if let Some(f) = self.root_module.resolve(path) {
-            let f = Arc::clone(f);
-            return match f(self, args, span) {
+        if let Some(native) = self.root_module.resolve(path).cloned() {
+            let result = match native {
+                crate::native::EvalNative::Std(h) => (h.thunk)(self, args, span),
+                crate::native::EvalNative::Legacy(f) => f(self, args, span),
+            };
+            return match result {
                 Ok(v) => Ok(v),
                 Err(e) if e.span().is_some() => Err(match &self.source_file {
                     Some(file) => e.with_source_file(file),
@@ -1313,29 +1347,29 @@ impl Evaluator {
         let mut err = self.err(format!("undefined function {}", path.join("::")), span);
         // suggest a stdlib leaf name if the last segment is a close typo
         if let Some(last) = path.last() {
-            let candidates = stdlib::array::KEYWORDS
+            let candidates = rl_std::array::KEYWORDS
                 .iter()
-                .chain(stdlib::audio::KEYWORDS)
-                .chain(stdlib::bitwise::KEYWORDS)
-                .chain(stdlib::c::KEYWORDS)
-                .chain(stdlib::collections::KEYWORDS)
-                .chain(stdlib::debug::KEYWORDS)
-                .chain(stdlib::fs::KEYWORDS)
-                .chain(stdlib::gui::KEYWORDS)
-                .chain(stdlib::http::KEYWORDS)
-                .chain(stdlib::io::KEYWORDS)
-                .chain(stdlib::math::KEYWORDS)
-                .chain(stdlib::math::constants::KEYWORDS)
-                .chain(stdlib::net::KEYWORDS)
-                .chain(stdlib::path::KEYWORDS)
-                .chain(stdlib::process::KEYWORDS)
-                .chain(stdlib::random::KEYWORDS)
-                .chain(stdlib::result::KEYWORDS)
+                .chain(rl_std::audio::KEYWORDS)
+                .chain(rl_std::bitwise::KEYWORDS)
+                .chain(rl_std::c::KEYWORDS)
+                .chain(rl_std::collections::KEYWORDS)
+                .chain(rl_std::debug::KEYWORDS)
+                .chain(rl_std::fs::KEYWORDS)
+                .chain(rl_std::gui::KEYWORDS)
+                .chain(rl_std::http::KEYWORDS)
+                .chain(rl_std::io::KEYWORDS)
+                .chain(rl_std::math::KEYWORDS)
+                .chain(rl_std::math::constants::KEYWORDS)
+                .chain(rl_std::net::KEYWORDS)
+                .chain(rl_std::path::KEYWORDS)
+                .chain(rl_std::process::KEYWORDS)
+                .chain(rl_std::random::KEYWORDS)
+                .chain(rl_std::result::KEYWORDS)
                 .chain(stdlib::rl::KEYWORDS)
-                .chain(stdlib::string::KEYWORDS)
-                .chain(stdlib::terminal::KEYWORDS)
-                .chain(stdlib::time::KEYWORDS)
-                .chain(stdlib::types::KEYWORDS)
+                .chain(rl_std::string::KEYWORDS)
+                .chain(rl_std::terminal::KEYWORDS)
+                .chain(rl_std::time::KEYWORDS)
+                .chain(rl_std::types::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));

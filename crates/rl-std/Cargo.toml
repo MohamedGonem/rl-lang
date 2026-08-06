@@ -1,0 +1,48 @@
+[package]
+name = "rl-std"
+version = "1.0.0"
+readme = "readme.md"
+edition.workspace = true
+license.workspace = true
+description = "The single, runtime-agnostic implementation of the rl-lang standard library, shared by the VM and the interpreter"
+repository.workspace = true
+
+[dependencies]
+rl-std-core.workspace = true
+rl-std-macros.workspace = true
+rl-ast.workspace = true
+rl-utils.workspace = true
+
+# Heavy, OS-facing dependencies are only needed by the runtime implementations
+# (the `impls` feature). The checker/LSP enable only `signatures`, keeping their
+# dependency tree light.
+crossterm = { workspace = true, optional = true }
+tiny_http = { workspace = true, optional = true }
+ureq = { workspace = true, optional = true }
+libloading = { workspace = true, optional = true }
+libffi = { workspace = true, optional = true }
+rodio = { workspace = true, optional = true }
+cpal = { workspace = true, optional = true }
+symphonia = { workspace = true, optional = true }
+eframe = { workspace = true, optional = true }
+shell-words = { workspace = true, optional = true }
+
+[features]
+default = ["signatures"]
+# Signature-only build: pure `rl-ast`, no OS-facing dependencies. Used by the
+# type checker and the language server.
+signatures = []
+# Full runtime build: the actual function implementations and their handle
+# dependencies. Used by the VM and the interpreter.
+impls = [
+    "dep:crossterm",
+    "dep:tiny_http",
+    "dep:ureq",
+    "dep:libloading",
+    "dep:libffi",
+    "dep:rodio",
+    "dep:cpal",
+    "dep:symphonia",
+    "dep:eframe",
+    "dep:shell-words",
+]
