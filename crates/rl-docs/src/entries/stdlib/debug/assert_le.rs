@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static ASSERT_LE: FnEntry = FnEntry {
     signature: "assert_le(a, b, msg?)",
     description: "errors if `a` is greater than `b`; accepts int, float, or byte",
-    example: r#"
-get std::debug::assert_le
+    example: r#"get std::debug::assert_le
 
 assert_le(2, 2)"#,
     expected_output: None,

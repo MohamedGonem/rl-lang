@@ -27,6 +27,7 @@ fn rt_err(message: impl Into<String>) -> VmError {
 pub type NativeFn = Rc<dyn Fn(&mut Vm, Vec<VmValue>) -> Result<VmValue, VmError>>;
 
 /// A named collection of [`VmNativeFn`]s, optionally containing sub-[`Module`]s.
+#[derive(Clone)]
 pub struct Module {
     /// The module name as used in import paths (e.g. `"io"`, `"math"`).
     pub name: String,
@@ -114,8 +115,70 @@ impl FromValue for i64 {
     fn from_value(v: VmValue) -> Result<Self, VmError> {
         match v {
             VmValue::Int(i) => Ok(i),
-            VmValue::Byte(b) => Ok(b as i64),
             other => Err(rt_err(format!("expected int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u64 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::UInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected uint, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SUInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small uint, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BSByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big byte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::Byte(b) => Ok(b),
+            other => Err(rt_err(format!("expected byte, got {other:?}"))),
         }
     }
 }
@@ -124,6 +187,15 @@ impl FromValue for f64 {
     fn from_value(v: VmValue) -> Result<Self, VmError> {
         match v {
             VmValue::Float(f) => Ok(f),
+            other => Err(rt_err(format!("expected float, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SFloat(f) => Ok(f),
             other => Err(rt_err(format!("expected float, got {other:?}"))),
         }
     }
@@ -179,9 +251,57 @@ impl IntoValue for i64 {
     }
 }
 
+impl IntoValue for u64 {
+    fn into_value(self) -> VmValue {
+        VmValue::UInt(self)
+    }
+}
+
+impl IntoValue for i32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SInt(self)
+    }
+}
+
+impl IntoValue for u32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SUInt(self)
+    }
+}
+
+impl IntoValue for i16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BSByte(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BByte(self)
+    }
+}
+
+impl IntoValue for i8 {
+    fn into_value(self) -> VmValue {
+        VmValue::SByte(self)
+    }
+}
+
+impl IntoValue for u8 {
+    fn into_value(self) -> VmValue {
+        VmValue::Byte(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> VmValue {
         VmValue::Float(self)
+    }
+}
+
+impl IntoValue for f32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SFloat(self)
     }
 }
 

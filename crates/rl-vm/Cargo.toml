@@ -1,6 +1,6 @@
 [package]
 name = "rl-vm"
-version = "0.3.0"
+version = "1.0.0"
 readme = "readme.md"
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,19 @@ repository.workspace = true
 
 [dependencies]
 rl-ast.workspace = true
+rl-checker.workspace = true
 rl-lexer.workspace = true
+rl-parser.workspace = true
+rl-resolver.workspace = true
 rl-utils.workspace = true
 zstd.workspace = true
+libloading.workspace = true
+libffi.workspace = true
+rodio.workspace = true
+cpal.workspace = true
+symphonia.workspace = true
+eframe.workspace = true
+crossterm.workspace = true
+tiny_http.workspace = true
+ureq.workspace = true
+shell-words.workspace = true

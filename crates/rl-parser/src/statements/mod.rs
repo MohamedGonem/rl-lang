@@ -12,6 +12,7 @@ mod const_declaration;
 mod for_statement;
 mod function_declaration;
 mod if_statement;
+mod impl_block;
 mod import_statement;
 mod infer_declaration;
 mod match_statement;
@@ -185,6 +186,13 @@ impl Parser {
                 #[cfg(feature = "debug")]
                 log::info!("found `tag` while parsing");
                 self.parse_tag_declaration(start)
+            }
+
+            TokenType::Impl => {
+                self.advance();
+                #[cfg(feature = "debug")]
+                log::info!("found `impl` while parsing");
+                self.parse_impl_block(start)
             }
 
             _ => {

@@ -12,8 +12,16 @@
 //! - `ImportFile` / `ImportFileNamed`: reads the file from disk, lexes, parses,
 //!   and resolves it inline - the result replaces the import statement with
 //!   `ResolvedImportFile { body }` containing the fully resolved statements.
-//!   `ImportFileNamed` additionally filters to only the requested names before resolving.
-//!   Both silently return the original unresolved statement on any IO/parse failure
+//!   `ImportFileNamed` additionally filters to only the requested names before
+//!   resolving (records pull their `ImplBlock` methods along automatically).
+//!   Both silently return the original unresolved statement on any IO/parse
+//!   failure, or if the file is already being resolved further up the import
+//!   chain (an import cycle - `self.importing` guards against this so a
+//!   circular `get` can't blow the stack; reporting it as a real error is
+//!   the checker's job). Parsed files are cached per canonical path in
+//!   `self.import_cache` so a module imported from multiple places is only
+//!   read/lexed/parsed/merged once - each import site still resolves its own
+//!   clone, since slot numbers depend on the importing scope.
 
 use crate::Resolver;
 use rl_ast::{
@@ -36,6 +44,46 @@ impl Resolver {
             .into_iter()
             .map(|statement| self.resolve_statement(statement))
             .collect()
+    }
+
+    /// Resolves `path` (e.g. `["mymodule", "sub"]`) to a `.rl` file relative
+    /// to `self.current_dir`, and returns its canonical path, the directory
+    /// it lives in, and its parsed statements with expression ids already
+    /// remapped into `self.ast_arena`.
+    ///
+    /// The parsed-and-merged statement list is cached per canonical path, so
+    /// importing the same file from several places only reads/lexes/parses/
+    /// merges it once; callers still get their own clone to resolve with
+    /// fresh slots, since slot numbers are specific to the importing scope.
+    ///
+    /// Returns `None` on any IO or parse failure, matching the previous
+    /// behavior of silently falling back to the unresolved import statement.
+    fn load_import_file(
+        &mut self,
+        path: &[String],
+    ) -> Option<(std::path::PathBuf, std::path::PathBuf, Vec<Statement>)> {
+        let import_name = format!("{}.rl", path.join("/"));
+        let file_path = self.current_dir.join(&import_name);
+        let canonical = file_path
+            .canonicalize()
+            .unwrap_or_else(|_| file_path.clone());
+        let imported_dir = file_path
+            .parent()
+            .unwrap_or(std::path::Path::new(""))
+            .to_path_buf();
+
+        if let Some(cached) = self.import_cache.get(&canonical) {
+            return Some((canonical, imported_dir, cached.clone()));
+        }
+
+        let source_text = std::fs::read_to_string(&file_path).ok()?;
+        let source_file = SourceFile::new(file_path.to_string_lossy().as_ref(), source_text);
+        let tokens = Tokenizer::lex(source_file.clone()).ok()?;
+        let (imported_ast, stmts) = Parser::parse(tokens, source_file).ok()?;
+        let stmts = self.ast_arena.merge_statements(imported_ast, stmts);
+
+        self.import_cache.insert(canonical.clone(), stmts.clone());
+        Some((canonical, imported_dir, stmts))
     }
 
     fn resolve_statement(&mut self, stmt: Statement) -> Statement {
@@ -222,6 +270,48 @@ impl Resolver {
                     attribute,
                 }
             }
+            StatementKind::ImplBlock { record, methods } => {
+                let methods = methods
+                    .into_iter()
+                    .map(|m| {
+                        let m_span = m.span;
+                        match m.kind {
+                            StatementKind::FunctionDeclaration {
+                                name,
+                                params,
+                                return_type,
+                                body,
+                                attribute,
+                            } => {
+                                self.push_scope();
+                                for p in &params {
+                                    self.declare(p.param_name.clone());
+                                }
+                                let body = self.resolve_statements(body);
+                                self.pop_scope();
+                                Statement::new(
+                                    StatementKind::ResolvedFunctionDeclaration {
+                                        name,
+                                        // impl methods are dispatched by
+                                        // `record::method` name, not by
+                                        // lexical address - this slot is
+                                        // never read.
+                                        slot: usize::MAX,
+                                        params,
+                                        return_type,
+                                        body,
+                                        attribute,
+                                    },
+                                    m_span,
+                                )
+                            }
+                            other => Statement::new(other, m_span),
+                        }
+                    })
+                    .collect();
+                StatementKind::ResolvedImplBlock { record, methods }
+            }
+
             StatementKind::ForEach {
                 variable,
                 iterable,
@@ -336,29 +426,17 @@ impl Resolver {
             }
 
             StatementKind::ImportFile { path } => {
-                let import_name = format!("{}.rl", path.join("/"));
-                let file_path = self.current_dir.join(&import_name);
-                let Ok(source_text) = std::fs::read_to_string(&file_path) else {
+                let Some((canonical, imported_dir, stmts)) = self.load_import_file(&path) else {
                     return Statement::new(StatementKind::ImportFile { path }, span);
                 };
-                let source_file =
-                    SourceFile::new(file_path.to_string_lossy().as_ref(), source_text);
-                let Ok(tokens) = Tokenizer::lex(source_file.clone()) else {
+                if !self.importing.insert(canonical.clone()) {
                     return Statement::new(StatementKind::ImportFile { path }, span);
-                };
-                let Ok((imported_ast, stmts)) = Parser::parse(tokens, source_file) else {
-                    return Statement::new(StatementKind::ImportFile { path }, span);
-                };
+                }
 
-                let stmts = self.ast_arena.merge_statements(imported_ast, stmts);
-
-                let imported_dir = file_path
-                    .parent()
-                    .unwrap_or(std::path::Path::new(""))
-                    .to_path_buf();
                 let prev_dir = std::mem::replace(&mut self.current_dir, imported_dir);
                 let resolved = self.resolve_statements(stmts);
                 self.current_dir = prev_dir;
+                self.importing.remove(&canonical);
 
                 StatementKind::ResolvedImportFile {
                     path,
@@ -367,19 +445,13 @@ impl Resolver {
             }
 
             StatementKind::ImportFileNamed { path, names } => {
-                let import_name = format!("{}.rl", path.join("/"));
-                let file_path = self.current_dir.join(&import_name);
-                let Ok(source_text) = std::fs::read_to_string(&file_path) else {
+                let Some((canonical, imported_dir, stmts)) = self.load_import_file(&path) else {
                     return Statement::new(StatementKind::ImportFileNamed { path, names }, span);
                 };
-                let source_file =
-                    SourceFile::new(file_path.to_string_lossy().as_ref(), source_text);
-                let Ok(tokens) = Tokenizer::lex(source_file.clone()) else {
+                if !self.importing.insert(canonical.clone()) {
                     return Statement::new(StatementKind::ImportFileNamed { path, names }, span);
-                };
-                let Ok((imported_ast, stmts)) = Parser::parse(tokens, source_file) else {
-                    return Statement::new(StatementKind::ImportFileNamed { path, names }, span);
-                };
+                }
+
                 let stmts: Vec<_> = stmts
                     .into_iter()
                     .filter(|s| match &s.kind {
@@ -394,19 +466,15 @@ impl Resolver {
                         | StatementKind::ConstantSet { name, .. } => names.contains(name),
                         StatementKind::RecordDeclaration { name, .. }
                         | StatementKind::TagDeclaration { name, .. } => names.contains(name),
+                        StatementKind::ImplBlock { record, .. } => names.contains(record),
                         _ => false,
                     })
                     .collect();
 
-                let stmts = self.ast_arena.merge_statements(imported_ast, stmts);
-
-                let imported_dir = file_path
-                    .parent()
-                    .unwrap_or(std::path::Path::new(""))
-                    .to_path_buf();
                 let prev_dir = std::mem::replace(&mut self.current_dir, imported_dir);
                 let body = self.resolve_statements(stmts);
                 self.current_dir = prev_dir;
+                self.importing.remove(&canonical);
 
                 StatementKind::ResolvedImportFile { path, body }
             }

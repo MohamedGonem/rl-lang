@@ -5,6 +5,10 @@
 //! | `!`      | bool            | bool   |
 //! | `-`      | int             | int    |
 //! | `-`      | float           | float  |
+//!
+//! `uint` deliberately has no `-` rule - negating an unsigned value doesn't
+//! produce another valid `uint`, so it's rejected here as a type error
+//! rather than silently wrapping or falling back to `int`.
 
 use crate::structs::{CheckType, TypeChecker};
 use rl_ast::statements::TypeAnnotation;
@@ -40,6 +44,13 @@ impl TypeChecker {
                 }
                 CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat) => {
                     CheckType::Known(TypeAnnotation::Float)
+                }
+                CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt) => {
+                    self.error(
+                        "cannot negate a uint value - uint has no negative range".to_string(),
+                        span,
+                    );
+                    CheckType::Unknown
                 }
                 _ => {
                     self.error(

@@ -1,0 +1,25 @@
+use rl_ast::statements::HandleKind;
+
+use crate::{
+    evaluator::Evaluator,
+    stdlib::{
+        common::{extract_handle, verr, vok, vs},
+        gui::GuiHandle,
+    },
+    values::Value,
+};
+
+pub fn func(eval: &mut Evaluator, handle: Value) -> Value {
+    let id = match extract_handle(handle, HandleKind::Gui, "gui_get_text") {
+        Ok(id) => id,
+        Err(e) => return verr!(vs!(e)),
+    };
+
+    match eval.gui_handles.get(&id) {
+        Some(GuiHandle::Button(b)) => vok!(vs!(b.label.clone())),
+        Some(GuiHandle::Label(l)) => vok!(vs!(l.text.clone())),
+        Some(GuiHandle::Textbox(t)) => vok!(vs!(t.text.clone())),
+        Some(_) => verr!(vs!(format!("gui_get_text: handle {} has no text", id))),
+        None => verr!(vs!(format!("gui_get_text: unknown handle {}", id))),
+    }
+}

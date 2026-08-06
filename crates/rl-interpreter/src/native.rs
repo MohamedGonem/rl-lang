@@ -139,6 +139,42 @@ impl ValueType for u8 {
     }
 }
 
+impl ValueType for i32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SInt
+    }
+}
+
+impl ValueType for u32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SUInt
+    }
+}
+
+impl ValueType for i16 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::BSByte
+    }
+}
+
+impl ValueType for u16 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::BByte
+    }
+}
+
+impl ValueType for i8 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SByte
+    }
+}
+
+impl ValueType for f32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SFloat
+    }
+}
+
 /// Converts a [`Value`] into a typed Rust value, or returns a runtime error.
 /// Implemented for `i64`, `f64`, `String`, `bool`, `char`, `Vec<T>`, and `Value` itself.
 pub trait FromValue: Sized {
@@ -155,7 +191,19 @@ impl FromValue for i64 {
     fn from_value(v: Value, span: Span) -> Result<Self, Error> {
         match v {
             Value::Integer(i) => Ok(i),
-            Value::Byte(b) => Ok(b as i64),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected integer, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u64 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::UInteger(u) => Ok(u),
             other => Err(Error::at(
                 Reason::Runtime,
                 format!("expected integer, got {}", other.type_name()),
@@ -172,6 +220,84 @@ impl FromValue for f64 {
             other => Err(Error::at(
                 Reason::Runtime,
                 format!("expected float, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SInteger(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i32, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SUInteger(u) => Ok(u),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected u32, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i16 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::BSByte(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i16, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::BByte(u) => Ok(u),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected u16, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i8 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SByte(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i8, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SFloat(f) => Ok(f),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected f32, got {}", other.type_name()),
                 span,
             )),
         }
@@ -257,6 +383,12 @@ impl IntoValue for i64 {
     }
 }
 
+impl IntoValue for u64 {
+    fn into_value(self) -> Value {
+        Value::UInteger(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> Value {
         Value::Float(self)
@@ -284,6 +416,42 @@ impl IntoValue for char {
 impl IntoValue for u8 {
     fn into_value(self) -> Value {
         Value::Byte(self)
+    }
+}
+
+impl IntoValue for i32 {
+    fn into_value(self) -> Value {
+        Value::SInteger(self)
+    }
+}
+
+impl IntoValue for u32 {
+    fn into_value(self) -> Value {
+        Value::SUInteger(self)
+    }
+}
+
+impl IntoValue for i16 {
+    fn into_value(self) -> Value {
+        Value::BSByte(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> Value {
+        Value::BByte(self)
+    }
+}
+
+impl IntoValue for i8 {
+    fn into_value(self) -> Value {
+        Value::SByte(self)
+    }
+}
+
+impl IntoValue for f32 {
+    fn into_value(self) -> Value {
+        Value::SFloat(self)
     }
 }
 

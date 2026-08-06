@@ -64,11 +64,17 @@ impl Tokenizer {
             "err" => self.add_token(TokenType::Err),
             "match" => self.add_token(TokenType::Match),
             "record" => self.add_token(TokenType::Record),
+            "impl" => self.add_token(TokenType::Impl),
             "tag" => self.add_token(TokenType::Tag),
             "map" => self.add_token(TokenType::Map),
             "set" => self.add_token(TokenType::Set),
             "loop" => self.add_token(TokenType::Loop),
             "_" => self.add_token(TokenType::Wildcard),
+            "uint" => self.add_token(TokenType::UInt),
+            "big" => self.add_token(TokenType::Big),
+            "small" => self.add_token(TokenType::Small),
+            "sbyte" => self.add_token(TokenType::SByte),
+            "handle" => self.add_token(TokenType::Handle),
 
             &_ => self.add_token(TokenType::Identifier(value)),
         }

@@ -2,7 +2,7 @@
 
 > Bytecode virtual machine for the rl-lang programming language
 
-Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. This is the experimental, alternative execution path to the tree-walking `rl-interpreter` - it compiles the AST to bytecode and runs it on a stack-based VM instead of walking the tree directly.
+Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. This is the bytecode execution engine of the toolchain - it compiles the AST to bytecode and runs it on a stack-based VM, alongside the tree-walking `rl-interpreter`.
 
 ## Pipeline
 
@@ -40,7 +40,7 @@ let chunk = Compiler::new(&ast).compile(&statements)?;
 let result = Vm::new().run_and_return(&chunk)?;
 ```
 
-> **Note:** the VM backend is highly experimental - it is exposed behind the `rl-cli` `vm` feature and is not yet a drop-in replacement for the tree-walking interpreter.
+> **Note:** the VM is the default execution backend of `rl-cli` (the `vm` feature is on by default) and is a stable drop-in for the tree-walking interpreter.
 
 ## License
 

@@ -15,6 +15,7 @@ impl TypeChecker {
             // returns as type
             ExpressionKind::Null => CheckType::Known(TypeAnnotation::Null),
             ExpressionKind::Integer(_) => CheckType::Known(TypeAnnotation::Int),
+            ExpressionKind::UInt(_) => CheckType::Known(TypeAnnotation::UInt),
             ExpressionKind::Byte(_) => CheckType::Known(TypeAnnotation::Byte),
             ExpressionKind::String(_) => CheckType::Known(TypeAnnotation::String),
             ExpressionKind::Bool(_) => CheckType::Known(TypeAnnotation::Bool),
@@ -146,6 +147,8 @@ impl TypeChecker {
                         CheckType::Known(
                             TypeAnnotation::Int
                                 | TypeAnnotation::CInt
+                                | TypeAnnotation::UInt
+                                | TypeAnnotation::CUInt
                                 | TypeAnnotation::Byte
                                 | TypeAnnotation::CByte
                         ) | CheckType::Unknown
@@ -276,11 +279,25 @@ impl TypeChecker {
             } => {
                 let caller_type = self.check_expression(caller);
                 let caller_id = self.ast_arena.exprs.get(caller);
-                let mut arg_types: Vec<(CheckType, Span)> = vec![(caller_type, caller_id.span)];
+                let mut arg_types: Vec<(CheckType, Span)> =
+                    vec![(caller_type.clone(), caller_id.span)];
                 for arg in args {
                     let arg_span = self.ast_arena.exprs.get(arg).span;
                     arg_types.push((self.check_expression(arg), arg_span));
                 }
+
+                if method.len() == 1
+                    && let CheckType::Known(
+                        TypeAnnotation::Record(rname) | TypeAnnotation::CRecord(rname),
+                    ) = &caller_type
+                    && let Some(sig) = self
+                        .methods
+                        .get(&(rname.clone(), method[0].clone()))
+                        .cloned()
+                {
+                    return self.check_call_value(sig, &arg_types, expr_span);
+                }
+
                 self.check_call_path(&method, &arg_types, expr_span)
             }
 
@@ -329,17 +346,22 @@ impl TypeChecker {
                     &value_type,
                     CheckType::Known(
                         TypeAnnotation::CInt
+                            | TypeAnnotation::CUInt
                             | TypeAnnotation::CByte
                             | TypeAnnotation::CFloat
                             | TypeAnnotation::Float
                             | TypeAnnotation::Int
+                            | TypeAnnotation::UInt
                             | TypeAnnotation::Byte
                     ) | CheckType::Unknown
                 );
 
                 let valid_target = matches!(
                     target_type,
-                    TypeAnnotation::Int | TypeAnnotation::Float | TypeAnnotation::Byte
+                    TypeAnnotation::Int
+                        | TypeAnnotation::UInt
+                        | TypeAnnotation::Float
+                        | TypeAnnotation::Byte
                 );
 
                 if !castable || !valid_target {
@@ -385,8 +407,20 @@ impl TypeChecker {
             }
 
             ExpressionKind::Propagate(inner) => {
-                self.check_expression(inner);
-                CheckType::Unknown
+                let inner_type = self.check_expression(inner);
+                match inner_type {
+                    CheckType::Known(TypeAnnotation::Result(inner_ty)) => {
+                        CheckType::Known(*inner_ty)
+                    }
+                    CheckType::Unknown => CheckType::Unknown,
+                    other => {
+                        self.error(
+                            format!("`?` operator requires a result, got {}", other.info()),
+                            expr_span,
+                        );
+                        CheckType::Unknown
+                    }
+                }
             }
 
             ExpressionKind::StructLiteral { name, fields } => {

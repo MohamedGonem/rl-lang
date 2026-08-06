@@ -3,15 +3,13 @@ use crate::entry::FnEntry;
 pub static SET_CWD: FnEntry = FnEntry {
     signature: "set_cwd(path)",
     description: "changes the current working directory",
-    example: r#"
-get std::process::set_cwd
+    example: r#"get std::process::set_cwd
 
 set_cwd("/tmp")?"#,
     expected_output: None,
     returns: "result[null]",
     errors: Some(
-        r#"
-    Will return errors on the following:
+        r#"    Will return errors on the following:
 
     - operation failed
             "#,

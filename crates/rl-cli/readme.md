@@ -28,13 +28,21 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. This is the
 
 ## Features
 
-- `default` - `repl`, `run`, `eval`, `vm`, `docs-tui`
-- `run`, `eval`, `vm` - enable the corresponding execution backends
-- `repl` - pulls in `rl-repl`
+- `default` - `repl`, `treewalker`, `vm`, `docs`, `docs-tui`
+- `treewalker` - tree-walking interpreter backend (`rl-interpreter`)
+- `vm` - bytecode VM backend (`rl-vm`)
+- `run` - enable the corresponding execution backends
+- `cranelift` - pulls in `rl-cranelift` (implies `vm`)
+- `repl` - pulls in `rl-repl` (requires at least one execution backend)
+- `docs` - `docs` subcommand (pulls in `rl-docs`)
+- `docs-tui` - enables `rl-docs`'s `tui` feature (implies `docs`)
 - `lsp` - pulls in `rl-lsp` and `tokio`
-- `cranelift` - pulls in `rl-cranelift`
-- `docs-tui` - enables `rl-docs`'s `tui` feature
 - `debug` - enables `log` / `env_logger`
+- `eval` - deprecated alias for `treewalker`
+
+The build matrix (`build-variants.sh`) combines these into engine variants:
+`rl` (treewalker + vm), `rl_vm` (vm only, `rlc`), `rl_treewalker`
+(treewalker only, `rlp`), optionally stripped of `docs`/`repl`, plus `rl_lsp`.
 
 ## Dependencies
 

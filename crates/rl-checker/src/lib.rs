@@ -48,7 +48,7 @@ impl TypeChecker {
     pub fn new() -> Self {
         // getting all stdlib modules
         let root_module = rl_commons::stdlib_names();
-        let mut stdlib_fn_names = std::collections::HashSet::new();
+        let mut stdlib_fn_names = HashMap::new();
         root_module.collect_fn_names(&mut stdlib_fn_names);
 
         Self {
@@ -69,6 +69,7 @@ impl TypeChecker {
             ast_arena: Ast::new(),
             records: HashMap::new(),
             tags: HashMap::new(),
+            methods: HashMap::new(),
         }
     }
 
@@ -113,6 +114,23 @@ impl TypeChecker {
             if let StatementKind::TagDeclaration { name, variants } = &statement.kind {
                 self.tags.insert(name.clone(), variants.clone());
                 self.tag_spans.insert(name.clone(), statement.span);
+            }
+            if let StatementKind::ImplBlock { record, methods } = &statement.kind {
+                for m in methods {
+                    if let StatementKind::FunctionDeclaration {
+                        name,
+                        params,
+                        return_type,
+                        ..
+                    } = &m.kind
+                    {
+                        let fn_type = CheckType::Function {
+                            params: params.iter().map(|p| p.param_type.clone()).collect(),
+                            return_type: return_type.clone(),
+                        };
+                        self.methods.insert((record.clone(), name.clone()), fn_type);
+                    }
+                }
             }
         }
         for statement in statements {

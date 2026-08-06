@@ -4,7 +4,7 @@ use crate::chunk::{Chunk, OpCode};
 use crate::native::Module;
 use crate::stdlib;
 use crate::values::{VmFunction, VmValue};
-use rl_ast::statements::MatchPattern;
+use rl_ast::statements::{MatchPattern, TypeAnnotation};
 use rl_ast::{
     Ast, ExprId, nodes::ExpressionKind, statements::Statement, statements::StatementKind,
 };
@@ -25,6 +25,23 @@ enum ContinueTarget {
     Backward(usize),
     #[allow(unused)]
     Forward,
+}
+
+/// Numeric type codes for `OpCode::Cast`, matching the operand written by
+/// the compiler and read by the `Cast` handler in `vm_logic.rs`. Mirrors the
+/// numeric `TypeAnnotation` targets the interpreter's `evaluator.rs` casts to.
+struct CastTarget;
+impl CastTarget {
+    const INT: u16 = 0;
+    const FLOAT: u16 = 1;
+    const UINT: u16 = 2;
+    const SFLOAT: u16 = 3;
+    const SUINT: u16 = 4;
+    const SINT: u16 = 5;
+    const BBYTE: u16 = 6;
+    const BSBYTE: u16 = 7;
+    const BYTE: u16 = 8;
+    const SBYTE: u16 = 9;
 }
 
 struct LoopCtx {
@@ -64,6 +81,30 @@ impl<'a> Compiler<'a> {
         self
     }
 
+    /// Replaces the stdlib module tree this compiler resolves imports and
+    /// `std::` calls against. The REPL passes the previous session's module
+    /// here so `get x from std::io` bindings survive across inputs (the
+    /// compiler mutates its own `stdlib` in place when it compiles an
+    /// [`StatementKind::Import`]).
+    pub fn with_stdlib(mut self, stdlib: Module) -> Self {
+        self.stdlib = stdlib;
+        self
+    }
+
+    /// The stdlib module tree this compiler uses, after any imports it
+    /// compiled have been folded in. Used by the REPL to persist imports
+    /// across inputs.
+    pub fn stdlib(&self) -> &Module {
+        &self.stdlib
+    }
+
+    /// Seeds the global slot counter, so a REPL input can continue assigning
+    /// globals from where the persistent resolver's global scope left off.
+    pub fn with_global_slot_base(mut self, base: u16) -> Self {
+        self.next_slot = base;
+        self
+    }
+
     /// Builds a [`Reason::Compile`] error anchored at `span`, with source
     /// attached when known.
     fn err(&self, message: impl Into<String>, span: Span) -> CompileError {
@@ -85,12 +126,11 @@ impl<'a> Compiler<'a> {
     /// Entry function
     /// returns compiled Chunk
     /// stops on first error
-    /// will consume and discard the Compiler
-    pub fn compile(mut self, statements: &[Statement]) -> Result<Chunk, CompileError> {
+    pub fn compile(&mut self, statements: &[Statement]) -> Result<Chunk, CompileError> {
         self.compile_body(statements)?;
         let end_span = statements.last().map(|s| s.span).unwrap_or_default();
         self.chunk.write_op(OpCode::Return, end_span);
-        Ok(self.chunk)
+        Ok(std::mem::take(&mut self.chunk))
     }
 
     /// Statement entry function
@@ -129,6 +169,39 @@ impl<'a> Compiler<'a> {
             )),
 
             StatementKind::RecordDeclaration { .. } | StatementKind::TagDeclaration { .. } => {
+                Ok(())
+            }
+
+            StatementKind::ResolvedImplBlock { record, methods } => {
+                for m in methods {
+                    let StatementKind::ResolvedFunctionDeclaration {
+                        name, params, body, ..
+                    } = &m.kind
+                    else {
+                        continue;
+                    };
+                    let func_chunk = Self::compile_function_chunk(
+                        self.ast,
+                        body,
+                        params.len(),
+                        self.stdlib.clone(),
+                        self.source.clone(),
+                    )?;
+                    let func = VmValue::Function(Rc::new(VmFunction {
+                        name: name.clone(),
+                        arity: params.len(),
+                        chunk: func_chunk,
+                    }));
+                    let func_idx = self.chunk.add_constant(func);
+                    let key = format!("{record}::{name}");
+                    let key_idx = self
+                        .chunk
+                        .add_constant(VmValue::Str(Rc::from(key.as_str())));
+
+                    self.chunk.write_op(OpCode::RegisterMethod, span);
+                    self.chunk.write_u16(key_idx, span);
+                    self.chunk.write_u16(func_idx, span);
+                }
                 Ok(())
             }
 
@@ -376,16 +449,13 @@ impl<'a> Compiler<'a> {
             }
 
             StatementKind::ResolvedFunctionDeclaration {
-                name,
-                slot,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 let func_chunk = Self::compile_function_chunk(
                     self.ast,
                     body,
                     params.len(),
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
                 let func = VmValue::Function(Rc::new(VmFunction {
@@ -393,9 +463,11 @@ impl<'a> Compiler<'a> {
                     arity: params.len(),
                     chunk: func_chunk,
                 }));
+                let slot = self.next_slot;
+                self.next_slot += 1;
                 self.emit_const(func, span);
                 self.chunk.write_op(OpCode::DefineLocal, span);
-                self.chunk.write_u16(*slot as u16, span);
+                self.chunk.write_u16(slot, span);
                 Ok(())
             }
 
@@ -567,9 +639,16 @@ impl<'a> Compiler<'a> {
         match &expr.kind {
             ExpressionKind::Null => self.emit_const(VmValue::Null, span),
             ExpressionKind::Integer(v) => self.emit_const(VmValue::Int(*v), span),
-            ExpressionKind::Float(v) => self.emit_const(VmValue::Float(*v), span),
-            ExpressionKind::Bool(v) => self.emit_const(VmValue::Bool(*v), span),
+            ExpressionKind::UInt(v) => self.emit_const(VmValue::UInt(*v), span),
+            ExpressionKind::SInt(v) => self.emit_const(VmValue::SInt(*v), span),
+            ExpressionKind::SUInt(v) => self.emit_const(VmValue::SUInt(*v), span),
+            ExpressionKind::BByte(v) => self.emit_const(VmValue::BByte(*v), span),
+            ExpressionKind::BSByte(v) => self.emit_const(VmValue::BSByte(*v), span),
             ExpressionKind::Byte(v) => self.emit_const(VmValue::Byte(*v), span),
+            ExpressionKind::SByte(v) => self.emit_const(VmValue::SByte(*v), span),
+            ExpressionKind::Float(v) => self.emit_const(VmValue::Float(*v), span),
+            ExpressionKind::SFloat(v) => self.emit_const(VmValue::SFloat(*v), span),
+            ExpressionKind::Bool(v) => self.emit_const(VmValue::Bool(*v), span),
             ExpressionKind::Character(v) => self.emit_const(VmValue::Char(*v), span),
             ExpressionKind::String(v) => self.emit_const(VmValue::Str(Rc::from(v.as_str())), span),
 
@@ -649,15 +728,64 @@ impl<'a> Compiler<'a> {
             }
 
             ExpressionKind::Call { path, args } => {
-                let native = self.stdlib.resolve(path).ok_or_else(|| {
-                    self.err(format!("undefined function {}", path.join("::")), span)
-                })?;
-                self.emit_const(VmValue::Native(native), span);
+                match self.stdlib.resolve(path) {
+                    Some(native) => self.emit_const(VmValue::Native(native), span),
+                    None if path.len() == 2 => {
+                        // `Record::method` associated function, e.g.
+                        // `Point::new(1, 2)` - resolved at runtime against
+                        // the `impl_methods` table (see `LookupAssoc`),
+                        // since the compiler doesn't track record impls.
+                        let key = format!("{}::{}", path[0], path[1]);
+                        let key_idx = self
+                            .chunk
+                            .add_constant(VmValue::Str(Rc::from(key.as_str())));
+                        self.chunk.write_op(OpCode::LookupAssoc, span);
+                        self.chunk.write_u16(key_idx, span);
+                    }
+                    None => {
+                        return Err(
+                            self.err(format!("undefined function {}", path.join("::")), span)
+                        );
+                    }
+                }
                 for arg in args {
                     self.compile_expr(*arg)?;
                 }
                 self.chunk.write_op(OpCode::Call, span);
                 self.chunk.write_u16(args.len() as u16, span);
+            }
+
+            ExpressionKind::MethodCall {
+                caller,
+                method,
+                args,
+            } => {
+                if method.len() != 1 {
+                    return Err(self.err(
+                        "namespaced method calls (`value.module::method(...)`) are not yet \
+                         supported by the vm compiler",
+                        span,
+                    ));
+                }
+                // Instance method dispatch, e.g. `point.magnitude()`. The
+                // record type is only known at runtime, so the caller is
+                // compiled first and `LookupMethod` resolves against it
+                // there (see the `LookupMethod` handler in `vm_logic.rs`),
+                // inserting the resolved function below it on the stack so
+                // it lines up with `OpCode::Call`'s `[callee, args...]`
+                // layout, with `self` as the first argument.
+                self.compile_expr(*caller)?;
+                let name_idx = self
+                    .chunk
+                    .add_constant(VmValue::Str(Rc::from(method[0].as_str())));
+                self.chunk.write_op(OpCode::LookupMethod, span);
+                self.chunk.write_u16(name_idx, span);
+
+                for arg in args {
+                    self.compile_expr(*arg)?;
+                }
+                self.chunk.write_op(OpCode::Call, span);
+                self.chunk.write_u16((args.len() + 1) as u16, span);
             }
 
             ExpressionKind::CallExpr { callee, args } => {
@@ -823,6 +951,30 @@ impl<'a> Compiler<'a> {
                 );
             }
 
+            ExpressionKind::Cast { value, target_type } => {
+                self.compile_expr(*value)?;
+                let code = match target_type {
+                    TypeAnnotation::Int => CastTarget::INT,
+                    TypeAnnotation::UInt => CastTarget::UINT,
+                    TypeAnnotation::SInt => CastTarget::SINT,
+                    TypeAnnotation::SUInt => CastTarget::SUINT,
+                    TypeAnnotation::Float => CastTarget::FLOAT,
+                    TypeAnnotation::SFloat => CastTarget::SFLOAT,
+                    TypeAnnotation::Byte => CastTarget::BYTE,
+                    TypeAnnotation::SByte => CastTarget::SBYTE,
+                    TypeAnnotation::BByte => CastTarget::BBYTE,
+                    TypeAnnotation::BSByte => CastTarget::BSBYTE,
+                    other => {
+                        return Err(self.err(
+                            format!("unsupported cast target type {other:?}"),
+                            span,
+                        ));
+                    }
+                };
+                self.chunk.write_op(OpCode::Cast, span);
+                self.chunk.write_u16(code, span);
+            }
+
             ExpressionKind::ResolvedLambda {
                 params,
                 body,
@@ -850,6 +1002,7 @@ impl<'a> Compiler<'a> {
                     param_count,
                     captured_scope_bases,
                     outer_next_slot,
+                    self.stdlib.clone(),
                     self.source.clone(),
                 )?;
 
@@ -862,6 +1015,10 @@ impl<'a> Compiler<'a> {
                 self.chunk.write_op(OpCode::BuildClosure, span);
                 self.chunk.write_u16(const_idx, span);
                 self.chunk.write_u16(capture_start, span);
+            }
+
+            ExpressionKind::Identifier(name) => {
+                return Err(self.err(format!("undefined variable '{}'", name), span));
             }
 
             other => {
@@ -955,10 +1112,12 @@ impl<'a> Compiler<'a> {
         ast: &Ast,
         body: &[Statement],
         param_count: usize,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases.push(0);
         sub.next_slot = param_count as u16;
         sub.compile_body(body)?;
@@ -975,10 +1134,12 @@ impl<'a> Compiler<'a> {
         param_count: usize,
         captured_scope_bases: &[u16],
         outer_next_slot: u16,
+        stdlib: Module,
         source: Option<SourceFile>,
     ) -> Result<Chunk, CompileError> {
         let mut sub = Compiler::new(ast);
         sub.source = source;
+        sub.stdlib = stdlib;
         sub.scope_bases = captured_scope_bases.to_vec();
         sub.scope_bases.push(outer_next_slot);
         sub.next_slot = outer_next_slot + param_count as u16;

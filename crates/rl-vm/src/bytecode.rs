@@ -84,6 +84,7 @@ use std::rc::Rc;
 use crate::chunk::Chunk;
 use crate::native::Module;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
+use rl_ast::statements::HandleKind;
 use rl_utils::line_index::LineIndex;
 use rl_utils::span::Span;
 
@@ -312,10 +313,18 @@ fn collect_strings_value(value: &VmValue, pool: &mut StringPoolBuilder) {
         }
         VmValue::Null
         | VmValue::Int(_)
+        | VmValue::UInt(_)
+        | VmValue::SInt(_)
+        | VmValue::SUInt(_)
+        | VmValue::BByte(_)
+        | VmValue::BSByte(_)
         | VmValue::Float(_)
+        | VmValue::SFloat(_)
         | VmValue::Bool(_)
         | VmValue::Byte(_)
-        | VmValue::Char(_) => {}
+        | VmValue::SByte(_)
+        | VmValue::Char(_)
+        | VmValue::Handle { .. } => {}
 
         VmValue::Arr(items) | VmValue::Tuple(items) => {
             for item in items.iter() {
@@ -426,6 +435,34 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
             out.push(1);
             write_ivarint(*i, out);
         }
+        VmValue::UInt(u) => {
+            out.push(19);
+            write_uvarint(*u, out);
+        }
+        VmValue::SInt(i) => {
+            out.push(20);
+            write_ivarint(*i as i64, out);
+        }
+        VmValue::SUInt(u) => {
+            out.push(21);
+            write_uvarint(*u as u64, out);
+        }
+        VmValue::BByte(b) => {
+            out.push(22);
+            write_uvarint(*b as u64, out);
+        }
+        VmValue::BSByte(b) => {
+            out.push(23);
+            write_ivarint(*b as i64, out);
+        }
+        VmValue::SByte(b) => {
+            out.push(24);
+            write_ivarint(*b as i64, out);
+        }
+        VmValue::SFloat(f) => {
+            out.push(25);
+            out.extend_from_slice(&f.to_le_bytes());
+        }
         VmValue::Float(f) => {
             out.push(2);
             out.extend_from_slice(&f.to_le_bytes());
@@ -525,6 +562,12 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
             for v in captured.iter() {
                 write_value(v, pool, out);
             }
+        }
+
+        VmValue::Handle { kind, id } => {
+            out.push(26);
+            write_uvarint(*kind as u64, out);
+            write_uvarint(*id, out);
         }
     }
 }
@@ -761,6 +804,32 @@ fn read_value(
                 captured: Rc::new(captured),
                 capture_start,
             }
+        }
+        19 => VmValue::UInt(cursor.uvarint()?),
+        20 => VmValue::SInt(cursor.ivarint()? as i32),
+        21 => VmValue::SUInt(cursor.uvarint()? as u32),
+        22 => VmValue::BByte(cursor.uvarint()? as u16),
+        23 => VmValue::BSByte(cursor.ivarint()? as i16),
+        24 => VmValue::SByte(cursor.ivarint()? as i8),
+        25 => {
+            let bits = cursor.take(4)?;
+            VmValue::SFloat(f32::from_le_bytes(bits.try_into().unwrap()))
+        }
+        26 => {
+            let kind = match cursor.uvarint()? as u8 {
+                0 => HandleKind::C,
+                1 => HandleKind::Net,
+                2 => HandleKind::Http,
+                3 => HandleKind::Audio,
+                _ => {
+                    return Err(BytecodeError(
+                        "corrupt .rlc: closure template is not a function".into(),
+                    ));
+                }
+            };
+            let id = cursor.uvarint()?;
+
+            VmValue::Handle { kind, id }
         }
         other => {
             return Err(BytecodeError(format!(

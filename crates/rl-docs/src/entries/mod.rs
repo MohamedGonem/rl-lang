@@ -9,6 +9,7 @@ mod tutorial;
 /// Returns all stdlib module entries in display order.
 pub fn stdlib_entries() -> Vec<&'static StdEntry> {
     vec![
+        &stdlib::audio::AUDIO,
         &stdlib::math::MATH,
         &stdlib::math_consts::MATH_CONSTS,
         &stdlib::io::IO,
@@ -28,6 +29,8 @@ pub fn stdlib_entries() -> Vec<&'static StdEntry> {
         &stdlib::net::NET,
         &stdlib::http::HTTP,
         &stdlib::collections::COLLECTIONS,
+        &stdlib::c::C,
+        &stdlib::gui::GUI,
     ]
 }
 
@@ -56,6 +59,7 @@ pub fn concept_entries() -> Vec<&'static ConceptEntry> {
         &concepts::propagate::PROPAGATE,
         &concepts::logical_operators::LOGICAL_OPERATORS,
         &concepts::records::RECORDS,
+        &concepts::records::IMPL_BLOCKS,
         &concepts::tags::TAGS,
         &concepts::maps::MAPS,
         &concepts::sets::SETS,

@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static TODO: FnEntry = FnEntry {
     signature: "todo(msg?)",
     description: "marks unfinished code; errors with \"not yet implemented\" so incomplete functions fail loudly instead of silently returning null",
-    example: r#"
-get std::debug::todo
+    example: r#"get std::debug::todo
 
 fn upcoming() {
     todo("implement retry logic")

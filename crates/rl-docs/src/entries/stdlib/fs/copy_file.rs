@@ -3,15 +3,13 @@ use crate::entry::FnEntry;
 pub static COPY_FILE: FnEntry = FnEntry {
     signature: "copy_file(src, dst)",
     description: "copies a file from src to dst, returns the number of bytes copied",
-    example: r#"
-get std::fs::copy_file
+    example: r#"get std::fs::copy_file
 
 copy_file("a.txt", "b.txt")?"#,
     expected_output: None,
     returns: "result[int]",
     errors: Some(
-        r#"
-Will return errors on the following:
+        r#"Will return errors on the following:
 
 - `src` does not exist
 - `src` not regular file nor symlink to regular file

@@ -11,6 +11,7 @@
 //! | `history_idx`   | Current position in history (`None` = live input)        |
 //! | `attached`      | Files evaluated into the env via `:attach`               |
 //! | `scroll_offset` | Output scroll position (`0` = bottom, higher = older)    |
+//! | `completion_state` | Active `Tab`-cycle, if any (candidates + cursor position) |
 //!
 //! # Multiline input
 //!
@@ -33,29 +34,40 @@
 //!        |- complete --> eval_input --> output buffer
 //! ```
 use super::{
-    command_handler::handle_command, depth_checker::is_complete, input_eval::eval_input,
-    lines_types::OutputLine, output_render::render_output, syntax_highlighting::highlight,
+    backend::ReplBackend,
+    command_handler::handle_command,
+    completion::{self, CompletionState},
+    depth_checker::is_complete,
+    input_eval::eval_input,
+    lines_types::OutputLine,
+    output_render::render_output,
+    syntax_highlighting::highlight,
+    theme,
     utils::char_to_byte,
 };
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::{
     DefaultTerminal,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
+    layout::{Constraint, Direction, Layout, Margin},
+    style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{
+        Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        Wrap,
+    },
 };
-use rl_interpreter::evaluator::Evaluator;
 use std::path::PathBuf;
 
 /// Runs the REPL event loop until the user exits with `Ctrl+C` or `:exit`.
 ///
-/// Initializes a fresh [`Evaluator`] with the stdlib loaded, then enters a
-/// draw-then-poll loop: renders the current state, blocks on the next key
-/// event, and dispatches it. Returns an [`io::Result`] so terminal errors
-/// propagate cleanly to [`start_repl`].
-pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
-    let mut evaluator = Evaluator::default().with_stdlib();
+/// Drives `backend` (either execution engine) from the shared UI code, then
+/// enters a draw-then-poll loop: renders the current state, blocks on the
+/// next key event, and dispatches it. Returns an [`io::Result`] so terminal
+/// errors propagate cleanly to the caller.
+pub fn run_repl(
+    terminal: &mut DefaultTerminal,
+    backend: &mut dyn ReplBackend,
+) -> std::io::Result<()> {
     let mut output: Vec<OutputLine> = vec![
         OutputLine::Info(format!(
             "rl-lang v{} - type :help for commands",
@@ -71,11 +83,17 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
     let mut history_idx: Option<usize> = None;
     let mut attached: Vec<PathBuf> = Vec::new();
     let mut scroll_offset: usize = 0;
+    let mut completion_state: Option<CompletionState> = None;
 
     loop {
         // draw
         let is_continuation = !accumulated.is_empty();
-        let prompt = if is_continuation { ".. " } else { ">> " };
+        let prompt = if is_continuation { "· " } else { "❯ " };
+        let prompt_color = if is_continuation {
+            theme::ACCENT2
+        } else {
+            theme::ACCENT
+        };
 
         terminal.draw(|frame| {
             let area = frame.area();
@@ -92,28 +110,57 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
             // scroll_offset=0 means bottom and larger values scroll up
             let scroll = max_scroll.saturating_sub(scroll_offset) as u16;
 
+            let status = if scroll_offset == 0 {
+                Span::styled(" ● live ", Style::default().fg(theme::SUCCESS))
+            } else {
+                let clamped = scroll_offset.min(max_scroll);
+                Span::styled(
+                    format!(" ▲ +{clamped} "),
+                    Style::default().fg(theme::WARNING),
+                )
+            };
+
             let output_widget = Paragraph::new(out_lines)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::DarkGray))
-                        .title(Span::styled(
-                            " rl ",
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(theme::BORDER))
+                        .title(Line::from(Span::styled(
+                            " ✦ rl ",
                             Style::default()
-                                .fg(Color::Cyan)
+                                .fg(theme::TITLE)
                                 .add_modifier(Modifier::BOLD),
-                        )),
+                        )))
+                        .title(Line::from(status).right_aligned()),
                 )
                 .wrap(Wrap { trim: false })
                 .scroll((scroll, 0));
             frame.render_widget(output_widget, chunks[0]);
 
+            // thumb-only scrollbar.
+            if total > visible {
+                let mut scrollbar_state = ScrollbarState::new(total)
+                    .viewport_content_length(visible)
+                    .position(scroll as usize);
+                frame.render_stateful_widget(
+                    Scrollbar::default()
+                        .orientation(ScrollbarOrientation::VerticalRight)
+                        .begin_symbol(None)
+                        .end_symbol(None)
+                        .track_symbol(Some("│"))
+                        .thumb_symbol("┃")
+                        .style(Style::default().fg(theme::TEXT_MUTED))
+                        .thumb_style(Style::default().fg(theme::BORDER_FOCUS)),
+                    chunks[0].inner(Margin {
+                        vertical: 1,
+                        horizontal: 0,
+                    }),
+                    &mut scrollbar_state,
+                );
+            }
+
             // input area
-            let prompt_color = if is_continuation {
-                Color::Yellow
-            } else {
-                Color::Cyan
-            };
             let mut input_spans = vec![Span::styled(
                 prompt,
                 Style::default()
@@ -123,7 +170,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
 
             if input_buf.is_empty() {
                 // blinking style cursor on empty input
-                input_spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
+                input_spans.push(Span::styled("│", Style::default().fg(theme::TEXT_MUTED)));
             } else {
                 // split at char boundary safe for any unicode
                 let before: String = input_buf.chars().take(cursor_pos).collect();
@@ -137,7 +184,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                         // cursor past end of text
                         input_spans.push(Span::styled(
                             " ",
-                            Style::default().bg(Color::Cyan).fg(Color::Black),
+                            Style::default().bg(prompt_color).fg(theme::BG_DARK),
                         ));
                     }
                     Some(c) => {
@@ -145,7 +192,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                         let rest: String = after_chars.collect();
                         input_spans.push(Span::styled(
                             cursor_str,
-                            Style::default().bg(Color::Cyan).fg(Color::Black),
+                            Style::default().bg(prompt_color).fg(theme::BG_DARK),
                         ));
                         let mut hl2 = highlight(&rest);
                         input_spans.append(&mut hl2);
@@ -153,16 +200,37 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                 }
             }
 
+            let mode_label = if is_continuation {
+                " multiline "
+            } else {
+                " input "
+            };
             let input_widget = Paragraph::new(Line::from(input_spans)).block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::DarkGray)),
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(prompt_color))
+                    .title(Line::from(Span::styled(
+                        mode_label,
+                        Style::default().fg(prompt_color),
+                    )))
+                    .title(
+                        Line::from(Span::styled(
+                            " Tab complete · Shift+↑↓ scroll · Ctrl+C exit ",
+                            Style::default().fg(theme::TEXT_MUTED),
+                        ))
+                        .right_aligned(),
+                    ),
             );
             frame.render_widget(input_widget, chunks[1]);
         })?;
 
         // events
         if let Event::Key(key) = event::read()? {
+            if !matches!(key.code, KeyCode::Tab) {
+                completion_state = None;
+            }
+
             match (key.modifiers, key.code) {
                 // exit
                 (KeyModifiers::CONTROL, KeyCode::Char('c')) => break,
@@ -185,7 +253,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                             break;
                         }
                         output.push(OutputLine::Input(line.clone()));
-                        handle_command(line.trim(), &mut output, &mut evaluator, &mut attached);
+                        handle_command(line.trim(), &mut output, backend, &mut attached);
                         if !line.trim().is_empty() {
                             history.push(line);
                         }
@@ -218,7 +286,7 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                             history.push(full.trim().to_string());
                         }
 
-                        let success = eval_input(full.trim(), &mut evaluator, &mut output);
+                        let success = eval_input(full.trim(), backend, &mut output);
                         if success {
                             output.push(OutputLine::ValidInput(full.trim().to_string()));
                         }
@@ -275,6 +343,33 @@ pub fn run_repl(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
                 (_, KeyCode::Home) => cursor_pos = 0,
 
                 (_, KeyCode::End) => cursor_pos = input_buf.chars().count(),
+
+                (_, KeyCode::Tab) => {
+                    if let Some(state) = completion_state.as_mut() {
+                        let candidate = state.next().to_string();
+                        let start_byte = char_to_byte(&input_buf, state.word_start);
+                        let end_byte = char_to_byte(&input_buf, state.word_start + state.word_len);
+                        input_buf.replace_range(start_byte..end_byte, &candidate);
+                        state.word_len = candidate.chars().count();
+                        cursor_pos = state.word_start + state.word_len;
+                    } else {
+                        let (word_start, word) = completion::word_at_cursor(&input_buf, cursor_pos);
+                        let cands = completion::candidates(&word, backend);
+                        if let Some(first) = cands.first().cloned() {
+                            let start_byte = char_to_byte(&input_buf, word_start);
+                            let end_byte = char_to_byte(&input_buf, cursor_pos);
+                            input_buf.replace_range(start_byte..end_byte, &first);
+                            let word_len = first.chars().count();
+                            cursor_pos = word_start + word_len;
+                            completion_state = Some(CompletionState {
+                                candidates: cands,
+                                index: 0,
+                                word_start,
+                                word_len,
+                            });
+                        }
+                    }
+                }
 
                 // scroll output (shift+up/down)
                 (KeyModifiers::SHIFT, KeyCode::Up) => {

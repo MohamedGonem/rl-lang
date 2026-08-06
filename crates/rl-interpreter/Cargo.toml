@@ -1,6 +1,6 @@
 [package]
 name = "rl-interpreter"
-version = "0.4.0"
+version = "1.0.0"
 readme = "readme.md"
 edition.workspace = true
 license.workspace = true
@@ -18,7 +18,14 @@ rl-utils.workspace = true
 crossterm.workspace = true
 tiny_http.workspace = true
 ureq.workspace = true
+libloading.workspace = true
+libffi.workspace = true
+rodio.workspace = true
+cpal.workspace = true
+eframe.workspace = true
+symphonia.workspace = true
 log = { workspace = true, optional = true }
+shell-words.workspace = true
 
 [features]
 debug = ["dep:log"]

@@ -1,5 +1,28 @@
 //! Static name lists for every `std::*` stdlib module.
 
+pub mod audio {
+    pub const KEYWORDS: &[&str] = &[
+        "play_file",
+        "play_file_async",
+        "beep",
+        "sound_pause",
+        "sound_resume",
+        "sound_stop",
+        "sound_is_paused",
+        "sound_set_volume",
+        "sound_get_volume",
+        "sound_set_speed",
+        "sound_seek",
+        "sound_is_finished",
+        "sound_wait",
+        "list_output_devices",
+        "set_output_device",
+        "set_master_volume",
+        "audio_duration",
+        "audio_file_info",
+    ];
+}
+
 pub mod array {
     pub const KEYWORDS: &[&str] = &[
         "arr_push",
@@ -146,6 +169,17 @@ pub mod net {
     ];
 }
 
+pub mod c {
+    pub const KEYWORDS: &[&str] = &[
+        "compile",
+        "load",
+        "call",
+        "has_symbol",
+        "close",
+        "clear_cache",
+    ];
+}
+
 pub mod path {
     pub const KEYWORDS: &[&str] = &[
         "path_exists",
@@ -172,8 +206,11 @@ pub mod process {
         "pid",
         "sleep",
         "exec",
+        "with_exec",
         "exec_code",
+        "with_exec_code",
         "exec_lines",
+        "with_exec_lines",
     ];
 }
 
@@ -404,13 +441,73 @@ pub mod math {
     }
 }
 
-pub mod set {
+pub mod collections {
     pub const KEYWORDS: &[&str] = &[
         "set_add",
         "set_contains",
         "set_is_empty",
         "set_len",
         "set_remove",
-        "set_to_array"
+        "set_to_array",
+        "map_contains",
+        "map_remove",
+        "map_len",
+        "map_is_empty",
+        "map_to_array",
+        "map_get",
+        "map_keys",
+        "map_values",
+        "map_clear",
+        "map_merge",
+    ];
+}
+
+pub mod gui {
+    pub const KEYWORDS: &[&str] = &[
+        "gui_window",
+        "gui_button",
+        "gui_label",
+        "gui_checkbox",
+        "gui_textbox",
+        "gui_textarea",
+        "gui_dropdown",
+        "gui_radio_group",
+        "gui_slider",
+        "gui_number_input",
+        "gui_progress_bar",
+        "gui_separator",
+        "gui_image",
+        "gui_set_text",
+        "gui_get_text",
+        "gui_set_visible",
+        "gui_is_visible",
+        "gui_on_click",
+        "gui_on_change",
+        "gui_on_submit",
+        "gui_on_key",
+        "gui_on_close",
+        "gui_is_checked",
+        "gui_set_checked",
+        "gui_get_selected_index",
+        "gui_set_selected_index",
+        "gui_get_selected",
+        "gui_get_value",
+        "gui_set_value",
+        "gui_set_progress",
+        "gui_get_progress",
+        "gui_set_pos",
+        "gui_get_pos",
+        "gui_set_z",
+        "gui_get_z",
+        "gui_remove",
+        "gui_window_set_title",
+        "gui_window_set_background",
+        "gui_window_set_size",
+        "gui_window_set_pos",
+        "gui_window_set_decorated",
+        "gui_window_set_icon",
+        "gui_run",
+        "gui_close",
+        "gui_quit",
     ];
 }

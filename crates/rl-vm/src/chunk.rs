@@ -83,6 +83,21 @@ pub enum OpCode {
     FieldSet = 38,
     BuildClosure = 39,
     ArrLen = 40,
+    /// registers a compiled `impl` method under its `"Record::method"` key,
+    /// so `LookupAssoc`/`LookupMethod` can find it later at runtime
+    RegisterMethod = 41,
+    /// looks up an associated function (`Record::method`) by its
+    /// `"Record::method"` key and pushes it as a callable value
+    LookupAssoc = 42,
+    /// looks up an instance method by name against the record value
+    /// currently on top of the stack (without popping it), and inserts
+    /// the resolved callable just below it
+    LookupMethod = 43,
+    /// `value as type` - pops a value, casts it to the numeric type
+    /// encoded in the u16 operand (see `CastTarget` in `compiler.rs`),
+    /// and pushes the result. Errors on non-numeric sources or values
+    /// that don't fit the target type.
+    Cast = 44,
 }
 
 impl OpCode {
@@ -92,7 +107,7 @@ impl OpCode {
     #[inline(always)]
     pub fn from_u8_unchecked(byte: u8) -> Self {
         debug_assert!(
-            byte <= OpCode::ArrLen as u8,
+            byte <= OpCode::Cast as u8,
             "corrupt bytecode: opcode {byte}"
         );
         unsafe { std::mem::transmute::<u8, OpCode>(byte) }
@@ -143,6 +158,10 @@ impl OpCode {
             38 => OpCode::FieldSet,
             39 => OpCode::BuildClosure,
             40 => OpCode::ArrLen,
+            41 => OpCode::RegisterMethod,
+            42 => OpCode::LookupAssoc,
+            43 => OpCode::LookupMethod,
+            44 => OpCode::Cast,
             other => panic!("corrupt bytecode: unknown opcode byte {other}"),
         }
     }
@@ -204,5 +223,20 @@ impl Chunk {
     /// returns 2 byte operand
     pub fn read_u16(&self, offset: usize) -> u16 {
         u16::from_le_bytes([self.code[offset], self.code[offset + 1]])
+    }
+
+    /// Inverse function of write_u16, without bounds checks.
+    ///
+    /// # Safety
+    /// `offset` and `offset + 1` must be valid indices into `code`. That's
+    /// only true for bytecode emitted by this compiler (`write_u16` always
+    /// appends exactly two bytes), mirroring [`OpCode::from_u8_unchecked`].
+    #[inline(always)]
+    pub unsafe fn read_u16_unchecked(&self, offset: usize) -> u16 {
+        debug_assert!(offset + 1 < self.code.len(), "operand read past end of code");
+        unsafe {
+            let p = self.code.as_ptr().add(offset);
+            u16::from_le_bytes([*p, *p.add(1)])
+        }
     }
 }

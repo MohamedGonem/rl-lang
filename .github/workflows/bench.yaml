@@ -1,0 +1,60 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      bench:
+        description: Benchmark target(s) to run
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - lexer
+          - parser
+          - pipeline
+          - vm
+          - compare
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Run benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ALSA dev headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # `workflow_dispatch` selects a target; a push to main always runs all.
+      - name: Select benchmark targets
+        id: select
+        run: |
+          target="${{ github.event.inputs.bench || 'all' }}"
+          if [ "$target" = "all" ]; then
+            echo "args=" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--bench $target" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run benchmarks
+        run: |
+          cargo bench -p rl-benches ${{ steps.select.outputs.args }}
+
+      - name: Upload criterion report
+        uses: actions/upload-artifact@v4
+        with:
+          name: criterion-report
+          path: target/criterion
+          if-no-files-found: error

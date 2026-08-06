@@ -32,6 +32,7 @@ impl TypeChecker {
                 if !matches!(
                     index_type,
                     CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt)
+                        | CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt)
                         | CheckType::Unknown
                 ) {
                     self.error(

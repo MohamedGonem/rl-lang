@@ -8,8 +8,7 @@ pub static CHECK: FnEntry = FnEntry {
 check("dec int x = 1")?
 check("dec int x = \"a\"")?"#,
     expected_output: Some(
-        r#"
-null
+        r#"null
 err(" ... type mismatch ... ")
         "#,
     ),

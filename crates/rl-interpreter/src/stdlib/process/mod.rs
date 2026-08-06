@@ -28,6 +28,9 @@ pub fn module() -> Module {
         .with_function("pid", pid::std_pid)
         .with_function("sleep", sleep::std_sleep)
         .with_function("exec", exec::std_exec)
+        .with_function("with_exec", exec::std_with_exec)
         .with_function("exec_code", exec::std_exec_code)
+        .with_function("with_exec_code", exec::std_with_exec_code)
         .with_function("exec_lines", exec::std_exec_lines)
+        .with_function("with_exec_lines", exec::std_with_exec_lines)
 }

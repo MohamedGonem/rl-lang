@@ -3,9 +3,10 @@ use crate::entry::FnEntry;
 pub static UDP_CLOSE: FnEntry = FnEntry {
     signature: "udp_close(socket)",
     description: "closes a UDP socket handle and frees its slot",
-    example: r#"
+    example: r#"get std::net::udp_bind
 get std::net::udp_close
 
+dec handle socket = result_unwrap(udp_bind("127.0.0.1:9000"))
 udp_close(socket)"#,
     expected_output: None,
     returns: "Result[null]",

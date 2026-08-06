@@ -68,6 +68,24 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "ajaythxkur",
+      "name": "Ajay Thakur",
+      "avatar_url": "https://avatars.githubusercontent.com/u/62602303?v=4",
+      "profile": "https://github.com/ajaythxkur",
+      "contributions": [
+        "test"
+      ]
+    },
+    {
+      "login": "asymmetricoral",
+      "name": "lia",
+      "avatar_url": "https://avatars.githubusercontent.com/u/50928191?v=4",
+      "profile": "https://github.com/asymmetricoral",
+      "contributions": [
+        "test"
+      ]
     }
   ],
   "commitType": "docs",
