@@ -128,7 +128,9 @@ pub fn expand(attr: NativeFnAttr, func: ItemFn) -> syn::Result<TokenStream> {
         }
         Ret::Fallible(inner) => {
             if is_r_value(inner) {
-                quote!(Ok(#call?))
+                // the body already returns `Result<R::Value, Error>`; wrapping
+                // it in `Ok(.. ?)` would be a needless round-trip (clippy).
+                quote!(#call)
             } else {
                 quote!(Ok(<#inner as ::rl_std_core::IntoValueR<R>>::into_value(#call?)))
             }

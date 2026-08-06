@@ -540,13 +540,13 @@ pub fn arr_filter<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Bool {
-            return Ok(R::err(R::from_string(format!(
-                "arr_filter: expected function or lambda with Bool return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Bool
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_filter: expected function or lambda with Bool return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     let mut out = Vec::new();
@@ -578,13 +578,13 @@ pub fn arr_find<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Bool {
-            return Ok(R::err(R::from_string(format!(
-                "arr_find: expected function or lambda with Bool return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Bool
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_find: expected function or lambda with Bool return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     for item in items {
@@ -615,13 +615,13 @@ pub fn arr_find_index<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Bool {
-            return Ok(R::err(R::from_string(format!(
-                "arr_find_index: expected function or lambda with Bool return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Bool
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_find_index: expected function or lambda with Bool return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     for (i, item) in items.iter().enumerate() {
@@ -652,13 +652,13 @@ pub fn arr_all<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Bool {
-            return Ok(R::err(R::from_string(format!(
-                "arr_all: expected function or lambda with Bool return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Bool
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_all: expected function or lambda with Bool return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     for item in items {
@@ -689,13 +689,13 @@ pub fn arr_any<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Bool {
-            return Ok(R::err(R::from_string(format!(
-                "arr_any: expected function or lambda with Bool return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Bool
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_any: expected function or lambda with Bool return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     for item in items {
@@ -726,13 +726,13 @@ pub fn arr_flat_map<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if !matches!(rt, TypeAnnotation::Array(_)) {
-            return Ok(R::err(R::from_string(format!(
-                "arr_flat_map: expected function or lambda with Array return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && !matches!(rt, TypeAnnotation::Array(_))
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_flat_map: expected function or lambda with Array return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     let mut out = Vec::with_capacity(items.len());
@@ -766,13 +766,13 @@ pub fn arr_for_each<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    if let Some(rt) = R::callable_return_type(&f) {
-        if rt != TypeAnnotation::Null {
-            return Ok(R::err(R::from_string(format!(
-                "arr_for_each: expected function or lambda with no (or null) return type, found {:?}",
-                Some(rt)
-            ))));
-        }
+    if let Some(rt) = R::callable_return_type(&f)
+        && rt != TypeAnnotation::Null
+    {
+        return Ok(R::err(R::from_string(format!(
+            "arr_for_each: expected function or lambda with no (or null) return type, found {:?}",
+            Some(rt)
+        ))));
     }
     let items = slice.to_vec();
     for item in items {

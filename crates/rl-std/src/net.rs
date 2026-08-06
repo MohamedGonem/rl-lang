@@ -430,7 +430,7 @@ pub fn udp_send<R: NetStore>(cx: &mut R::Cx, handle: R::Value, data: R::Value) -
 
     let data = match extract_string::<R>(&data, "udp_send") {
         Ok(s) => s,
-        Err(e) => return R::err(R::from_string(format!("{}", e))),
+        Err(e) => return R::err(R::from_string(e.to_string())),
     };
     let socket = match R::net_get(cx, id) {
         Some(NetHandle::UdpSocket(socket)) => socket,
@@ -462,11 +462,11 @@ pub fn udp_send_to<R: NetStore>(
 
     let data = match extract_string::<R>(&data, "udp_send_to") {
         Ok(s) => s,
-        Err(e) => return R::err(R::from_string(format!("{}", e))),
+        Err(e) => return R::err(R::from_string(e.to_string())),
     };
     let addr = match extract_string::<R>(&address, "udp_send_to") {
         Ok(s) => s,
-        Err(e) => return R::err(R::from_string(format!("{}", e))),
+        Err(e) => return R::err(R::from_string(e.to_string())),
     };
     let socket = match R::net_get(cx, id) {
         Some(NetHandle::UdpSocket(socket)) => socket,
@@ -528,7 +528,7 @@ pub fn udp_recv_from<R: NetStore>(
 
     let max_bytes = match extract_number::<R>(&max_bytes, "udp_recv_from") {
         Ok(a) => a as usize,
-        Err(e) => return R::err(R::from_string(format!("{}", e))),
+        Err(e) => return R::err(R::from_string(e.to_string())),
     };
     let socket = match R::net_get(cx, id) {
         Some(NetHandle::UdpSocket(socket)) => socket,
