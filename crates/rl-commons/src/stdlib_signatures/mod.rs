@@ -10,16 +10,11 @@ use crate::StdFn;
 use rl_ast::statements::{HandleKind, TypeAnnotation as T};
 use std::rc::Rc;
 
-// The 14 pure-`std` modules' signatures now come from `rl-std` (see
-// `crate::stdlib_names`). Only the OS-facing modules and the runtime-specific
-// `rl` module keep hand-written signatures here for now.
-pub mod audio;
-pub mod c;
-pub mod gui;
-pub mod http;
-pub mod process;
+// All migrated modules' signatures now come from `rl-std` (see
+// `crate::stdlib_names`). Only the runtime-specific `rl` module - which stays
+// legacy (it would form a dependency cycle with `rl-checker`) - keeps a
+// hand-written signature here.
 pub mod rl;
-pub mod terminal;
 
 /// Builds the "input" half of a signature pair: a `Tuple` of the expected
 /// argument types, in order. An empty `Vec` means "no arguments".

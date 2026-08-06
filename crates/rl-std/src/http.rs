@@ -3,11 +3,15 @@
 //! runtime's handle table, accessed via the `HttpStore` trait (implemented by
 //! each runtime).
 
+#[cfg(feature = "impls")]
 use rl_ast::statements::HandleKind;
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use rl_utils::errors::Error;
 
+#[cfg(feature = "impls")]
 /// A single native HTTP resource, stored behind an `int` handle.
 /// (Moved here from the per-runtime copies so both share one definition.)
 pub enum HttpHandle {
@@ -15,6 +19,7 @@ pub enum HttpHandle {
     Request(tiny_http::Request),
 }
 
+#[cfg(feature = "impls")]
 /// Per-runtime access to the `http` handle table. Implemented by `VmRuntime` /
 /// `EvalRuntime` in the runtime crates.
 pub trait HttpStore: Runtime {
@@ -24,6 +29,7 @@ pub trait HttpStore: Runtime {
     fn http_remove(cx: &mut Self::Cx, id: u64) -> Option<HttpHandle>;
 }
 
+#[cfg(feature = "impls")]
 /// Inserts a handle and returns its rl handle value.
 fn insert_handle<R: HttpStore>(cx: &mut R::Cx, h: HttpHandle) -> R::Value {
     let id = R::http_insert(cx, h);
@@ -32,6 +38,7 @@ fn insert_handle<R: HttpStore>(cx: &mut R::Cx, h: HttpHandle) -> R::Value {
 
 // ---- shared argument extraction (reproducing the old `extract_*` helpers) --
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_string`: rejects non-strings with
 /// `"<name>: expected string type, got <ty>"`.
 fn extract_string<R: HttpStore>(v: &R::Value, name: &str) -> Result<String, String> {
@@ -45,6 +52,7 @@ fn extract_string<R: HttpStore>(v: &R::Value, name: &str) -> Result<String, Stri
     }
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_handle`: unwraps a `Http` handle into its id,
 /// with the same wrong-kind / not-a-handle messages.
 fn extract_handle<R: HttpStore>(v: &R::Value, name: &str) -> Result<u64, String> {
@@ -71,6 +79,7 @@ fn extract_handle<R: HttpStore>(v: &R::Value, name: &str) -> Result<u64, String>
     }
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `check_arity_range`: raises a runtime error when the
 /// argument count is outside `[from, to]`.
 fn check_arity_range<R: HttpStore>(
@@ -92,6 +101,7 @@ fn check_arity_range<R: HttpStore>(
     Ok(())
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the client-side `ureq_result_to_value`: turns a `ureq` outcome
 /// into `ok((status, body))` (including for HTTP error statuses) or
 /// `err("<url>: <error>")`.
@@ -510,6 +520,7 @@ pub fn http_request<R: HttpStore>(
     Ok(ureq_result_to_value::<R>(&url, result))
 }
 
+#[cfg(feature = "impls")]
 /// Deconstructs a `(string, string)` tuple value into its two strings, matching
 /// the old `VmValue::Tuple(pair) if pair.len() == 2` + `(Str, Str)` pattern.
 ///

@@ -22,6 +22,7 @@
 //! inspect the raw runtime value, every function taking them is generic over `R`,
 //! takes `R::Value` parameters, and carries an explicit signature.
 
+#[cfg(feature = "impls")]
 use crossterm::{
     cursor::{
         Hide, MoveDown, MoveLeft, MoveRight, MoveTo, MoveToColumn, MoveToNextLine,
@@ -41,13 +42,17 @@ use crossterm::{
         SetSize, SetTitle, disable_raw_mode, enable_raw_mode, size,
     },
 };
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use std::io::{Write, stderr, stdout};
+#[cfg(feature = "impls")]
 use std::time::Duration;
 
 // ---- argument extraction (reproduces the former extractors verbatim) -------
 
+#[cfg(feature = "impls")]
 /// `int` only. Mirrors `stdlib::common::extract_int`.
 fn extract_int<R: Runtime>(v: R::Value, name: &str) -> Result<i64, String> {
     match R::as_i64(&v) {
@@ -56,6 +61,7 @@ fn extract_int<R: Runtime>(v: R::Value, name: &str) -> Result<i64, String> {
     }
 }
 
+#[cfg(feature = "impls")]
 /// `int` or `byte`, coerced to `u64`. Mirrors `stdlib::common::extract_number`.
 fn extract_number<R: Runtime>(v: R::Value, name: &str) -> Result<u64, String> {
     if let Some(i) = R::as_i64(&v) {
@@ -71,6 +77,7 @@ fn extract_number<R: Runtime>(v: R::Value, name: &str) -> Result<u64, String> {
     }
 }
 
+#[cfg(feature = "impls")]
 /// `int` (rejecting negatives), coerced to `u16`. Mirrors
 /// `terminal::common::extract_u16`.
 fn extract_u16<R: Runtime>(v: R::Value, name: &str) -> Result<u16, String> {
@@ -81,12 +88,14 @@ fn extract_u16<R: Runtime>(v: R::Value, name: &str) -> Result<u16, String> {
     }
 }
 
+#[cfg(feature = "impls")]
 /// `int` or `byte`, coerced to `u8`. Mirrors `terminal::common::extract_byte`.
 fn extract_byte<R: Runtime>(v: R::Value, name: &str) -> Result<u8, String> {
     let byte = extract_number::<R>(v, name)?;
     Ok(byte as u8)
 }
 
+#[cfg(feature = "impls")]
 /// `string` only. Mirrors `stdlib::common::extract_string`.
 fn extract_string<R: Runtime>(v: R::Value, name: &str) -> Result<String, String> {
     match R::as_str(&v) {
@@ -393,6 +402,7 @@ pub fn term_reset_color() -> Result<(), String> {
 
 // ---- named color -----------------------------------------------------------
 
+#[cfg(feature = "impls")]
 fn parse_color(s: &str) -> Option<Color> {
     match s {
         "black" => Some(Color::Black),
@@ -446,6 +456,7 @@ pub fn term_bg<R: Runtime>(_cx: &mut R::Cx, arg: R::Value) -> Result<(), String>
 
 // ---- attributes ------------------------------------------------------------
 
+#[cfg(feature = "impls")]
 fn set_attr(attr: Attribute, name: &str) -> Result<(), String> {
     match execute!(stdout(), SetAttribute(attr)) {
         Err(e) => Err(format!("{}(): {}", name, e)),

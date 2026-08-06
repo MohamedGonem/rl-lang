@@ -14,14 +14,21 @@
 //! (`audio_output_device: Option<String>`) and the master volume
 //! (`audio_master_volume: f32`) - through the `AudioStore` trait.
 
+#[cfg(feature = "impls")]
 use cpal::traits::{DeviceTrait, HostTrait};
+#[cfg(feature = "impls")]
 use rl_ast::statements::{HandleKind, TypeAnnotation};
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use rodio::source::{SineWave, Source};
+#[cfg(feature = "impls")]
 use std::fs::File;
+#[cfg(feature = "impls")]
 use std::time::Duration;
 
+#[cfg(feature = "impls")]
 /// A single native audio-playback resource, stored behind an `int` handle.
 /// Owns its `MixerDeviceSink` (rodio's renamed `OutputStream`, as of 0.22.2)
 /// so playback keeps working as long as the handle is alive - dropping it
@@ -34,6 +41,7 @@ pub struct AudioHandle {
     pub base_volume: f32,
 }
 
+#[cfg(feature = "impls")]
 /// Per-runtime access to the `audio` handle table and the audio context state.
 /// Implemented by `VmRuntime` / `EvalRuntime` in the runtime crates.
 pub trait AudioStore: Runtime {
@@ -54,6 +62,7 @@ pub trait AudioStore: Runtime {
     fn audio_handles_values<'a>(cx: &'a Self::Cx) -> Box<dyn Iterator<Item = &'a AudioHandle> + 'a>;
 }
 
+#[cfg(feature = "impls")]
 /// Inserts a handle and returns its rl handle value.
 fn insert_handle<R: AudioStore>(cx: &mut R::Cx, h: AudioHandle) -> R::Value {
     let id = R::audio_insert(cx, h);
@@ -62,6 +71,7 @@ fn insert_handle<R: AudioStore>(cx: &mut R::Cx, h: AudioHandle) -> R::Value {
 
 // ---- shared argument extraction (reproducing the old `extract_*` helpers) --
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_string`: rejects non-strings with
 /// `"<name>: expected string type, got <ty>"`.
 fn extract_string<R: AudioStore>(v: &R::Value, name: &str) -> Result<String, String> {
@@ -75,6 +85,7 @@ fn extract_string<R: AudioStore>(v: &R::Value, name: &str) -> Result<String, Str
     }
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_number`: accepts an `int` or `byte`, rejecting
 /// everything else with `"<name>: expected int or byte type, got <ty>"`.
 fn extract_number<R: AudioStore>(v: &R::Value, name: &str) -> Result<u64, String> {
@@ -91,6 +102,7 @@ fn extract_number<R: AudioStore>(v: &R::Value, name: &str) -> Result<u64, String
     ))
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `audio::common::extract_float`: accepts an `int` or
 /// `float`, rejecting everything else with
 /// `"<name>: expected int or float, got <ty>"`.
@@ -108,6 +120,7 @@ fn extract_float<R: AudioStore>(v: &R::Value, name: &str) -> Result<f64, String>
     ))
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_handle`: unwraps an `Audio` handle into its id,
 /// with the same wrong-kind / not-a-handle messages.
 fn extract_handle<R: AudioStore>(v: &R::Value, name: &str) -> Result<u64, String> {
@@ -136,6 +149,7 @@ fn extract_handle<R: AudioStore>(v: &R::Value, name: &str) -> Result<u64, String
 
 // ---- device / stream helpers (reproducing `audio::common`) -----------------
 
+#[cfg(feature = "impls")]
 /// Opens an output stream on the device selected via `set_output_device`,
 /// falling back to the system default when none was chosen.
 fn open_stream<R: AudioStore>(cx: &mut R::Cx) -> Result<rodio::MixerDeviceSink, String> {
@@ -153,6 +167,7 @@ fn open_stream<R: AudioStore>(cx: &mut R::Cx) -> Result<rodio::MixerDeviceSink, 
     Ok(stream)
 }
 
+#[cfg(feature = "impls")]
 fn find_device(name: &str) -> Result<cpal::Device, String> {
     let host = cpal::default_host();
     host.output_devices()
@@ -165,6 +180,7 @@ fn find_device(name: &str) -> Result<cpal::Device, String> {
         .ok_or_else(|| format!("output device \"{}\" not found", name))
 }
 
+#[cfg(feature = "impls")]
 /// Builds a [`rodio::Player`] connected to a freshly opened output stream,
 /// with volume/handle bookkeeping applied consistently across every
 /// function that starts new playback (`play_file`, `play_file_async`, `beep`).
@@ -175,6 +191,7 @@ fn new_sink<R: AudioStore>(cx: &mut R::Cx) -> Result<(rodio::Player, rodio::Mixe
     Ok((sink, stream))
 }
 
+#[cfg(feature = "impls")]
 struct AudioProbeInfo {
     channels: usize,
     sample_rate: u32,
@@ -182,6 +199,7 @@ struct AudioProbeInfo {
     format_name: String,
 }
 
+#[cfg(feature = "impls")]
 /// Probes an audio file's container/codec metadata via `symphonia`, used by
 /// `audio_duration` and `audio_file_info`. `rodio`'s `Decoder` doesn't expose
 /// duration/channel-count reliably across formats, so this goes straight to

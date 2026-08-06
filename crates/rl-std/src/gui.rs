@@ -21,11 +21,16 @@
 //! each runtime as `GuiHandle<VmValue>` / `GuiHandle<Value>` and stored in a
 //! `HashMap<u64, GuiHandle<R::Value>>`.
 
+#[cfg(feature = "impls")]
 use eframe::egui;
+#[cfg(feature = "impls")]
 use rl_ast::statements::HandleKind;
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use rl_utils::errors::Error;
+#[cfg(feature = "impls")]
 use std::collections::HashMap;
 
 // ============================================================================
@@ -33,6 +38,7 @@ use std::collections::HashMap;
 // over the runtime value type `V` for the embedded callbacks).
 // ============================================================================
 
+#[cfg(feature = "impls")]
 /// A single native GUI resource.
 pub enum GuiHandle<V> {
     Window(WindowState<V>),
@@ -48,6 +54,7 @@ pub enum GuiHandle<V> {
     Image(ImageState),
 }
 
+#[cfg(feature = "impls")]
 pub struct WindowState<V> {
     pub title: String,
     pub width: f32,
@@ -76,6 +83,7 @@ pub struct WindowState<V> {
     pub on_key: Option<V>,
 }
 
+#[cfg(feature = "impls")]
 pub struct ButtonState<V> {
     pub window: u64,
     pub label: String,
@@ -89,6 +97,7 @@ pub struct ButtonState<V> {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct LabelState {
     pub window: u64,
     pub text: String,
@@ -98,6 +107,7 @@ pub struct LabelState {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct CheckboxState<V> {
     pub window: u64,
     pub label: String,
@@ -109,6 +119,7 @@ pub struct CheckboxState<V> {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct TextboxState<V> {
     pub window: u64,
     pub text: String,
@@ -131,6 +142,7 @@ pub struct TextboxState<V> {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct SelectState<V> {
     pub window: u64,
     pub options: Vec<String>,
@@ -143,6 +155,7 @@ pub struct SelectState<V> {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct SliderState<V> {
     pub window: u64,
     pub value: f64,
@@ -161,6 +174,7 @@ pub struct SliderState<V> {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct ProgressState {
     pub window: u64,
     pub value: f32,
@@ -171,6 +185,7 @@ pub struct ProgressState {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct SeparatorState {
     pub window: u64,
     pub x: f32,
@@ -180,6 +195,7 @@ pub struct SeparatorState {
     pub z: i32,
 }
 
+#[cfg(feature = "impls")]
 pub struct ImageState {
     pub window: u64,
     pub x: f32,
@@ -199,6 +215,7 @@ pub struct ImageState {
 // Store trait: exposes the raw handle map, next-id counter and quit flag.
 // ============================================================================
 
+#[cfg(feature = "impls")]
 /// Per-runtime access to the `gui` handle table and its bookkeeping. Implemented
 /// by `VmRuntime` / `EvalRuntime` in the runtime crates. The runtime field is
 /// `HashMap<u64, GuiHandle<Self::Value>>`.
@@ -219,6 +236,7 @@ pub trait GuiStore: Runtime {
 // common.rs helpers (ported as generic free fns over `R: GuiStore`).
 // ============================================================================
 
+#[cfg(feature = "impls")]
 pub fn insert_handle<R: GuiStore>(cx: &mut R::Cx, handle: GuiHandle<R::Value>) -> R::Value {
     let id = *R::gui_next_handle(cx);
     *R::gui_next_handle(cx) += 1;
@@ -226,12 +244,14 @@ pub fn insert_handle<R: GuiStore>(cx: &mut R::Cx, handle: GuiHandle<R::Value>) -
     R::make_handle(HandleKind::Gui, id)
 }
 
+#[cfg(feature = "impls")]
 pub fn attach_child<R: GuiStore>(cx: &mut R::Cx, window_id: u64, child_id: u64) {
     if let Some(GuiHandle::Window(w)) = R::gui_handles(cx).get_mut(&window_id) {
         w.children.push(child_id);
     }
 }
 
+#[cfg(feature = "impls")]
 pub fn require_window<R: GuiStore>(
     cx: &R::Cx,
     window_id: u64,
@@ -244,6 +264,7 @@ pub fn require_window<R: GuiStore>(
     }
 }
 
+#[cfg(feature = "impls")]
 /// Reports a callback error the same way top-level rl-lang errors are
 /// reported, instead of silently discarding it.
 pub fn report_callback_err(result: Result<impl Sized, Error>) {
@@ -252,6 +273,7 @@ pub fn report_callback_err(result: Result<impl Sized, Error>) {
     }
 }
 
+#[cfg(feature = "impls")]
 /// Removes a window handle and all of its child widget handles, firing the
 /// window's `on_close` callback (if any) first. Used both by `gui_close` and
 /// by `gui_run` when a window's native close button is clicked. No-op if
@@ -270,6 +292,7 @@ pub fn close_window<R: GuiStore>(cx: &mut R::Cx, id: u64, span: R::Span) {
 
 // ---- shared argument extraction (reproducing the old `extract_*` helpers) --
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `stdlib::common::extract_handle`: unwraps a `Gui` handle
 /// into its id, with the same wrong-kind / not-a-handle messages.
 fn extract_handle<R: GuiStore>(v: &R::Value, name: &str) -> Result<u64, String> {
@@ -296,6 +319,7 @@ fn extract_handle<R: GuiStore>(v: &R::Value, name: &str) -> Result<u64, String> 
     }
 }
 
+#[cfg(feature = "impls")]
 /// Extracts `array[string]` into a `Vec<String>`, for `gui_dropdown`/`gui_radio_group`.
 /// Reproduces the old `extract_string_array`, whose per-element error string is
 /// `stdlib::common::extract_string`'s `"<name>: expected string type, got <ty>"`.
@@ -320,6 +344,7 @@ fn extract_string_array<R: GuiStore>(value: &R::Value, name: &str) -> Result<Vec
     }
 }
 
+#[cfg(feature = "impls")]
 /// Extracts `array[int]` into a `Vec<u8>`, validating every element is a byte
 /// (0-255). Used by `gui_window_set_icon`/`gui_image` for raw RGBA pixel data.
 /// Reproduces the old `extract_byte_array`, whose per-element error string is
@@ -1851,6 +1876,7 @@ pub fn gui_window_set_icon<R: GuiStore>(
 // before invoking callbacks so those calls don't alias `cx`.
 // ============================================================================
 
+#[cfg(feature = "impls")]
 enum WidgetSnapshot {
     Button {
         id: u64,
@@ -1940,6 +1966,7 @@ enum WidgetSnapshot {
     },
 }
 
+#[cfg(feature = "impls")]
 impl WidgetSnapshot {
     /// Draw order among a window's widgets: higher draws on top. Used to
     /// stable-sort snapshots before rendering, so widgets with equal z keep
@@ -1961,6 +1988,7 @@ impl WidgetSnapshot {
     }
 }
 
+#[cfg(feature = "impls")]
 /// Renders one window's background and widgets for the current frame, and
 /// dispatches any callbacks triggered by this frame's interactions.
 ///
@@ -2408,6 +2436,7 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
     }
 }
 
+#[cfg(feature = "impls")]
 /// A window's viewport-level state (title/visible/decorated/icon/pending
 /// size & position), snapshotted with the one-shot pending fields cleared.
 /// Shared by the root window (driven via `ViewportCommand`s) and secondary
@@ -2421,6 +2450,7 @@ struct ViewportState {
     pending_position: Option<(f32, f32)>,
 }
 
+#[cfg(feature = "impls")]
 fn take_viewport_state<R: GuiStore>(cx: &mut R::Cx, window_id: u64) -> Option<ViewportState> {
     let Some(GuiHandle::Window(w)) = R::gui_handles_ref(cx).get(&window_id) else {
         return None;
@@ -2444,6 +2474,7 @@ fn take_viewport_state<R: GuiStore>(cx: &mut R::Cx, window_id: u64) -> Option<Vi
     Some(state)
 }
 
+#[cfg(feature = "impls")]
 struct RlGuiApp<'a, R: GuiStore> {
     cx: &'a mut R::Cx,
     window: u64,
@@ -2453,6 +2484,7 @@ struct RlGuiApp<'a, R: GuiStore> {
     span: R::Span,
 }
 
+#[cfg(feature = "impls")]
 impl<R: GuiStore> eframe::App for RlGuiApp<'_, R> {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
