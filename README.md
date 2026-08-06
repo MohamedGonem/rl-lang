@@ -54,6 +54,32 @@ println(PI() * pow(r, 2.0))  // 78.53981633974483
 
 ## Installation
 
+### Via install script (recommended)
+
+Prebuilt binaries are published for every [release](https://github.com/rl-lang/rl-lang/releases). The install script downloads the build you pick (or the latest stable) and puts it on your PATH.
+
+**Linux / WSL** (installs to `$HOME/.local/bin`; set `RL_INSTALL_DIR` to override):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.sh -o install.sh
+bash install.sh
+```
+
+Non-interactively (install the standard `rl` build of `v1.0.0`):
+
+```bash
+RL_VARIANT=rl bash install.sh v1.0.0
+```
+
+**Windows (PowerShell)** (installs to `%LOCALAPPDATA%\rl-lang\bin` and adds it to your user PATH - restart your terminal afterwards):
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.ps1 -OutFile install.ps1
+.\install.ps1
+```
+
+Available builds include `rl` (treewalker + VM), `rlc` (VM-only), `rlp` (treewalker-only), and `rlsp` (language server). Debug variants are suffixed with `d` (e.g. `rld`).
+
 ### From source
 
 ```bash
