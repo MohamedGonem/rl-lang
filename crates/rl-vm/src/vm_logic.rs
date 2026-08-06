@@ -1017,19 +1017,55 @@ impl Vm {
                     let caller = self
                         .stack
                         .last()
-                        .ok_or_else(|| self.err("stack underflow on method call"))?;
-                    let VmValue::Record { name, .. } = caller else {
-                        return Err(self.err(format!(
-                            "cannot call method `{method}` on {}",
-                            caller.type_name()
-                        )));
-                    };
-                    let key = format!("{name}::{method}");
-                    let func = self.impl_methods.get(&key).cloned().ok_or_else(|| {
-                        self.err(format!("record `{name}` has no method `{method}`"))
-                    })?;
+                        .ok_or_else(|| self.err("stack underflow on method call"))?
+                        .clone();
                     let insert_pos = self.stack.len() - 1;
-                    self.stack.insert(insert_pos, VmValue::Function(func));
+
+                    // Dispatch order mirrors the interpreter's `MethodCall`
+                    // handler (`evaluator.rs`): a record's `impl` method wins,
+                    // then the method name is resolved as a free function with
+                    // the receiver as its first argument - imported stdlib
+                    // functions first, then named user functions.
+                    let resolved: Option<VmValue> = match &caller {
+                        VmValue::Record { name, .. } => {
+                            if let Some(func) = self.impl_methods.get(&format!("{name}::{method}"))
+                            {
+                                Some(VmValue::Function(func.clone()))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    }
+                    .or_else(|| {
+                        self.stdlib_methods
+                            .get(&*method)
+                            .map(|n| VmValue::Native(n.clone()))
+                            .or_else(|| {
+                                self.user_methods
+                                    .get(&*method)
+                                    .map(|f| VmValue::Function(f.clone()))
+                            })
+                    });
+
+                    match resolved {
+                        Some(callee) => {
+                            self.stack.insert(insert_pos, callee);
+                        }
+                        None => match &caller {
+                            VmValue::Record { name, .. } => {
+                                return Err(
+                                    self.err(format!("record `{name}` has no method `{method}`"))
+                                );
+                            }
+                            other => {
+                                return Err(self.err(format!(
+                                    "cannot call method `{method}` on {}",
+                                    other.type_name()
+                                )));
+                            }
+                        },
+                    }
                 }
 
                 OpCode::Cast => {
