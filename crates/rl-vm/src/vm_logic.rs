@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::VmNative;
 use crate::chunk::{Chunk, OpCode};
-use crate::values::{self, RecordFields, VmFunction, VmMapKey, VmNativeFn, VmValue};
+use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_std::gui::GuiHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
@@ -119,7 +119,7 @@ pub struct Vm {
     /// import) and consulted by `OpCode::LookupMethod` as the
     /// free-function fallback for `value.method(...)` on non-record
     /// receivers - mirroring the interpreter's `call_path` stdlib step.
-    stdlib_methods: HashMap<String, Rc<VmNativeFn>>,
+    stdlib_methods: HashMap<String, VmNative>,
     /// named user functions, keyed by name. Populated by
     /// `OpCode::RegisterUserMethod` (emitted per function declaration) and
     /// consulted by `OpCode::LookupMethod` after the stdlib fallback -
@@ -977,9 +977,7 @@ impl Vm {
                     let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
                         return Err(self.err("corrupt bytecode: method key is not a string"));
                     };
-                    let VmValue::Native(VmNative::Legacy(native)) =
-                        chunk!().constants[value_idx].clone()
-                    else {
+                    let VmValue::Native(native) = chunk!().constants[value_idx].clone() else {
                         return Err(self.err("corrupt bytecode: stdlib fallback is not a native"));
                     };
                     self.stdlib_methods.insert(key.to_string(), native);
@@ -1046,7 +1044,7 @@ impl Vm {
                     .or_else(|| {
                         self.stdlib_methods
                             .get(&*method)
-                            .map(|n| VmValue::Native(values::VmNative::Legacy(n.clone())))
+                            .map(|n| VmValue::Native(n.clone()))
                             .or_else(|| {
                                 self.user_methods
                                     .get(&*method)
