@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::chunk::{Chunk, OpCode};
 use crate::stdlib::gui::GuiHandle;
-use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
+use crate::values::{RecordFields, VmFunction, VmMapKey, VmNativeFn, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
 use rl_utils::source::SourceFile;
@@ -113,6 +113,17 @@ pub struct Vm {
     /// functions, `Record::method(...)`) and `OpCode::LookupMethod`
     /// (instance methods, `value.method(...)`).
     impl_methods: HashMap<String, Rc<VmFunction>>,
+    /// stdlib functions imported via `get x from std::module`, keyed by
+    /// name. Populated by `OpCode::RegisterStdlibMethod` (emitted per
+    /// import) and consulted by `OpCode::LookupMethod` as the
+    /// free-function fallback for `value.method(...)` on non-record
+    /// receivers - mirroring the interpreter's `call_path` stdlib step.
+    stdlib_methods: HashMap<String, Rc<VmNativeFn>>,
+    /// named user functions, keyed by name. Populated by
+    /// `OpCode::RegisterUserMethod` (emitted per function declaration) and
+    /// consulted by `OpCode::LookupMethod` after the stdlib fallback -
+    /// mirroring the interpreter's `fn_names`.
+    user_methods: HashMap<String, Rc<VmFunction>>,
     /// Side-table of native C-interop resources (`std::c`), keyed by handle
     /// id. `pub(crate)` (unlike every field above) because, unlike every
     /// other native function so far, `std::c`'s functions need persistent
@@ -169,6 +180,8 @@ impl Vm {
             source: None,
             line_index: None,
             impl_methods: HashMap::new(),
+            stdlib_methods: HashMap::new(),
+            user_methods: HashMap::new(),
             c_handles: HashMap::new(),
             c_next_handle: 1,
             audio_handles: HashMap::new(),
