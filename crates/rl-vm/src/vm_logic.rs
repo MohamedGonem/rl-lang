@@ -1028,12 +1028,7 @@ impl Vm {
                     // functions first, then named user functions.
                     let resolved: Option<VmValue> = match &caller {
                         VmValue::Record { name, .. } => {
-                            if let Some(func) = self.impl_methods.get(&format!("{name}::{method}"))
-                            {
-                                Some(VmValue::Function(func.clone()))
-                            } else {
-                                None
-                            }
+                            self.impl_methods.get(&format!("{name}::{method}")).map(|func| VmValue::Function(func.clone()))
                         }
                         _ => None,
                     }
