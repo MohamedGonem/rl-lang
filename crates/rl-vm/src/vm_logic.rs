@@ -960,6 +960,38 @@ impl Vm {
                     self.impl_methods.insert(key.to_string(), func);
                 }
 
+                OpCode::RegisterStdlibMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let value_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Native(native) = chunk!().constants[value_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: stdlib fallback is not a native"));
+                    };
+                    self.stdlib_methods.insert(key.to_string(), native);
+                }
+
+                OpCode::RegisterUserMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let func_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Function(func) = chunk!().constants[func_idx].clone() else {
+                        return Err(
+                            self.err("corrupt bytecode: user method body is not a function")
+                        );
+                    };
+                    self.user_methods.insert(key.to_string(), func);
+                }
+
                 OpCode::LookupAssoc => {
                     let key_idx = read_u16!() as usize;
                     ip += 2;
