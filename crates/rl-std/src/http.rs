@@ -360,7 +360,7 @@ pub fn http_respond<R: HttpStore>(
 
     let body = match extract_string::<R>(&args[2], "http_respond") {
         Ok(s) => s,
-        Err(e) => return Ok(R::err(R::from_string(format!("{e}")))),
+        Err(e) => return Ok(R::err(R::from_string(e.to_string()))),
     };
     let content_type = match args.get(3) {
         Some(v) if R::as_str(v).is_some() => Some(R::as_str(v).unwrap().to_string()),

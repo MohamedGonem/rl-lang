@@ -1,11 +1,10 @@
 //! The VM's standard library - built-in modules registered under `std::*`.
 
 // `common`/`macros` now serve only the legacy `rl` and `len` functions; some of
-// their helpers are unused until those migrate.
+// their helpers are unused until those migrate (`macros.rs` allows this itself).
 #[allow(dead_code, unused_macros, unused_imports)]
 pub mod common;
 mod len;
-#[allow(dead_code, unused_macros, unused_imports)]
 mod macros;
 mod rl;
 
