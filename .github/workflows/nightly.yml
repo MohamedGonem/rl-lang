@@ -24,15 +24,28 @@ jobs:
             platform: windows
             arch: x86_64
 
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: aarch64
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: dev
 
-      - name: Install ALSA dev headers (linux)
+      - name: Install build deps (linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libasound2-dev gcc-aarch64-linux-gnu libasound2-dev:arm64
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -46,7 +59,13 @@ jobs:
 
       - name: Build all variants
         shell: bash
-        run: bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist
+        run: |
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            export PKG_CONFIG_ALLOW_CROSS=1
+            export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          fi
+          bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
