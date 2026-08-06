@@ -2,9 +2,10 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::VmNative;
 use crate::chunk::{Chunk, OpCode};
+use crate::values::{self, RecordFields, VmFunction, VmMapKey, VmNativeFn, VmValue};
 use rl_std::gui::GuiHandle;
-use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
 use rl_utils::source::SourceFile;
@@ -675,9 +676,7 @@ impl Vm {
                             self.pop()?; // discard the callee itself
 
                             let result = match native {
-                                crate::values::VmNative::Std(h) => {
-                                    (h.thunk)(self, call_args, ())
-                                }
+                                crate::values::VmNative::Std(h) => (h.thunk)(self, call_args, ()),
                                 crate::values::VmNative::Legacy(f) => (f.func)(self, call_args),
                             }
                             .map_err(|e| self.annotate(e))?;
@@ -978,7 +977,9 @@ impl Vm {
                     let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
                         return Err(self.err("corrupt bytecode: method key is not a string"));
                     };
-                    let VmValue::Native(native) = chunk!().constants[value_idx].clone() else {
+                    let VmValue::Native(VmNative::Legacy(native)) =
+                        chunk!().constants[value_idx].clone()
+                    else {
                         return Err(self.err("corrupt bytecode: stdlib fallback is not a native"));
                     };
                     self.stdlib_methods.insert(key.to_string(), native);
@@ -1036,15 +1037,16 @@ impl Vm {
                     // the receiver as its first argument - imported stdlib
                     // functions first, then named user functions.
                     let resolved: Option<VmValue> = match &caller {
-                        VmValue::Record { name, .. } => {
-                            self.impl_methods.get(&format!("{name}::{method}")).map(|func| VmValue::Function(func.clone()))
-                        }
+                        VmValue::Record { name, .. } => self
+                            .impl_methods
+                            .get(&format!("{name}::{method}"))
+                            .map(|func| VmValue::Function(func.clone())),
                         _ => None,
                     }
                     .or_else(|| {
                         self.stdlib_methods
                             .get(&*method)
-                            .map(|n| VmValue::Native(n.clone()))
+                            .map(|n| VmValue::Native(values::VmNative::Legacy(n.clone())))
                             .or_else(|| {
                                 self.user_methods
                                     .get(&*method)
