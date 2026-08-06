@@ -6,7 +6,7 @@
 use serde::Serialize;
 
 /// A single stdlib function's documentation.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct FnEntry {
     /// The function signature as it appears in rl (e.g. `"arr_push(arr, value)"`).
     pub signature: &'static str,
@@ -32,7 +32,7 @@ pub struct FnEntry {
 }
 
 /// A stdlib module's documentation, grouping related [`FnEntry`]s together.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct StdEntry {
     /// The module name as used in imports (e.g. `"io"`, `"math::consts"`).
     pub name: &'static str,
@@ -49,7 +49,7 @@ pub struct StdEntry {
 }
 
 /// Coarse grouping used to organize the concept index / nav.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub enum ConceptCategory {
     /// Basic language syntax (comments, literals, general structure).
     Syntax,
@@ -67,9 +67,25 @@ pub enum ConceptCategory {
     ErrorHandling,
 }
 
+impl std::fmt::Display for ConceptCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ConceptCategory::Syntax => "Syntax",
+            ConceptCategory::Types => "Types",
+            ConceptCategory::ControlFlow => "Control Flow",
+            ConceptCategory::Functions => "Functions",
+            ConceptCategory::Modules => "Modules",
+            ConceptCategory::Tooling => "Tooling",
+            ConceptCategory::ErrorHandling => "Error Handling",
+        };
+
+        write!(f, "{}", name)
+    }
+}
+
 /// What role a [`DescriptionEntry`] plays, so the renderer can style it
 /// differently (e.g. a pitfall as a warning callout).
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub enum DescriptionKind {
     /// Ordinary prose explaining how or why something works.
     Explanation,
@@ -81,8 +97,24 @@ pub enum DescriptionKind {
     Note,
 }
 
+impl std::fmt::Display for DescriptionKind {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>
+    ) -> std::fmt::Result {
+        let name = match self {
+            DescriptionKind::Explanation => "Explanation",
+            DescriptionKind::Syntax => "Syntax",
+            DescriptionKind::Pitfall => "Pitfall",
+            DescriptionKind::Note => "Note",
+        };
+
+        write!(f, "{}", name)
+    }
+}
+
 /// Documentation for a language concept (variables, loops, types, etc.).
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ConceptEntry {
     /// The concept name shown as a section header (e.g. `"arrays"`, `"for loops"`).
     pub name: &'static str,
@@ -109,7 +141,7 @@ pub struct ConceptEntry {
 }
 
 /// A single description with one or more accompanying rl code examples.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DescriptionEntry {
     /// What role this block plays (explanation, syntax, pitfall, note).
     pub kind: DescriptionKind,
