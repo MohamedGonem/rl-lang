@@ -12,7 +12,10 @@ jobs:
   release:
     name: Release
     strategy:
+      fail-fast: false
       matrix:
+        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu, aarch64-pc-windows-msvc]
+        group: [g1, g2, g3, g4]
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
@@ -34,7 +37,22 @@ jobs:
             platform: windows
             arch: aarch64
 
+          - group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
+
+          - group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+
+          - group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl,rl_treewalker,rl_treewalker_no_docs"
+
+          - group: g4
+            variants: "rl_treewalker_no_repl,rl_treewalker_no_docs_repl,rl_treewalker_debug,rl_treewalker_debug_no_docs,rl_treewalker_debug_no_repl,rl_treewalker_debug_no_docs_repl,rl_lsp"
+
     runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_GHA_CACHE_TAG: rl-v1-${{ matrix.target }}
     steps:
       - name: Install build deps (linux)
         if: matrix.os == 'ubuntu-latest'
@@ -85,7 +103,10 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: choco install zip -y
 
-      - name: Build all variants
+      - name: Start sccache
+        uses: mozilla/sccache-action@v0.0.10
+
+      - name: Build variants (${{ matrix.group }})
         shell: bash
         run: |
           if [ "${{ matrix.arch }}" = "aarch64" ]; then
@@ -93,12 +114,12 @@ jobs:
             export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
           fi
-          bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist
+          bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist "${{ matrix.variants }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
+          name: ${{ matrix.target }}-${{ matrix.group }}
           path: dist/*
 
   publish:

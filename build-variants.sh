@@ -5,6 +5,7 @@ TARGET="$1"
 PLATFORM="$2"
 ARCH="$3"
 OUT_DIR="$4"
+VARIANT_LIST="${5:-}"
 
 mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
@@ -119,31 +120,49 @@ package_windows() {
 main() {
   local variant actual feats bin_src
 
-  while IFS= read -r variant; do
-    actual="${ACTUAL_NAME[$variant]}"
-    feats="$(features_for "$variant")"
+  if [ -n "$VARIANT_LIST" ]; then
+    while IFS= read -r variant; do
+      [ -n "$variant" ] || continue
+      build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
+    done <<<"$(printf '%s\n' "$VARIANT_LIST" | tr ',' '\n' | sed 's/^ *//; s/ *$//')"
+  else
+    while IFS= read -r variant; do
+      build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
+    done < <(build_variant_list)
+  fi
+}
 
-    echo "=== Building ${variant} (${actual}) [features: ${feats}] ==="
-    cargo build --release --no-default-features --features "$feats" \
-      --target "$TARGET" -p rl-cli
+build_one() {
+  local variant="$1" target="$2" platform="$3" arch="$4" out_dir="$5"
+  local actual feats bin_src
 
-    if [ "$PLATFORM" = "windows" ]; then
-      bin_src="target/${TARGET}/release/rl.exe"
-    else
-      bin_src="target/${TARGET}/release/rl"
-    fi
+  actual="${ACTUAL_NAME[$variant]:-}"
+  if [ -z "$actual" ]; then
+    echo "unknown variant '$variant'" >&2
+    exit 1
+  fi
+  feats="$(features_for "$variant")"
 
-    if [ ! -f "$bin_src" ]; then
-      echo "expected binary not found at $bin_src" >&2
-      exit 1
-    fi
+  echo "=== Building ${variant} (${actual}) [features: ${feats}] ==="
+  cargo build --release --no-default-features --features "$feats" \
+    --target "$target" -p rl-cli
 
-    if [ "$PLATFORM" = "windows" ]; then
-      package_windows "$actual" "$bin_src"
-    else
-      package_linux "$actual" "$bin_src"
-    fi
-  done < <(build_variant_list)
+  if [ "$platform" = "windows" ]; then
+    bin_src="target/${target}/release/rl.exe"
+  else
+    bin_src="target/${target}/release/rl"
+  fi
+
+  if [ ! -f "$bin_src" ]; then
+    echo "expected binary not found at $bin_src" >&2
+    exit 1
+  fi
+
+  if [ "$platform" = "windows" ]; then
+    package_windows "$actual" "$bin_src"
+  else
+    package_linux "$actual" "$bin_src"
+  fi
 }
 
 main
