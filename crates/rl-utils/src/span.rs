@@ -69,14 +69,20 @@ mod tests {
     fn span_join_non_overlapping() {
         let span = Span::new(DEFAULT_START, DEFAULT_START + 3);
         let span_other = Span::new(DEFAULT_START, DEFAULT_START + 15);
-        assert_eq!(span.join(span_other), Span::new(DEFAULT_START, DEFAULT_START + 15));
+        assert_eq!(
+            span.join(span_other),
+            Span::new(DEFAULT_START, DEFAULT_START + 15)
+        );
     }
 
     #[test]
     fn span_join_overlapping() {
         let span = Span::new(DEFAULT_START, DEFAULT_START + 5);
         let span_other = Span::new(DEFAULT_START + 10, DEFAULT_START + 15);
-        assert_eq!(span.join(span_other), Span::new(DEFAULT_START, DEFAULT_START + 15));
+        assert_eq!(
+            span.join(span_other),
+            Span::new(DEFAULT_START, DEFAULT_START + 15)
+        );
     }
 
     #[test]

@@ -32,11 +32,7 @@ pub fn std_arr_reduce(
     let mut result = initial;
 
     for item in items.iter() {
-        result = eval.call_value(
-            &function,
-            &[result, (*item).clone()],
-            eval.current_span(),
-        )?;
+        result = eval.call_value(&function, &[result, (*item).clone()], eval.current_span())?;
     }
 
     Ok(vok!(result))

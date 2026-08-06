@@ -27,9 +27,9 @@ use rl_tooling::workflows::generate;
 use rl_tooling::{format::format_tokens, package::EmbeddedProgram};
 use std::path::PathBuf;
 
-use crate::logic_loops::{lexing_loop, parsing_loop};
 #[cfg(feature = "treewalker")]
 use crate::logic_loops::eval_loop;
+use crate::logic_loops::{lexing_loop, parsing_loop};
 #[cfg(feature = "lsp")]
 use rl_lsp::run_lsp;
 use rl_tooling::dev::read_rl_toml;
@@ -366,7 +366,9 @@ fn main() {
                 crate::logic_loops::cranelift_loop(source, ast, statements);
                 #[cfg(not(feature = "cranelift"))]
                 {
-                    eprintln!("error: --cranelift requires the `cranelift` feature (which implies `vm`)");
+                    eprintln!(
+                        "error: --cranelift requires the `cranelift` feature (which implies `vm`)"
+                    );
                     std::process::exit(1)
                 }
             } else {

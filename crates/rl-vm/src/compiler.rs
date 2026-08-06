@@ -965,10 +965,9 @@ impl<'a> Compiler<'a> {
                     TypeAnnotation::BByte => CastTarget::BBYTE,
                     TypeAnnotation::BSByte => CastTarget::BSBYTE,
                     other => {
-                        return Err(self.err(
-                            format!("unsupported cast target type {other:?}"),
-                            span,
-                        ));
+                        return Err(
+                            self.err(format!("unsupported cast target type {other:?}"), span)
+                        );
                     }
                 };
                 self.chunk.write_op(OpCode::Cast, span);

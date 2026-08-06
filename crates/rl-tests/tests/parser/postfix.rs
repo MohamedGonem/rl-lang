@@ -1,8 +1,6 @@
-use {
-    rl_ast::{
-        nodes::ExpressionKind,
-        statements::{StatementKind, TypeAnnotation},
-    },
+use rl_ast::{
+    nodes::ExpressionKind,
+    statements::{StatementKind, TypeAnnotation},
 };
 
 use crate::common::{self, span_of, span_whole};
@@ -26,7 +24,12 @@ fn index_simple() {
                 ExpressionKind::Identifier("arx".to_string()),
                 span_of(source, "arx"),
             );
-            common::assert_expr(&ast, *index, ExpressionKind::Integer(0), span_of(source, "0"));
+            common::assert_expr(
+                &ast,
+                *index,
+                ExpressionKind::Integer(0),
+                span_of(source, "0"),
+            );
         }
         other => panic!("expected Index, got {:?}", other),
     }
@@ -46,7 +49,12 @@ fn index_chained() {
     assert_eq!(expr.span, span_whole(source));
     match &expr.kind {
         ExpressionKind::Index { target, index } => {
-            common::assert_expr(&ast, *index, ExpressionKind::Integer(1), span_of(source, "1"));
+            common::assert_expr(
+                &ast,
+                *index,
+                ExpressionKind::Integer(1),
+                span_of(source, "1"),
+            );
             let inner = ast.exprs.get(*target);
             assert_eq!(inner.span, span_of(source, "arx[0]"));
             match &inner.kind {
@@ -95,8 +103,18 @@ fn index_assign() {
                 ExpressionKind::Identifier("arx".to_string()),
                 span_of(source, "arx"),
             );
-            common::assert_expr(&ast, *index, ExpressionKind::Integer(0), span_of(source, "0"));
-            common::assert_expr(&ast, *value, ExpressionKind::Integer(1), span_of(source, "1"));
+            common::assert_expr(
+                &ast,
+                *index,
+                ExpressionKind::Integer(0),
+                span_of(source, "0"),
+            );
+            common::assert_expr(
+                &ast,
+                *value,
+                ExpressionKind::Integer(1),
+                span_of(source, "1"),
+            );
         }
         other => panic!("expected IndexAssign, got {:?}", other),
     }
@@ -128,7 +146,12 @@ fn method_call_simple() {
             );
             assert_eq!(method, &vec!["foo".to_string()]);
             assert_eq!(args.len(), 1);
-            common::assert_expr(&ast, args[0], ExpressionKind::Integer(1), span_of(source, "1"));
+            common::assert_expr(
+                &ast,
+                args[0],
+                ExpressionKind::Integer(1),
+                span_of(source, "1"),
+            );
         }
         other => panic!("expected MethodCall, got {:?}", other),
     }

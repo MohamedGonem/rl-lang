@@ -6,8 +6,8 @@ use {
     rl_lexer::tokentypes::TokenType,
 };
 
-use crate::common::{self, span_of, span_of_last, span_of_nth, span_whole};
 use crate::assert_for_range;
+use crate::common::{self, span_of, span_of_last, span_of_nth, span_whole};
 
 #[test]
 fn for_c() {

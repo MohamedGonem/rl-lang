@@ -18,9 +18,10 @@ fn format_function_call() {
 
 #[test]
 fn format_indentation_with_braces() {
-    let tokens = common::lex(r#"fn main(){
+    let tokens = common::lex(
+        r#"fn main(){
 println("hello")
-}"#
+}"#,
     );
 
     let out = format_tokens(&tokens);
@@ -35,11 +36,12 @@ println("hello")
 
 #[test]
 fn format_nested_blocks() {
-    let tokens = common::lex(r#"if x {
+    let tokens = common::lex(
+        r#"if x {
 if y {
 hello()
 }
-}"#
+}"#,
     );
 
     let out = format_tokens(&tokens);
@@ -55,10 +57,11 @@ hello()
 
 #[test]
 fn format_line_comments() {
-    let tokens = common::lex(r#"//hello
-dec int x = 1"#
+    let tokens = common::lex(
+        r#"//hello
+dec int x = 1"#,
     );
-    
+
     let out = format_tokens(&tokens);
     assert_eq!(
         out,
@@ -70,8 +73,10 @@ dec int x = 1"#
 
 #[test]
 fn format_doc_comments() {
-    let tokens = common::lex(r#"/// docs
-fn main()"#);
+    let tokens = common::lex(
+        r#"/// docs
+fn main()"#,
+    );
 
     let out = format_tokens(&tokens);
     assert_eq!(
@@ -84,11 +89,13 @@ fn main()"#
 
 #[test]
 fn format_blank_lines() {
-    let tokens = common::lex(r#"
+    let tokens = common::lex(
+        r#"
     
     
     
-dec int x = 1"#);
+dec int x = 1"#,
+    );
 
     let out = format_tokens(&tokens);
 
@@ -103,25 +110,19 @@ dec int x = 1"#
 #[test]
 fn format_unary_minus() {
     let tokens = common::lex("x = - 10");
-    
+
     let out = format_tokens(&tokens);
 
-    assert_eq!(
-        out,
-        "x = -10"
-    );
+    assert_eq!(out, "x = -10");
 }
 
 #[test]
 fn format_binary_minus() {
     let tokens = common::lex("x = 10-5");
-    
+
     let out = format_tokens(&tokens);
 
-    assert_eq!(
-        out,
-        "x = 10 - 5"
-    );
+    assert_eq!(out, "x = 10 - 5");
 }
 
 #[test]
@@ -130,10 +131,7 @@ fn format_array_indexing() {
 
     let out = format_tokens(&tokens);
 
-    assert_eq!(
-        out,
-        "arr[0]"
-    );
+    assert_eq!(out, "arr[0]");
 }
 
 #[test]
@@ -142,10 +140,7 @@ fn format_generic_type_brackets() {
 
     let out = format_tokens(&tokens);
 
-    assert_eq!(
-        out,
-        "arr[int]"
-    );
+    assert_eq!(out, "arr[int]");
 }
 
 #[test]
@@ -154,8 +149,5 @@ fn format_function_call_with_arguments() {
 
     let out = format_tokens(&tokens);
 
-    assert_eq!(
-        out,
-        "foo(1, 2)"
-    );
+    assert_eq!(out, "foo(1, 2)");
 }

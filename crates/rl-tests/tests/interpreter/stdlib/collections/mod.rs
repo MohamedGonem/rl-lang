@@ -1,2 +1,2 @@
-mod sets;
 mod maps;
+mod sets;

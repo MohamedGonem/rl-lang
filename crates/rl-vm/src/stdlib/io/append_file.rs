@@ -1,4 +1,8 @@
-use crate::{Vm, stdlib::macros::{verr, vnl, vok, vs}, values::VmValue};
+use crate::{
+    Vm,
+    stdlib::macros::{verr, vnl, vok, vs},
+    values::VmValue,
+};
 use std::{fs::OpenOptions, io::Write};
 
 pub fn std_append_file(_: &mut Vm, file: String, content: String) -> VmValue {

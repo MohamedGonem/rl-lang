@@ -161,10 +161,7 @@ fn if_else_if_else() {
                 span_of(source, "if (true) {1}"),
             );
             let else_branch = else_branch.as_ref().expect("expected else branch");
-            assert_eq!(
-                else_branch.span,
-                span_of(source, "if (false) {2} else {0}")
-            );
+            assert_eq!(else_branch.span, span_of(source, "if (false) {2} else {0}"));
             match &else_branch.kind {
                 StatementKind::Conditional {
                     if_branch,
@@ -234,10 +231,7 @@ fn if_nested() {
                         span_of(source, "(true)"),
                     );
                     assert_eq!(body.len(), 1, "expected exactly one body statement");
-                    assert_eq!(
-                        body[0].span,
-                        span_of(source, "if (false) {0} else {1}")
-                    );
+                    assert_eq!(body[0].span, span_of(source, "if (false) {0} else {1}"));
                     match &body[0].kind {
                         StatementKind::Conditional {
                             if_branch,

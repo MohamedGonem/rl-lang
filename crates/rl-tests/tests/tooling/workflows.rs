@@ -48,11 +48,7 @@ fn does_not_override_existing_workflow() {
 
     std::fs::create_dir_all(temp.path()).unwrap();
 
-    std::fs::write(
-        temp.path().join("check.yml"),
-        "existing" 
-    )
-    .unwrap();
+    std::fs::write(temp.path().join("check.yml"), "existing").unwrap();
 
     let result = try_generate(temp.path(), true, false);
 

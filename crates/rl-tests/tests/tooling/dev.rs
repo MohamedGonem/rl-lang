@@ -7,13 +7,13 @@ fn reads_valid_rl_toml() {
     let file = temp.path().join("rl.toml");
 
     std::fs::write(
-        &file, 
+        &file,
         r#"
 [project]
 name = "hello"
 version = "0.0.1"
 entry = "src/main.rl"
-        "#
+        "#,
     )
     .unwrap();
 
@@ -40,11 +40,11 @@ fn fails_when_rl_toml_is_invalid() {
     let file = temp.path().join("rl.toml");
 
     std::fs::write(
-        &file, 
+        &file,
         r#"
 [project]
 name = "hello"
-        "#
+        "#,
     )
     .unwrap();
 
@@ -60,12 +60,12 @@ fn fails_without_project_section() {
     let file = temp.path().join("rl.toml");
 
     std::fs::write(
-        &file, 
+        &file,
         r#"
 name = "hello"
 version = "0.0.1"
 entry = "src/main.rl"
-        "#
+        "#,
     )
     .unwrap();
 
@@ -81,16 +81,16 @@ fn fails_when_project_entry_is_missing() {
     let file = temp.path().join("rl.toml");
 
     std::fs::write(
-        &file, 
+        &file,
         r#"
 [project]
 name = "hello"
 version = "0.0.1"
-        "#
+        "#,
     )
     .unwrap();
 
     let result = try_read_rl_toml(&file);
-    
+
     assert!(result.is_err());
 }

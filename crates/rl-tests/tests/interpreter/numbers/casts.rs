@@ -46,10 +46,7 @@ fn uint_to_byte() {
 
 #[test]
 fn uint_to_small_uint_overflow_is_error() {
-    assert!(eval_program(
-        "dec small uint x = (4294967296 as uint) as small uint"
-    )
-    .is_err());
+    assert!(eval_program("dec small uint x = (4294967296 as uint) as small uint").is_err());
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use rl_ast::statements::StatementKind;
 
-use crate::common::{self, span_whole};
 use crate::assert_stmt;
+use crate::common::{self, span_whole};
 
 #[test]
 fn import_simple() {

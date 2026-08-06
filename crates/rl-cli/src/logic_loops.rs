@@ -21,14 +21,14 @@ use rl_ast::Ast;
 #[cfg(any(feature = "treewalker", feature = "vm"))]
 use rl_interpreter::evaluator::Evaluator;
 
+#[cfg(feature = "vm")]
+use rl_utils::line_index::LineIndex;
 use {
     rl_ast::statements::Statement,
     rl_lexer::{tokenizer::Tokenizer, tokentypes::Token},
     rl_parser::parser_logic::Parser,
     rl_utils::source::SourceFile,
 };
-#[cfg(feature = "vm")]
-use rl_utils::line_index::LineIndex;
 
 /// Lexes `source` into a token stream, or prints the error and exits.
 pub fn lexing_loop(source: SourceFile) -> Vec<Token> {

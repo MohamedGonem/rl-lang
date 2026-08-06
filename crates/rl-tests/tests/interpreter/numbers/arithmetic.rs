@@ -28,34 +28,35 @@ fn uint_division() {
 
 #[test]
 fn small_uint_addition() {
-    let evaluator = eval_program("dec small uint x = (10 as small uint) + (5 as small uint)").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = (10 as small uint) + (5 as small uint)").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(15)));
 }
 
 #[test]
 fn small_uint_subtraction() {
-    let evaluator = eval_program("dec small uint x = (10 as small uint) - (5 as small uint)").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = (10 as small uint) - (5 as small uint)").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(5)));
 }
 
 #[test]
 fn small_uint_multiplication() {
-    let evaluator = eval_program("dec small uint x = (10 as small uint) * (5 as small uint)").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = (10 as small uint) * (5 as small uint)").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(50)));
 }
 
 #[test]
 fn small_uint_division() {
-    let evaluator = eval_program("dec small uint x = (10 as small uint) / (5 as small uint)").unwrap();
+    let evaluator =
+        eval_program("dec small uint x = (10 as small uint) / (5 as small uint)").unwrap();
     assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(2)));
 }
 
 #[test]
 fn uint_add_overflow_is_error() {
-    assert!(eval_program(
-        "dec uint x = (18446744073709551615 as uint) + (1 as uint)"
-    )
-    .is_err());
+    assert!(eval_program("dec uint x = (18446744073709551615 as uint) + (1 as uint)").is_err());
 }
 
 #[test]
@@ -65,10 +66,7 @@ fn uint_sub_underflow_is_error() {
 
 #[test]
 fn uint_mul_overflow_is_error() {
-    assert!(eval_program(
-        "dec uint x = (18446744073709551615 as uint) * (2 as uint)"
-    )
-    .is_err());
+    assert!(eval_program("dec uint x = (18446744073709551615 as uint) * (2 as uint)").is_err());
 }
 
 #[test]
@@ -78,10 +76,9 @@ fn uint_div_by_zero_is_error() {
 
 #[test]
 fn small_uint_add_overflow_is_error() {
-    assert!(eval_program(
-        "dec small uint x = (4294967295 as small uint) + (1 as small uint)"
-    )
-    .is_err());
+    assert!(
+        eval_program("dec small uint x = (4294967295 as small uint) + (1 as small uint)").is_err()
+    );
 }
 
 #[test]

@@ -4,7 +4,6 @@ use crate::common::eval_program;
 
 use crate::interpreter::arrays::common::int_array;
 
-
 #[test]
 fn arr_count() {
     let ev = eval_program(
@@ -148,8 +147,6 @@ dec int x = arr_last(array)?
     assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(9)));
 }
 
-
-
 #[test]
 fn arr_concat() {
     let ev = eval_program(
@@ -176,7 +173,6 @@ dec arr[int] x = arr_slice(array, 1, 4)?
     .unwrap();
     assert_eq!(ev.get_value_raw("x"), Some(int_array(vec![1, 2, 3])));
 }
-
 
 #[test]
 fn arr_map_doubles() {

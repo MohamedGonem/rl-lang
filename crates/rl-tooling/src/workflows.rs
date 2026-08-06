@@ -74,29 +74,31 @@ jobs:
 /// Exits with code 1 if a target file already exists or any IO error occurs.
 pub fn generate(check: bool, package: bool) {
     let dir = Path::new("workflows");
-    try_generate(dir, check, package)
-      .unwrap_or_else(|e| {
+    try_generate(dir, check, package).unwrap_or_else(|e| {
         eprintln!("{}", e);
         std::process::exit(1)
-      });
-    
+    });
 }
 
 /// Inner fallible implementation of [`generate`].
 ///
 /// Returns an error if writing the directory or file fails.
-pub fn try_generate(dir: &Path, check: bool, package: bool) -> Result<(), Box<dyn std::error::Error>> {
-  fs::create_dir_all(dir).map_err(|e| format!("error: could not create workflows: {}", e))?;
+pub fn try_generate(
+    dir: &Path,
+    check: bool,
+    package: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    fs::create_dir_all(dir).map_err(|e| format!("error: could not create workflows: {}", e))?;
 
-  if check {
-    write_file(dir.join("check.yml").as_path(), CHECK_YML)?;
-  }
+    if check {
+        write_file(dir.join("check.yml").as_path(), CHECK_YML)?;
+    }
 
-  if package {
-    write_file(dir.join("release.yml").as_path(), PACKAGE_YML)?;
-  }
+    if package {
+        write_file(dir.join("release.yml").as_path(), PACKAGE_YML)?;
+    }
 
-  Ok(())
+    Ok(())
 }
 
 fn write_file(path: &Path, content: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -104,9 +106,9 @@ fn write_file(path: &Path, content: &str) -> Result<(), Box<dyn std::error::Erro
         return Err(format!("error: '{}' already exists", path.display()).into());
     }
 
-    fs::write(path, content).map_err(|e| format!("error: failed to write '{}': {}", path.display(), e))?;
+    fs::write(path, content)
+        .map_err(|e| format!("error: failed to write '{}': {}", path.display(), e))?;
 
     println!("created '{}'", path.display());
     Ok(())
 }
-

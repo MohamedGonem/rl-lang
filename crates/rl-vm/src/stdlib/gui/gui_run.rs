@@ -481,11 +481,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(
-                &cb,
-                &[VmValue::Str(text.into())],
-                Span::dummy(),
-            ));
+            report_callback_err(eval.call_value(&cb, &[VmValue::Str(text.into())], Span::dummy()));
         }
     }
 
@@ -495,11 +491,7 @@ fn render_window(eval: &mut Vm, ctx: &egui::Context, window_id: u64) {
             _ => None,
         };
         if let Some(cb) = callback {
-            report_callback_err(eval.call_value(
-                &cb,
-                &[VmValue::Str(text.into())],
-                Span::dummy(),
-            ));
+            report_callback_err(eval.call_value(&cb, &[VmValue::Str(text.into())], Span::dummy()));
         }
     }
 

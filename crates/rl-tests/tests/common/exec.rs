@@ -1,5 +1,5 @@
-use rl_ast::statements::Statement;
 use rl_ast::Ast;
+use rl_ast::statements::Statement;
 use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokentypes::Token;
 use rl_utils::{errors::Error, source::SourceFile};

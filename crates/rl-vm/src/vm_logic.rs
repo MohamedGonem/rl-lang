@@ -311,11 +311,7 @@ impl Vm {
     /// invocation). Binds the arguments into a fresh scope and pushes a
     /// single call frame for user functions and closures; runs native
     /// functions inline.
-    fn invoke_callable(
-        &mut self,
-        callee: &VmValue,
-        args: &[VmValue],
-    ) -> Result<VmValue, VmError> {
+    fn invoke_callable(&mut self, callee: &VmValue, args: &[VmValue]) -> Result<VmValue, VmError> {
         match callee {
             VmValue::Native(native) => {
                 (native.func)(self, args.to_vec()).map_err(|e| self.annotate(e))
@@ -1150,9 +1146,11 @@ impl Vm {
                 .ok_or_else(bad_cast)
                 .and_then(|n| u16::try_from(n).map(VmValue::BByte).map_err(|_| bad_cast())),
             // BSByte
-            7 => as_i128(&value)
-                .ok_or_else(bad_cast)
-                .and_then(|n| i16::try_from(n).map(VmValue::BSByte).map_err(|_| bad_cast())),
+            7 => as_i128(&value).ok_or_else(bad_cast).and_then(|n| {
+                i16::try_from(n)
+                    .map(VmValue::BSByte)
+                    .map_err(|_| bad_cast())
+            }),
             // Byte
             8 => as_i128(&value)
                 .ok_or_else(bad_cast)
@@ -1161,9 +1159,7 @@ impl Vm {
             9 => as_i128(&value)
                 .ok_or_else(bad_cast)
                 .and_then(|n| i8::try_from(n).map(VmValue::SByte).map_err(|_| bad_cast())),
-            other => Err(self.err(format!(
-                "corrupt bytecode: unknown cast target {other}"
-            ))),
+            other => Err(self.err(format!("corrupt bytecode: unknown cast target {other}"))),
         }
     }
 
