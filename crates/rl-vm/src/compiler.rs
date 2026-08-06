@@ -465,9 +465,20 @@ impl<'a> Compiler<'a> {
                 }));
                 let slot = self.next_slot;
                 self.next_slot += 1;
-                self.emit_const(func, span);
+                let func_idx = self.chunk.add_constant(func);
+                self.chunk.write_op(OpCode::Const, span);
+                self.chunk.write_u16(func_idx, span);
                 self.chunk.write_op(OpCode::DefineLocal, span);
                 self.chunk.write_u16(slot, span);
+                // Register the function as a method-call fallback so
+                // `value.name(...)` calls it with the receiver as its first
+                // argument (mirrors the interpreter's `fn_names`).
+                let key_idx = self
+                    .chunk
+                    .add_constant(VmValue::Str(Rc::from(name.as_str())));
+                self.chunk.write_op(OpCode::RegisterUserMethod, span);
+                self.chunk.write_u16(key_idx, span);
+                self.chunk.write_u16(func_idx, span);
                 Ok(())
             }
 
@@ -501,7 +512,18 @@ impl<'a> Compiler<'a> {
                     .collect::<Result<_, CompileError>>()?;
 
                 for (name, f) in names.iter().zip(fns) {
-                    self.stdlib.functions.insert(name.clone(), f);
+                    self.stdlib.functions.insert(name.clone(), f.clone());
+                    // Register the import as a method-call fallback so
+                    // `value.name(...)` calls it with the receiver as its
+                    // first argument (mirrors the interpreter's `call_path`
+                    // stdlib step).
+                    let key_idx = self
+                        .chunk
+                        .add_constant(VmValue::Str(Rc::from(name.as_str())));
+                    let value_idx = self.chunk.add_constant(VmValue::Native(f));
+                    self.chunk.write_op(OpCode::RegisterStdlibMethod, span);
+                    self.chunk.write_u16(key_idx, span);
+                    self.chunk.write_u16(value_idx, span);
                 }
 
                 Ok(())

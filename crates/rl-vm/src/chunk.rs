@@ -98,16 +98,26 @@ pub enum OpCode {
     /// and pushes the result. Errors on non-numeric sources or values
     /// that don't fit the target type.
     Cast = 44,
+    /// registers an imported stdlib function under its name, so it can be
+    /// used as a free-function fallback for `value.method(...)` on a
+    /// non-record receiver (mirrors the interpreter's `call_path` stdlib
+    /// step). Operands: `key_idx` (method name), `value_idx` (native).
+    RegisterStdlibMethod = 45,
+    /// registers a named user function under its name, so it can be used
+    /// as a free-function fallback for `value.method(...)` (mirrors the
+    /// interpreter's `fn_names`). Operands: `key_idx` (method name),
+    /// `value_idx` (function).
+    RegisterUserMethod = 46,
 }
 
 impl OpCode {
     /// # Safety
-    /// `byte` must be valid discriminant (0..28)
+    /// `byte` must be a valid discriminant (0..=OpCode::RegisterUserMethod)
     /// and that's only true for bytecode emitted by this compiler
     #[inline(always)]
     pub fn from_u8_unchecked(byte: u8) -> Self {
         debug_assert!(
-            byte <= OpCode::Cast as u8,
+            byte <= OpCode::RegisterUserMethod as u8,
             "corrupt bytecode: opcode {byte}"
         );
         unsafe { std::mem::transmute::<u8, OpCode>(byte) }
@@ -162,6 +172,8 @@ impl OpCode {
             42 => OpCode::LookupAssoc,
             43 => OpCode::LookupMethod,
             44 => OpCode::Cast,
+            45 => OpCode::RegisterStdlibMethod,
+            46 => OpCode::RegisterUserMethod,
             other => panic!("corrupt bytecode: unknown opcode byte {other}"),
         }
     }
