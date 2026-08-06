@@ -7,6 +7,8 @@ use rl_ast::statements::HandleKind;
 
 use crate::Chunk;
 use crate::native::NativeFn;
+use crate::runtime::VmRuntime;
+use rl_std_core::NativeHandle;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum VmValue {
@@ -27,7 +29,7 @@ pub enum VmValue {
     /// user defined function call
     Function(Rc<VmFunction>),
     /// std function call
-    Native(Rc<VmNativeFn>),
+    Native(VmNative),
     Ok(Box<VmValue>),
     Err(Box<VmValue>),
     Error(Box<VmValue>),
@@ -168,7 +170,7 @@ impl fmt::Display for VmValue {
             VmValue::Char(c) => write!(f, "{}", c),
             VmValue::Str(s) => write!(f, "{}", s),
             VmValue::Function(func) => write!(f, "<fn {}/{}>", func.name, func.arity),
-            VmValue::Native(func) => write!(f, "<native fn {}>", func.name),
+            VmValue::Native(func) => write!(f, "<native fn {}>", func.name()),
             VmValue::Ok(inner) => write!(f, "ok({})", inner),
             VmValue::Err(inner) => write!(f, "err({})", inner),
             VmValue::Error(inner) => write!(f, "error({})", inner),
@@ -294,8 +296,45 @@ impl PartialEq for VmFunction {
 }
 
 /// A native (Rust-implemented) function bound into `VmValue::Native`.
-/// Compiled call paths like `std::io::println` resolve to one of these
-/// at compile time and get embedded as a constant, same as `VmFunction`.
+///
+/// During the `rl-std` migration this is an enum: `Std` holds a thin
+/// function-pointer descriptor from the shared stdlib; `Legacy` holds the old
+/// `Rc<dyn Fn>` machinery for modules not yet moved. Once every module has
+/// migrated, `Legacy` (and `VmNativeFn` below) are removed and this collapses
+/// to a plain `NativeHandle<VmRuntime>`.
+#[derive(Clone)]
+pub enum VmNative {
+    /// A shared-stdlib function (thin `fn` pointer, no allocation).
+    Std(NativeHandle<VmRuntime>),
+    /// A not-yet-migrated function using the old boxed-closure machinery.
+    Legacy(Rc<VmNativeFn>),
+}
+
+impl VmNative {
+    /// The function's name (used for resolution and equality).
+    pub fn name(&self) -> &str {
+        match self {
+            VmNative::Std(h) => h.name,
+            VmNative::Legacy(f) => &f.name,
+        }
+    }
+}
+
+impl fmt::Debug for VmNative {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "VmNative({})", self.name())
+    }
+}
+
+impl PartialEq for VmNative {
+    fn eq(&self, other: &Self) -> bool {
+        self.name() == other.name()
+    }
+}
+
+/// A native (Rust-implemented) function bound into `VmValue::Native` via the
+/// legacy `Rc<dyn Fn>` machinery (kept until every module migrates to
+/// `rl-std`).
 pub struct VmNativeFn {
     pub name: String,
     pub func: NativeFn,

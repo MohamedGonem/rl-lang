@@ -10,8 +10,10 @@
 //! the moment they rejoin the main dispatch loop (see the `OpCode::Call`
 //! handler in `vm_logic.rs`).
 
-use crate::values::{VmNativeFn, VmValue};
+use crate::runtime::VmRuntime;
+use crate::values::{VmNative, VmNativeFn, VmValue};
 use crate::vm_logic::{Vm, VmError};
+use rl_std_core::NativeHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::span::Span;
 use std::collections::HashMap;
@@ -26,13 +28,15 @@ fn rt_err(message: impl Into<String>) -> VmError {
 /// A heap-allocated native function callable from rl bytecode.
 pub type NativeFn = Rc<dyn Fn(&mut Vm, Vec<VmValue>) -> Result<VmValue, VmError>>;
 
-/// A named collection of [`VmNativeFn`]s, optionally containing sub-[`Module`]s.
+/// A named collection of native functions, optionally containing
+/// sub-[`Module`]s.
 #[derive(Clone)]
 pub struct Module {
     /// The module name as used in import paths (e.g. `"io"`, `"math"`).
     pub name: String,
-    /// Named functions registered in this module.
-    pub functions: HashMap<String, Rc<VmNativeFn>>,
+    /// Named functions registered in this module (either a migrated `rl-std`
+    /// thin-pointer handle or a legacy boxed closure).
+    pub functions: HashMap<String, VmNative>,
     /// Named submodules (e.g. `math::consts`).
     pub submodules: HashMap<String, Module>,
 }
@@ -54,10 +58,10 @@ impl Module {
         let name = name.into();
         self.functions.insert(
             name.clone(),
-            Rc::new(VmNativeFn {
+            VmNative::Legacy(Rc::new(VmNativeFn {
                 name,
                 func: f.into_native(),
-            }),
+            })),
         );
         self
     }
@@ -71,11 +75,33 @@ impl Module {
         let name = name.into();
         self.functions.insert(
             name.clone(),
-            Rc::new(VmNativeFn {
+            VmNative::Legacy(Rc::new(VmNativeFn {
                 name,
                 func: Rc::new(f),
-            }),
+            })),
         );
+        self
+    }
+
+    /// Builds a module from a set of migrated `rl-std` thin-pointer handles.
+    pub fn from_std(name: impl Into<String>, handles: Vec<NativeHandle<VmRuntime>>) -> Self {
+        let mut functions = HashMap::new();
+        for h in handles {
+            functions.insert(h.name.to_string(), VmNative::Std(h));
+        }
+        Self {
+            name: name.into(),
+            functions,
+            submodules: HashMap::new(),
+        }
+    }
+
+    /// Adds already-built `rl-std` handles to this module (used when a module
+    /// mixes migrated functions with legacy submodules).
+    pub fn with_std_handles(mut self, handles: Vec<NativeHandle<VmRuntime>>) -> Self {
+        for h in handles {
+            self.functions.insert(h.name.to_string(), VmNative::Std(h));
+        }
         self
     }
 
@@ -85,9 +111,9 @@ impl Module {
         self
     }
 
-    /// Walks the module tree along `path`, returning the [`VmNativeFn`] at the leaf,
-    /// or `None` if any segment is missing.
-    pub fn resolve(&self, path: &[String]) -> Option<Rc<VmNativeFn>> {
+    /// Walks the module tree along `path`, returning the native function at the
+    /// leaf, or `None` if any segment is missing.
+    pub fn resolve(&self, path: &[String]) -> Option<VmNative> {
         if path.is_empty() {
             return None;
         }
