@@ -150,6 +150,10 @@ enum Commands {
         #[arg(long)]
         tui: bool,
 
+        /// Browse docs in an interactive terminal UI instead of printing them
+        #[arg(long)]
+        website: bool,
+
         /// Print output as JSON instead of Markdown
         #[arg(long)]
         json: bool,
@@ -478,6 +482,7 @@ fn main() {
             no_highlight,
             out_dir,
             tui,
+            website,
         } => {
             if generate {
                 {
@@ -730,6 +735,15 @@ fn main() {
                     );
                     std::process::exit(1);
                 }
+            }
+
+            if website {
+                rl_docs::website::build_and_open_website(
+                    &matched_std,
+                    &matched_concepts,
+                    &matched_tutorial,
+                );
+                std::process::exit(1);
             }
 
             let rendered = if json {
