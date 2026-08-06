@@ -11,9 +11,12 @@
 //!
 //! Ported once from the former per-runtime `stdlib/process/*.rs` copies.
 
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use std::process::Command;
+#[cfg(feature = "impls")]
 use std::time::Duration;
 
 // ---- args (no rl arguments, `array[string]`) ------------------------------
@@ -78,6 +81,7 @@ pub fn set_cwd(path: String) -> Result<(), String> {
 
 // ---- shell helpers --------------------------------------------------------
 
+#[cfg(feature = "impls")]
 #[cfg(target_os = "windows")]
 fn shell_command(cmd: &str) -> Command {
     let mut c = Command::new("cmd");
@@ -85,6 +89,7 @@ fn shell_command(cmd: &str) -> Command {
     c
 }
 
+#[cfg(feature = "impls")]
 #[cfg(not(target_os = "windows"))]
 fn shell_command(cmd: &str) -> Command {
     let mut c = Command::new("sh");
@@ -92,6 +97,7 @@ fn shell_command(cmd: &str) -> Command {
     c
 }
 
+#[cfg(feature = "impls")]
 fn with_command(e: &str, cmd: &str) -> Result<Command, shell_words::ParseError> {
     let args = shell_words::split(cmd)?;
     let mut c = Command::new(e);

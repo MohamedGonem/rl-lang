@@ -6,22 +6,32 @@
 //! `impls` feature (gated at the `mod` site in `lib.rs`, like `process` /
 //! `terminal`).
 
+#[cfg(feature = "impls")]
 use libffi::middle::{Arg, Cif, CodePtr, Type, arg};
+#[cfg(feature = "impls")]
 use libloading::{Library, Symbol};
+#[cfg(feature = "impls")]
 use rl_ast::statements::{HandleKind, TypeAnnotation};
+#[cfg(feature = "impls")]
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use std::collections::hash_map::DefaultHasher;
+#[cfg(feature = "impls")]
 use std::hash::{Hash, Hasher};
+#[cfg(feature = "impls")]
 use std::path::PathBuf;
+#[cfg(feature = "impls")]
 use std::process::Command;
 
+#[cfg(feature = "impls")]
 /// A single native C-interop resource, stored behind an `int` handle.
 /// (Moved here from the per-runtime copies so both share one definition.)
 pub enum CHandle {
     Library(Library),
 }
 
+#[cfg(feature = "impls")]
 /// Per-runtime access to the `c` handle table. Implemented by `VmRuntime` /
 /// `EvalRuntime` in the runtime crates.
 pub trait CStore: Runtime {
@@ -31,6 +41,7 @@ pub trait CStore: Runtime {
     fn c_remove(cx: &mut Self::Cx, id: u64) -> Option<CHandle>;
 }
 
+#[cfg(feature = "impls")]
 /// Inserts a handle and returns its rl handle value.
 fn insert_handle<R: CStore>(cx: &mut R::Cx, h: CHandle) -> R::Value {
     let id = R::c_insert(cx, h);
@@ -39,6 +50,7 @@ fn insert_handle<R: CStore>(cx: &mut R::Cx, h: CHandle) -> R::Value {
 
 // ---- shared argument extraction (reproducing the old `extract_*` helpers) --
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_string`: rejects non-strings with
 /// `"<name>: expected string type, got <ty>"`.
 fn extract_string<R: CStore>(v: &R::Value, name: &str) -> Result<String, String> {
@@ -52,6 +64,7 @@ fn extract_string<R: CStore>(v: &R::Value, name: &str) -> Result<String, String>
     }
 }
 
+#[cfg(feature = "impls")]
 /// Reproduces the old `extract_handle`: unwraps a `C` handle into its id, with
 /// the same wrong-kind / not-a-handle messages.
 fn extract_handle<R: CStore>(v: &R::Value, name: &str) -> Result<u64, String> {
@@ -80,6 +93,7 @@ fn extract_handle<R: CStore>(v: &R::Value, name: &str) -> Result<u64, String> {
 
 // ---- compile cache ---------------------------------------------------------
 
+#[cfg(feature = "impls")]
 /// Where `compile` caches built shared libraries by content hash, and what
 /// `clear_cache` empties. Kept here (not duplicated in each function) so
 /// there's exactly one place both agree on the path - and deliberately the
@@ -89,13 +103,17 @@ fn cache_dir() -> PathBuf {
     std::env::temp_dir().join("rl_std_c_cache")
 }
 
+#[cfg(feature = "impls")]
 #[cfg(target_os = "windows")]
 const SHARED_LIB_EXT: &str = "dll";
+#[cfg(feature = "impls")]
 #[cfg(target_os = "macos")]
 const SHARED_LIB_EXT: &str = "dylib";
+#[cfg(feature = "impls")]
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 const SHARED_LIB_EXT: &str = "so";
 
+#[cfg(feature = "impls")]
 /// Builds the compiler invocation for turning `src` into `out` on this platform.
 /// macOS wants `-dynamiclib`; everything else (incl. mingw-w64 `cc`/`gcc` on
 /// Windows) accepts `-shared -fPIC`. Native MSVC (`cl.exe`) is not supported.
@@ -114,6 +132,7 @@ fn compiler_command(compiler: &str, src: &PathBuf, out: &PathBuf) -> Command {
     cmd
 }
 
+#[cfg(feature = "impls")]
 fn find_compiler() -> String {
     std::env::var("CC").unwrap_or_else(|_| "cc".to_string())
 }
@@ -274,6 +293,7 @@ pub fn clear_cache<R: CStore>(_cx: &mut R::Cx) -> R::Value {
 
 // ---- call ------------------------------------------------------------------
 
+#[cfg(feature = "impls")]
 /// The element type of an `"arr:TYPE:N"` arg.
 #[derive(Clone, Copy)]
 enum ArrElem {
@@ -285,6 +305,7 @@ enum ArrElem {
     I16,
 }
 
+#[cfg(feature = "impls")]
 impl ArrElem {
     fn parse(name: &str) -> Option<Self> {
         Some(match name {
@@ -310,6 +331,7 @@ impl ArrElem {
     }
 }
 
+#[cfg(feature = "impls")]
 /// One argument's value, converted from its rl-lang value into the exact Rust
 /// representation its declared C type requires. Kept as an owned value (rather
 /// than immediately building an `Arg`) so it has somewhere to live while the
@@ -331,6 +353,7 @@ enum CArg {
     ArrI16 { buf: Vec<i16>, ptr: *mut u8 },
 }
 
+#[cfg(feature = "impls")]
 /// A parsed `arg_types` entry.
 enum ArgKind {
     Num(&'static str),
@@ -547,6 +570,7 @@ pub fn call<R: CStore>(
     }
 }
 
+#[cfg(feature = "impls")]
 fn parse_arg_kind<R: CStore>(name: &str) -> Result<ArgKind, R::Value> {
     match name {
         "i32" | "i64" | "f32" | "f64" | "bool" | "u8" | "i16" => Ok(ArgKind::Num(match name {
@@ -615,6 +639,7 @@ fn parse_arg_kind<R: CStore>(name: &str) -> Result<ArgKind, R::Value> {
     }
 }
 
+#[cfg(feature = "impls")]
 fn numeric_ffi_type(name: &str) -> Type {
     match name {
         "i32" => Type::i32(),
@@ -630,6 +655,7 @@ fn numeric_ffi_type(name: &str) -> Type {
     }
 }
 
+#[cfg(feature = "impls")]
 fn parse_ret_type<R: CStore>(name: &str) -> Result<Type, R::Value> {
     match name {
         "void" => Ok(Type::void()),
@@ -642,6 +668,7 @@ fn parse_ret_type<R: CStore>(name: &str) -> Result<Type, R::Value> {
     }
 }
 
+#[cfg(feature = "impls")]
 /// Builds one `"arr:TYPE:N"` argument's buffer from an rl-lang `arr[T]`,
 /// checking every element's type and that the length is exactly `count`.
 fn arr_value_to_carg<R: CStore>(
@@ -738,6 +765,7 @@ fn arr_value_to_carg<R: CStore>(
     }
 }
 
+#[cfg(feature = "impls")]
 fn value_to_carg<R: CStore>(
     value: R::Value,
     kind: &ArgKind,

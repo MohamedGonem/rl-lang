@@ -11,19 +11,12 @@ pub use rl_std_core::{ModuleNames, StdFn};
 
 /// The full `std::*` signature tree consumed by the checker and LSP.
 ///
-/// The 14 pure-`std` modules' signatures come straight from `rl-std`'s
+/// All 20 migrated modules' signatures come straight from `rl-std`'s
 /// `#[native_fn]` annotations (so they can never drift from the
-/// implementations). The six OS-facing modules (`audio`, `c`, `gui`, `http`,
-/// `process`, `terminal`) and the runtime-specific `rl` module keep their
-/// hand-written signatures here for now, since their `rl-std` sources are gated
-/// behind the `impls` feature (see `rl-std`'s crate docs).
+/// implementations, and without pulling in any OS-facing deps). Only the
+/// runtime-specific `rl` module - which stays legacy because unifying it would
+/// create a dependency cycle with `rl-checker` - keeps a hand-written signature
+/// here.
 pub fn stdlib_names() -> ModuleNames {
-    rl_std::signatures()
-        .with_module(stdlib_signatures::audio::module())
-        .with_module(stdlib_signatures::c::module())
-        .with_module(stdlib_signatures::gui::module())
-        .with_module(stdlib_signatures::http::module())
-        .with_module(stdlib_signatures::process::module())
-        .with_module(stdlib_signatures::terminal::module())
-        .with_module(stdlib_signatures::rl::module())
+    rl_std::signatures().with_module(stdlib_signatures::rl::module())
 }
