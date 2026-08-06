@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::chunk::{Chunk, OpCode};
-use crate::stdlib::gui::GuiHandle;
-use crate::values::{RecordFields, VmFunction, VmMapKey, VmNativeFn, VmValue};
+use rl_std::gui::GuiHandle;
+use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
 use rl_utils::source::SourceFile;
@@ -128,11 +128,11 @@ pub struct Vm {
     /// id. `pub(crate)` (unlike every field above) because, unlike every
     /// other native function so far, `std::c`'s functions need persistent
     /// state across calls, not just their own arguments - see `stdlib::c`.
-    pub(crate) c_handles: HashMap<u64, crate::stdlib::c::CHandle>,
+    pub(crate) c_handles: HashMap<u64, rl_std::c::CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
     pub(crate) c_next_handle: u64,
     /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
-    pub(crate) audio_handles: HashMap<u64, crate::stdlib::audio::AudioHandle>,
+    pub(crate) audio_handles: HashMap<u64, rl_std::audio::AudioHandle>,
     /// Next handle id to hand out for `std::audio` resources; only ever increments.
     pub(crate) audio_next_handle: u64,
     /// Output device selected via `std::audio::set_output_device`, if any;
@@ -142,7 +142,7 @@ pub struct Vm {
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub(crate) audio_master_volume: f32,
     /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
-    pub(crate) gui_handles: HashMap<u64, GuiHandle>,
+    pub(crate) gui_handles: HashMap<u64, GuiHandle<VmValue>>,
     /// Next handle id to hand out for `std::gui` resources; only ever increments.
     pub(crate) gui_next_handle: u64,
     /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
@@ -150,15 +150,15 @@ pub struct Vm {
     /// of being torn down mid-callback.
     pub(crate) gui_quit_requested: bool,
     /// Side-table of native TCP/UDP resources (`std::net`), keyed by handle id.
-    pub(crate) net_handles: HashMap<u64, crate::stdlib::net::NetHandle>,
+    pub(crate) net_handles: HashMap<u64, rl_std::net::NetHandle>,
     /// Next handle id to hand out for `std::net` resources; only ever increments.
     pub(crate) net_next_handle: u64,
     /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
-    pub(crate) http_handles: HashMap<u64, crate::stdlib::http::HttpHandle>,
+    pub(crate) http_handles: HashMap<u64, rl_std::http::HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
     pub(crate) http_next_handle: u64,
     /// PRNG state for `std::random`, seeded from the system clock at startup.
-    pub(crate) rng: crate::stdlib::random::xoshiro::Xoshiro256,
+    pub(crate) rng: rl_std_core::Xoshiro256,
     /// Number of leading `std::env::args()` entries to skip when reporting
     /// `std::process::args()` (defaults to 1 - the program name itself).
     pub user_args_offset: usize,
@@ -327,7 +327,11 @@ impl Vm {
     fn invoke_callable(&mut self, callee: &VmValue, args: &[VmValue]) -> Result<VmValue, VmError> {
         match callee {
             VmValue::Native(native) => {
-                (native.func)(self, args.to_vec()).map_err(|e| self.annotate(e))
+                let result = match native {
+                    crate::values::VmNative::Std(h) => (h.thunk)(self, args.to_vec(), ()),
+                    crate::values::VmNative::Legacy(f) => (f.func)(self, args.to_vec()),
+                };
+                result.map_err(|e| self.annotate(e))
             }
             VmValue::Function(func) => {
                 if args.len() != func.arity {
@@ -670,8 +674,13 @@ impl Vm {
                             call_args.reverse();
                             self.pop()?; // discard the callee itself
 
-                            let result =
-                                (native.func)(self, call_args).map_err(|e| self.annotate(e))?;
+                            let result = match native {
+                                crate::values::VmNative::Std(h) => {
+                                    (h.thunk)(self, call_args, ())
+                                }
+                                crate::values::VmNative::Legacy(f) => (f.func)(self, call_args),
+                            }
+                            .map_err(|e| self.annotate(e))?;
                             self.stack.push(result);
                         }
 

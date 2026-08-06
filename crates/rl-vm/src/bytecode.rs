@@ -306,7 +306,7 @@ fn collect_strings_value(value: &VmValue, pool: &mut StringPoolBuilder) {
             collect_strings_chunk(&func.chunk, pool);
         }
         VmValue::Native(native) => {
-            pool.intern(&native.name);
+            pool.intern(native.name());
         }
         VmValue::Ok(inner) | VmValue::Err(inner) | VmValue::Error(inner) => {
             collect_strings_value(inner, pool)
@@ -491,7 +491,7 @@ fn write_value(value: &VmValue, pool: &StringPoolBuilder, out: &mut Vec<u8>) {
         }
         VmValue::Native(native) => {
             out.push(8);
-            write_uvarint(pool.get(&native.name) as u64, out);
+            write_uvarint(pool.get(native.name()) as u64, out);
         }
         VmValue::Ok(inner) => {
             out.push(9);
@@ -841,7 +841,7 @@ fn read_value(
 
 /// Recursively searches module and its submodules for a native function
 /// with leaf name name.
-fn find_native_by_name(module: &Module, name: &str) -> Option<Rc<crate::values::VmNativeFn>> {
+fn find_native_by_name(module: &Module, name: &str) -> Option<crate::values::VmNative> {
     if let Some(f) = module.functions.get(name) {
         return Some(f.clone());
     }

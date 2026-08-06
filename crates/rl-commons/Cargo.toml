@@ -9,3 +9,7 @@ repository.workspace = true
 
 [dependencies]
 rl-ast.workspace = true
+rl-std-core.workspace = true
+# Signature data for the migrated modules is sourced from `rl-std` (default
+# `signatures` feature = no OS-facing deps), so the checker/LSP stay light.
+rl-std.workspace = true

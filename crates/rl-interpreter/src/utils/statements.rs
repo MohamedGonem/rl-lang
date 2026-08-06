@@ -10,7 +10,6 @@ use rl_ast::statements::{
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
-use std::sync::Arc;
 use std::{path::Path, rc::Rc};
 
 impl Evaluator {
@@ -530,7 +529,7 @@ impl Evaluator {
                                 statement.span,
                             )
                         })?;
-                        Ok((name.clone(), Arc::clone(f)))
+                        Ok((name.clone(), f.clone()))
                     })
                     .collect::<Result<_, Error>>()?;
                 for (name, f) in fns {

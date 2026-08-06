@@ -1,25 +1,10 @@
 //! The rl standard library - all built-in modules registered under `std::*`.
+//!
+//! Only the legacy `rl` and `len` functions remain here; every other module now
+//! lives in the shared `rl-std` crate. `common` still backs `rl`, but some of
+//! its helpers are unused until `rl` migrates too.
 
-pub mod array;
-pub mod audio;
-pub mod bitwise;
-pub mod c;
-pub mod collections;
+#[allow(dead_code, unused_macros, unused_imports)]
 mod common;
-pub mod debug;
-pub mod fs;
-pub mod gui;
-pub mod http;
-pub mod io;
 pub mod len;
-pub mod math;
-pub mod net;
-pub mod path;
-pub mod process;
-pub mod random;
-pub mod result;
 pub mod rl;
-pub mod string;
-pub mod terminal;
-pub mod time;
-pub mod types;
