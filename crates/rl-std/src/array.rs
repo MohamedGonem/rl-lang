@@ -510,10 +510,9 @@ pub fn arr_map<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    let items = slice.to_vec();
-    let mut out = Vec::with_capacity(items.len());
-    for item in items {
-        out.push(R::call_value(cx, &f, std::slice::from_ref(&item), span)?);
+    let mut out = Vec::with_capacity(slice.len());
+    for item in slice {
+        out.push(R::call_value(cx, &f, std::slice::from_ref(item), span)?);
     }
     // The interpreter infers the result element type from the first item; that
     // helper is not in the shared API, so the output element type is `Infer`
@@ -548,12 +547,11 @@ pub fn arr_filter<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
     let mut out = Vec::new();
-    for item in items {
-        let keep = R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    for item in slice {
+        let keep = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if R::as_bool(&keep) == Some(true) {
-            out.push(item);
+            out.push(item.clone());
         }
     }
     Ok(R::ok(R::array(out, elem)))
@@ -586,11 +584,10 @@ pub fn arr_find<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    for item in items {
-        let hit = R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    for item in slice {
+        let hit = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if R::as_bool(&hit) == Some(true) {
-            return Ok(R::ok(item));
+            return Ok(R::ok(item.clone()));
         }
     }
     Ok(R::ok(R::null()))
@@ -623,8 +620,7 @@ pub fn arr_find_index<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    for (i, item) in items.iter().enumerate() {
+    for (i, item) in slice.iter().enumerate() {
         let hit = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if R::as_bool(&hit) == Some(true) {
             return Ok(R::ok(R::from_i64(i as i64)));
@@ -632,7 +628,6 @@ pub fn arr_find_index<R: Runtime>(
     }
     Ok(R::ok(R::from_i64(-1)))
 }
-
 #[native_fn(module = "array", sig(array[T], callback(T -> bool) -> result[bool]))]
 pub fn arr_all<R: Runtime>(
     cx: &mut R::Cx,
@@ -660,16 +655,14 @@ pub fn arr_all<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    for item in items {
-        let v = R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    for item in slice {
+        let v = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if R::as_bool(&v) == Some(false) {
             return Ok(R::ok(R::from_bool(false)));
         }
     }
     Ok(R::ok(R::from_bool(true)))
 }
-
 #[native_fn(module = "array", sig(array[T], callback(T -> bool) -> result[bool]))]
 pub fn arr_any<R: Runtime>(
     cx: &mut R::Cx,
@@ -697,9 +690,8 @@ pub fn arr_any<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    for item in items {
-        let v = R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    for item in slice {
+        let v = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if R::as_bool(&v) == Some(true) {
             return Ok(R::ok(R::from_bool(true)));
         }
@@ -734,10 +726,9 @@ pub fn arr_flat_map<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    let mut out = Vec::with_capacity(items.len());
-    for item in items {
-        let mapped = R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    let mut out = Vec::with_capacity(slice.len());
+    for item in slice {
+        let mapped = R::call_value(cx, &f, std::slice::from_ref(item), span)?;
         if let Some((inner, _)) = R::as_array(&mapped) {
             out.extend(inner.iter().cloned());
         }
@@ -774,9 +765,8 @@ pub fn arr_for_each<R: Runtime>(
             Some(rt)
         ))));
     }
-    let items = slice.to_vec();
-    for item in items {
-        R::call_value(cx, &f, std::slice::from_ref(&item), span)?;
+    for item in slice {
+        R::call_value(cx, &f, std::slice::from_ref(item), span)?;
     }
     Ok(R::ok(R::null()))
 }
@@ -801,10 +791,9 @@ pub fn arr_reduce<R: Runtime>(
             R::type_name(&f)
         ))));
     }
-    let items = slice.to_vec();
     let mut acc = initial;
-    for item in items {
-        acc = R::call_value(cx, &f, &[acc, item], span)?;
+    for item in slice {
+        acc = R::call_value(cx, &f, &[acc, item.clone()], span)?;
     }
     Ok(R::ok(acc))
 }
