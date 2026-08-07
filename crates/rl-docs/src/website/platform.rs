@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
 use std::process::Command;
 
 #[cfg(windows)]
@@ -48,5 +49,10 @@ fn open(path: &Path) -> std::io::Result<()> {
         .arg(path)
         .spawn()?;
 
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+fn open(_path: &Path) -> std::io::Result<()> {
     Ok(())
 }
