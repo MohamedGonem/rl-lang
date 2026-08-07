@@ -125,6 +125,58 @@ pub trait Runtime: Sized + 'static {
     fn is_valid_key(v: &Self::Value) -> bool;
     /// Whether two values are equal as set elements / map keys.
     fn keys_equal(a: &Self::Value, b: &Self::Value) -> bool;
+
+    // ---- in-place container access (O(1) hash ops, matching the old
+    //      per-runtime implementations) ---------------------------------------
+    //
+    // The value-level `as_set`/`as_map` accessors above return owned copies;
+    // they are only used where a function genuinely needs the whole container
+    // (`set_to_array`, `map_to_array`, `map_keys`, `map_values`). These
+    // accessors read/mutate the shared set/map in place and are used by the
+    // hot container operations (`set_add`, `set_contains`, `set_len`,
+    // `map_merge`, `map_get`, ...), so they stay O(1) hash operations instead
+    // of copying and rebuilding the whole container.
+
+    /// Inserts `item` into set `v`. `Some(true)` if newly inserted,
+    /// `Some(false)` if already present, `None` if `v` is not a set or `item`
+    /// is not a valid set element.
+    fn set_insert(v: &Self::Value, item: &Self::Value) -> Option<bool>;
+    /// Removes `item` from set `v`. `Some(true)` if it was present,
+    /// `Some(false)` otherwise, `None` if `v` is not a set or `item` is not a
+    /// valid set element.
+    fn set_remove(v: &Self::Value, item: &Self::Value) -> Option<bool>;
+    /// Whether set `v` contains `item`. `None` if `v` is not a set or `item`
+    /// is not a valid set element.
+    fn set_contains(v: &Self::Value, item: &Self::Value) -> Option<bool>;
+    /// The element count of set `v`. `None` if `v` is not a set.
+    fn set_len(v: &Self::Value) -> Option<usize>;
+    /// The declared element type of set `v`. `None` if `v` is not a set.
+    fn set_element_type(v: &Self::Value) -> Option<TypeAnnotation>;
+
+    /// Inserts `(key, value)` into map `v`. Returns `false` if `v` is not a
+    /// map (a call with an invalid `key` is silently ignored - callers guard
+    /// with [`Runtime::is_valid_key`]).
+    fn map_insert(v: &Self::Value, key: &Self::Value, value: &Self::Value) -> bool;
+    /// The value stored under `key` in map `v`: `Some(Some(v))` if present,
+    /// `Some(None)` if absent, `None` if `v` is not a map or `key` is not a
+    /// valid map key.
+    fn map_get(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>>;
+    /// Removes `key` from map `v`: `Some(Some(v))` if a value was removed,
+    /// `Some(None)` if absent, `None` if `v` is not a map or `key` is not a
+    /// valid map key.
+    fn map_remove(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>>;
+    /// Whether map `v` contains `key`. `None` if `v` is not a map or `key` is
+    /// not a valid map key.
+    fn map_contains(v: &Self::Value, key: &Self::Value) -> Option<bool>;
+    /// The entry count of map `v`. `None` if `v` is not a map.
+    fn map_len(v: &Self::Value) -> Option<usize>;
+    /// The declared key/value types of map `v`. `None` if `v` is not a map.
+    fn map_key_value_types(v: &Self::Value) -> Option<(TypeAnnotation, TypeAnnotation)>;
+    /// Clears map `v` in place. Returns `false` if `v` is not a map.
+    fn map_clear(v: &Self::Value) -> bool;
+    /// Visits each `(key, value)` entry of map `v` (owned copies, arbitrary
+    /// order), invoking `f` for each. Returns `false` if `v` is not a map.
+    fn map_for_each<F: FnMut(Self::Value, Self::Value)>(v: &Self::Value, f: F) -> bool;
     /// Whole-value structural equality (used by `debug::assert_eq`).
     fn values_equal(a: &Self::Value, b: &Self::Value) -> bool;
 

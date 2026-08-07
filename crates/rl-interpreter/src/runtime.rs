@@ -240,6 +240,122 @@ impl Runtime for EvalRuntime {
     fn values_equal(a: &Self::Value, b: &Self::Value) -> bool {
         a == b
     }
+
+    fn set_insert(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            Value::Set { items, .. } => {
+                let key = MapKey::from_value(item)?;
+                Some(items.borrow_mut().insert(key))
+            }
+            _ => None,
+        }
+    }
+    fn set_remove(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            Value::Set { items, .. } => {
+                let key = MapKey::from_value(item)?;
+                Some(items.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_contains(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            Value::Set { items, .. } => {
+                let key = MapKey::from_value(item)?;
+                Some(items.borrow().contains(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            Value::Set { items, .. } => Some(items.borrow().len()),
+            _ => None,
+        }
+    }
+    fn set_element_type(v: &Self::Value) -> Option<TypeAnnotation> {
+        match v {
+            Value::Set { items_type, .. } => Some(items_type.clone()),
+            _ => None,
+        }
+    }
+
+    fn map_insert(v: &Self::Value, key: &Self::Value, value: &Self::Value) -> bool {
+        match v {
+            Value::Map { entries, .. } => {
+                if let Some(key) = MapKey::from_value(key) {
+                    entries.borrow_mut().insert(key, value.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_get(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            Value::Map { entries, .. } => {
+                let key = MapKey::from_value(key)?;
+                Some(entries.borrow().get(&key).cloned())
+            }
+            _ => None,
+        }
+    }
+    fn map_remove(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            Value::Map { entries, .. } => {
+                let key = MapKey::from_value(key)?;
+                Some(entries.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_contains(v: &Self::Value, key: &Self::Value) -> Option<bool> {
+        match v {
+            Value::Map { entries, .. } => {
+                let key = MapKey::from_value(key)?;
+                Some(entries.borrow().contains_key(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            Value::Map { entries, .. } => Some(entries.borrow().len()),
+            _ => None,
+        }
+    }
+    fn map_key_value_types(v: &Self::Value) -> Option<(TypeAnnotation, TypeAnnotation)> {
+        match v {
+            Value::Map {
+                key_type,
+                value_type,
+                ..
+            } => Some((key_type.clone(), value_type.clone())),
+            _ => None,
+        }
+    }
+    fn map_clear(v: &Self::Value) -> bool {
+        match v {
+            Value::Map { entries, .. } => {
+                entries.borrow_mut().clear();
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_for_each<F: FnMut(Self::Value, Self::Value)>(v: &Self::Value, mut f: F) -> bool {
+        match v {
+            Value::Map { entries, .. } => {
+                for (k, val) in entries.borrow().iter() {
+                    f(k.clone().into_value(), val.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn value_type(v: &Self::Value) -> TypeAnnotation {
         Evaluator::infer_type(v, false)
     }
