@@ -91,7 +91,7 @@ features_for() {
     exit 1
   fi
 
-  [ "$no_docs" = "0" ] && feats="${feats},docs"
+  [ "$no_docs" = "0" ] && feats="${feats},docs,docs-tui"
   [ "$no_repl" = "0" ] && feats="${feats},repl"
   [ "$debug" = "1" ] && feats="${feats},debug"
 

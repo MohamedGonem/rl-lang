@@ -168,11 +168,13 @@ Feature flags:
 
 | Flag        | State              | Description  |
 | :---------: | :----------------: | :----------: |
-| `run`       | `On` by default    | -            |
-| `eval`      | `On` by default    | This flag for actually running the code ( whether in `interpreter` or `vm )            |
+| `run`       | `Off` by default   | -            |
+| `eval`      | `Off` by default   | Deprecated alias for `treewalker`            |
+| `treewalker`| `Off` by default   | This flag for the `treewalker` backend (enabled in release builds)             |
 | `vm`        | `On` by default    | This flag for `vm` backend         |
 | `cranelift` | `Off` experimental | This flag for `cranelift` backend used for native compilations             |
 | `repl`      | `On` by default    | This flag for the interactive TUI shell `REPL`             |
+| `docs`      | `On` by default    | This flag for the `rl-docs` documentation tooling             |
 | `docs-tui`  | `On` by default    | This flag for the interactive TUI mode for browsing `rl-docs`             |
 | `debug`     | `Off` by default   | This flag for logging and debugging purposes             |
 | `lsp`       | `Off` by default   | This flag for language server protocol used by IDEs and other editors             | 
