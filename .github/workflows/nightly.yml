@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu, aarch64-pc-windows-msvc]
+        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu, aarch64-pc-windows-msvc, aarch64-linux-android]
         group: [g1, g2, g3, g4]
         include:
           - target: x86_64-unknown-linux-gnu
@@ -35,6 +35,11 @@ jobs:
           - target: aarch64-pc-windows-msvc
             os: windows-latest
             platform: windows
+            arch: aarch64
+
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+            platform: android
             arch: aarch64
 
           - group: g1
@@ -59,7 +64,7 @@ jobs:
           ref: dev
 
       - name: Install build deps (linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.platform != 'android'
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libasound2-dev
@@ -98,6 +103,12 @@ jobs:
             sudo apt-get install -y gcc-aarch64-linux-gnu libasound2-dev:arm64
           fi
 
+      - name: Set up Android NDK
+        if: matrix.platform == 'android'
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: 27.0.12077973
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -112,7 +123,23 @@ jobs:
       - name: Build variants (${{ matrix.group }})
         shell: bash
         run: |
-          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+          if [ "${{ matrix.platform }}" = "android" ]; then
+            NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
+            fi
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              NDK_ROOT="$(ls -d "$ANDROID_HOME"/ndk/* "$ANDROID_SDK_ROOT"/ndk/* 2>/dev/null | head -n1)"
+            fi
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              echo "Android NDK not found" >&2
+              exit 1
+            fi
+            export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+            export CC_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+            export CXX_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+            export AR_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          elif [ "${{ matrix.arch }}" = "aarch64" ]; then
             export PKG_CONFIG_ALLOW_CROSS=1
             export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
