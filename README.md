@@ -65,6 +65,13 @@ curl -fsSL https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.sh -o 
 bash install.sh
 ```
 
+**Android (Termux)** - works the same way on aarch64 devices (install script detects Termux and downloads the Android build):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.sh -o install.sh
+bash install.sh
+```
+
 Non-interactively (install the standard `rl` build of `v1.0.0`):
 
 ```bash
