@@ -6,7 +6,7 @@
 //! returns. Compound-value type annotations are ignored (the VM does not track
 //! `items_type`).
 
-use crate::values::VmValue;
+use crate::values::{VmMapKey, VmValue};
 use crate::vm_logic::Vm;
 use rl_ast::statements::TypeAnnotation;
 use rl_std_core::Runtime;
@@ -223,6 +223,118 @@ impl Runtime for VmRuntime {
     fn values_equal(a: &Self::Value, b: &Self::Value) -> bool {
         a == b
     }
+
+    fn set_insert(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow_mut().insert(key))
+            }
+            _ => None,
+        }
+    }
+    fn set_remove(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_contains(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow().contains(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            VmValue::Set(items) => Some(items.borrow().len()),
+            _ => None,
+        }
+    }
+    fn set_element_type(v: &Self::Value) -> Option<TypeAnnotation> {
+        match v {
+            VmValue::Set(_) => Some(TypeAnnotation::Infer),
+            _ => None,
+        }
+    }
+
+    fn map_insert(v: &Self::Value, key: &Self::Value, value: &Self::Value) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                if let Some(key) = VmMapKey::from_value(key) {
+                    entries.borrow_mut().insert(key, value.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_get(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow().get(&key).cloned())
+            }
+            _ => None,
+        }
+    }
+    fn map_remove(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_contains(v: &Self::Value, key: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow().contains_key(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            VmValue::Map(entries) => Some(entries.borrow().len()),
+            _ => None,
+        }
+    }
+    fn map_key_value_types(v: &Self::Value) -> Option<(TypeAnnotation, TypeAnnotation)> {
+        match v {
+            VmValue::Map(_) => Some((TypeAnnotation::Infer, TypeAnnotation::Infer)),
+            _ => None,
+        }
+    }
+    fn map_clear(v: &Self::Value) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                entries.borrow_mut().clear();
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_for_each<F: FnMut(Self::Value, Self::Value)>(v: &Self::Value, mut f: F) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                for (k, val) in entries.borrow().iter() {
+                    f(k.clone().into_value(), val.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn value_type(_v: &Self::Value) -> TypeAnnotation {
         // The VM does not track element types, so it never performs the
         // interpreter's container element-type checks.
