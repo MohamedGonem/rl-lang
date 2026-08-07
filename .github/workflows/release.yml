@@ -99,11 +99,13 @@ jobs:
             sudo apt-get install -y gcc-aarch64-linux-gnu libasound2-dev:arm64
           fi
 
-      - name: Set up Android NDK
+      - name: Set up Android SDK
         if: matrix.platform == 'android'
         uses: android-actions/setup-android@v3
-        with:
-          ndk-version: 27.0.12077973
+
+      - name: Install Android NDK
+        if: matrix.platform == 'android'
+        run: sdkmanager "ndk;27.0.12077973"
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

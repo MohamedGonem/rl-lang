@@ -76,7 +76,7 @@ zstd = "0.13"
 rodio = { version = "0.22.2", default-features = false, features = ["playback", "symphonia-all"] }
 cpal = "0.17"
 symphonia = { version = "0.5", features = ["all"] }
-eframe = "0.35"
+eframe = { version = "0.35", features = ["android-native-activity"] }
 shell-words = "1.1"
 tempfile = "3.27.0"
 
