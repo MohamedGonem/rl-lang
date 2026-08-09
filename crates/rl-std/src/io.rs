@@ -21,7 +21,6 @@
 
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
-use rl_utils::errors::Error;
 
 // ---- printing (variadic, untyped) -----------------------------------------
 
@@ -247,9 +246,18 @@ pub fn delete_file(file: String) -> Result<(), String> {
 
 // ---- stderr (propagating runtime error) -----------------------------------
 
-#[native_fn(module = "io")]
-pub fn eprint<R: Runtime>(cx: &mut R::Cx, string: String, span: R::Span) -> Result<(), Error> {
-    Err(R::error(cx, string, span))
+#[native_fn(module = "io", untyped)]
+pub fn eprint<R: Runtime>(_cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
+    let text = args.iter().map(|v| R::display(v)).collect::<String>();
+    eprint!("{}", text);
+    R::null()
+}
+
+#[native_fn(module = "io", untyped)]
+pub fn eprintln<R: Runtime>(_cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
+    let text = args.iter().map(|v| R::display(v)).collect::<String>();
+    eprintln!("{}", text);
+    R::null()
 }
 
 rl_std_core::native_module!("io";
@@ -258,6 +266,6 @@ rl_std_core::native_module!("io";
         read, read_int, read_float,
         read_file, read_lines, read_bytes,
         write_file, append_file, delete_file,
-        eprint,
+        eprint, eprintln
     ],
 );
