@@ -1,7 +1,7 @@
 use crate::entry::FnEntry;
 
 pub static EPRINTLN: FnEntry = FnEntry {
-    signature: "eprintln(message)",
+    signature: "eprintln(message, ..)",
     description: "prints any value to stderr with trailing newline",
     example: "get std::io::eprintln\n\neprintln(\"something went wrong\")",
     expected_output: Some("something went wrong"),
