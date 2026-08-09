@@ -277,7 +277,8 @@ pub fn arr_is_empty<R: Runtime>(_cx: &mut R::Cx, array: R::Value) -> R::Value {
 // NOTE: `len` is intentionally NOT defined here. Its return convention diverges
 // between the runtimes (the VM returns `result[int]`, the interpreter a bare
 // `int`) and it needs tuple access, so each runtime registers its own legacy
-// `len` on top of this module's handles.
+// `len` on top of this module's handles. The shared signature tree registers
+// its name as untyped so the checker can still resolve it in both runtimes.
 
 // ---- builders -------------------------------------------------------------
 

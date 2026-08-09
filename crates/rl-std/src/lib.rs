@@ -53,7 +53,7 @@ pub mod types;
 /// deps), so the checker and LSP stay light.
 pub fn signatures() -> rl_std_core::ModuleNames {
     rl_std_core::ModuleNames::new("std")
-        .with_module(array::signatures())
+        .with_module(array::signatures().with_functions(&["len"]))
         .with_module(audio::signatures())
         .with_module(bitwise::signatures())
         .with_module(c::signatures())
