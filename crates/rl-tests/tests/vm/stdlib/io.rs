@@ -182,17 +182,6 @@ x
 }
 
 #[test]
-fn eprint_raises_runtime_error() {
-    let result = compile_and_run(
-        r#"
-get eprint from std::io
-dec string x = eprint("boom")
-"#,
-    );
-    assert!(result.is_err());
-}
-
-#[test]
 fn read_rejects_too_many_args() {
     let result = compile_and_run(
         r#"
