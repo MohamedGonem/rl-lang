@@ -99,3 +99,111 @@ fn const_int_undefined_variable_is_error() {
 fn const_float_undefined_variable_is_error() {
     assert!(eval_program("CONST float x = y").is_err());
 }
+
+#[test]
+fn dec_uint() {
+    let evaluator = eval_program("dec uint x = 42 as uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::UInteger(42)));
+}
+
+#[test]
+fn dec_small_uint() {
+    let evaluator = eval_program("dec small uint x = 42 as small uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(42)));
+}
+
+#[test]
+fn const_uint() {
+    let evaluator = eval_program("CONST uint x = 42 as uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::UInteger(42)));
+}
+
+#[test]
+fn const_small_uint() {
+    let evaluator = eval_program("CONST small uint x = 42 as small uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(42)));
+}
+
+#[test]
+fn assign_uint() {
+    let evaluator = eval_program("dec uint x = 42 as uint\nx = 3 as uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::UInteger(3)));
+}
+
+#[test]
+fn assign_small_uint() {
+    let evaluator =
+        eval_program("dec small uint x = 42 as small uint\nx = 3 as small uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(3)));
+}
+
+#[test]
+fn compound_assign_uint() {
+    let evaluator = eval_program("dec uint x = 42 as uint\nx += 3 as uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::UInteger(45)));
+}
+
+#[test]
+fn compound_assign_small_uint() {
+    let evaluator =
+        eval_program("dec small uint x = 42 as small uint\nx += 3 as small uint").unwrap();
+    assert_eq!(evaluator.get_value_raw("x"), Some(Value::SUInteger(45)));
+}
+
+#[test]
+fn uint_plain_int_is_error() {
+    assert!(eval_program("dec uint x = 42").is_err());
+}
+
+#[test]
+fn uint_float_is_error() {
+    assert!(eval_program("dec uint x = 42.0").is_err());
+}
+
+#[test]
+fn uint_negative_is_error() {
+    assert!(eval_program("dec uint x = -1 as uint").is_err());
+}
+
+#[test]
+fn small_uint_negative_is_error() {
+    assert!(eval_program("dec small uint x = -1 as small uint").is_err());
+}
+
+#[test]
+fn const_uint_reassigned_is_error() {
+    assert!(eval_program("CONST uint x = 1 as uint\nx = 2 as uint").is_err());
+}
+
+#[test]
+fn const_small_uint_reassigned_is_error() {
+    assert!(eval_program("CONST small uint x = 1 as small uint\nx = 2 as small uint").is_err());
+}
+
+#[test]
+fn uint_undefined_variable_is_error() {
+    assert!(eval_program("dec uint x = y").is_err());
+}
+
+#[test]
+fn small_uint_undefined_variable_is_error() {
+    assert!(eval_program("dec small uint x = y").is_err());
+}
+
+#[test]
+fn uint_max_value() {
+    let evaluator = eval_program("dec uint x = 18446744073709551615 as uint").unwrap();
+    assert_eq!(
+        evaluator.get_value_raw("x"),
+        Some(Value::UInteger(u64::MAX))
+    );
+}
+
+#[test]
+fn small_uint_max_value() {
+    let evaluator = eval_program("dec small uint x = 4294967295 as small uint").unwrap();
+    assert_eq!(
+        evaluator.get_value_raw("x"),
+        Some(Value::SUInteger(u32::MAX))
+    );
+}

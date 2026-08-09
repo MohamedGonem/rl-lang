@@ -2,8 +2,10 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::VmNative;
 use crate::chunk::{Chunk, OpCode};
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
+use rl_std::gui::GuiHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
 use rl_utils::source::SourceFile;
@@ -16,6 +18,47 @@ use rl_utils::span::Span;
 /// everywhere else in the pipeline, anchored at the currently executing
 /// instruction's [`Span`].
 pub type VmError = Error;
+
+/// Shared arithmetic-op expansion for `+`, `-`, `*`e.
+macro_rules! binary_arith {
+    ($self:expr, $checked:ident, $float_op:tt, $op_str:literal) => {{
+        let (a, b) = $self.pop_two_unchecked();
+        let out = match (a, b) {
+            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::UInt(a), VmValue::UInt(b)) => VmValue::UInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SInt(a), VmValue::SInt(b)) => VmValue::SInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => VmValue::SUInt(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::BByte(a), VmValue::BByte(b)) => VmValue::BByte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => {
+                VmValue::BSByte(a.$checked(b).ok_or_else(|| {
+                    $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+                })?)
+            }
+            (VmValue::Byte(a), VmValue::Byte(b)) => VmValue::Byte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::SByte(a), VmValue::SByte(b)) => VmValue::SByte(a.$checked(b).ok_or_else(|| {
+                $self.err(format!("integer overflow: {a} {} {b}", $op_str))
+            })?),
+            (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(a $float_op b),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => VmValue::SFloat(a $float_op b),
+            (a, b) => {
+                return Err($self.err(format!("cannot apply arithmetic op to {a:?} and {b:?}")));
+            }
+        };
+        $self.stack.push(out);
+    }};
+}
 
 enum FrameSource<'a> {
     Top(&'a Chunk),
@@ -36,6 +79,11 @@ struct CallFrame<'a> {
     source: FrameSource<'a>,
     ip: usize,
     scope_base: usize,
+    /// `scope_starts[scope_base]`, the locals base of this frame. Cached here
+    /// (instead of re-indexing the scope table at every frame switch) so
+    /// `Return`/`Propagate` can restore the caller's base from a plain struct
+    /// field read.
+    frame_base: usize,
 }
 
 pub struct Vm {
@@ -43,10 +91,16 @@ pub struct Vm {
     globals: Vec<VmValue>,
     locals: Vec<VmValue>,
     scope_starts: Vec<usize>,
-    /// [`Span`] of the instruction currently executing, refreshed once per
-    /// dispatch loop iteration in [`Vm::run`]. Every runtime error is
-    /// anchored here.
-    current_span: Span,
+    /// Byte offset of the instruction currently executing, written once per
+    /// dispatch loop iteration. The [`Span`] is *not* materialized eagerly -
+    /// it's recovered from the chunk on demand via [`Vm::cur_span`] only when
+    /// an error is built or a native function asks for it, which avoids a
+    /// per-instruction copy in the hot loop.
+    current_ip: usize,
+    /// The chunk the currently-executing instruction belongs to, kept in sync
+    /// with the dispatch loop's `cur_chunk` local so [`Vm::cur_span`] can
+    /// resolve `current_ip`. `null` when no chunk is running.
+    current_chunk: *const Chunk,
     /// Original source text, so runtime errors can render ariadne snippets.
     source: Option<SourceFile>,
     /// Byte-offset -> line/col table, used when `source` is `None` (e.g.
@@ -54,6 +108,65 @@ pub struct Vm {
     /// full source) so runtime errors can still report a precise
     /// `file:line:col` location instead of a bare message.
     line_index: Option<LineIndex>,
+    /// `impl` methods registered via `OpCode::RegisterMethod`, keyed by
+    /// `"Record::method"`. Populated as the enclosing `impl` block's
+    /// statement runs, then consulted by `OpCode::LookupAssoc` (associated
+    /// functions, `Record::method(...)`) and `OpCode::LookupMethod`
+    /// (instance methods, `value.method(...)`).
+    impl_methods: HashMap<String, Rc<VmFunction>>,
+    /// stdlib functions imported via `get x from std::module`, keyed by
+    /// name. Populated by `OpCode::RegisterStdlibMethod` (emitted per
+    /// import) and consulted by `OpCode::LookupMethod` as the
+    /// free-function fallback for `value.method(...)` on non-record
+    /// receivers - mirroring the interpreter's `call_path` stdlib step.
+    stdlib_methods: HashMap<String, VmNative>,
+    /// named user functions, keyed by name. Populated by
+    /// `OpCode::RegisterUserMethod` (emitted per function declaration) and
+    /// consulted by `OpCode::LookupMethod` after the stdlib fallback -
+    /// mirroring the interpreter's `fn_names`.
+    user_methods: HashMap<String, Rc<VmFunction>>,
+    /// Side-table of native C-interop resources (`std::c`), keyed by handle
+    /// id. `pub(crate)` (unlike every field above) because, unlike every
+    /// other native function so far, `std::c`'s functions need persistent
+    /// state across calls, not just their own arguments - see `stdlib::c`.
+    pub(crate) c_handles: HashMap<u64, rl_std::c::CHandle>,
+    /// Next handle id to hand out for `std::c` resources; only ever increments.
+    pub(crate) c_next_handle: u64,
+    /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
+    pub(crate) audio_handles: HashMap<u64, rl_std::audio::AudioHandle>,
+    /// Next handle id to hand out for `std::audio` resources; only ever increments.
+    pub(crate) audio_next_handle: u64,
+    /// Output device selected via `std::audio::set_output_device`, if any;
+    /// `None` means the system default device.
+    pub(crate) audio_output_device: Option<String>,
+    /// Global volume scalar set via `std::audio::set_master_volume`, applied
+    /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
+    pub(crate) audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub(crate) gui_handles: HashMap<u64, GuiHandle<VmValue>>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub(crate) gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub(crate) gui_quit_requested: bool,
+    /// Side-table of native TCP/UDP resources (`std::net`), keyed by handle id.
+    pub(crate) net_handles: HashMap<u64, rl_std::net::NetHandle>,
+    /// Next handle id to hand out for `std::net` resources; only ever increments.
+    pub(crate) net_next_handle: u64,
+    /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
+    pub(crate) http_handles: HashMap<u64, rl_std::http::HttpHandle>,
+    /// Next handle id to hand out for `std::http` resources; only ever increments.
+    pub(crate) http_next_handle: u64,
+    /// PRNG state for `std::random`, seeded from the system clock at startup.
+    pub(crate) rng: rl_std_core::Xoshiro256,
+    /// Number of leading `std::env::args()` entries to skip when reporting
+    /// `std::process::args()` (defaults to 1 - the program name itself).
+    pub user_args_offset: usize,
+    /// When set, `std::io::print`/`std::io::println` append into this buffer
+    /// instead of writing to stdout. The REPL sets this per-input so `print`
+    /// output lands in the output area instead of cluttering the terminal.
+    pub output_buffer: Option<String>,
 }
 
 impl Vm {
@@ -63,9 +176,29 @@ impl Vm {
             globals: Vec::new(),
             locals: Vec::new(),
             scope_starts: Vec::new(),
-            current_span: Span::dummy(),
+            current_ip: 0,
+            current_chunk: std::ptr::null(),
             source: None,
             line_index: None,
+            impl_methods: HashMap::new(),
+            stdlib_methods: HashMap::new(),
+            user_methods: HashMap::new(),
+            c_handles: HashMap::new(),
+            c_next_handle: 1,
+            audio_handles: HashMap::new(),
+            audio_next_handle: 1,
+            audio_output_device: None,
+            audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
+            net_handles: HashMap::new(),
+            net_next_handle: 1,
+            http_handles: HashMap::new(),
+            http_next_handle: 1,
+            rng: Default::default(),
+            user_args_offset: 1,
+            output_buffer: None,
         }
     }
 
@@ -74,6 +207,26 @@ impl Vm {
     pub fn with_source_file(mut self, source: SourceFile) -> Self {
         self.source = Some(source);
         self
+    }
+
+    /// Sets the source text on an already-constructed [`Vm`] (the builder
+    /// form [`Vm::with_source_file`] consumes `self`, which doesn't work for
+    /// the REPL's persistent `Vm`). Runtime errors render ariadne snippets
+    /// against this text.
+    pub fn set_source_file(&mut self, source: SourceFile) {
+        self.source = Some(source);
+    }
+
+    /// Clears per-execution transient state - the value stack, locals, and
+    /// scope table - while preserving globals and native side-tables. The
+    /// REPL calls this after a runtime error so the next input starts from a
+    /// clean stack instead of reusing a torn-down one.
+    pub fn reset_transient(&mut self) {
+        self.stack.clear();
+        self.locals.clear();
+        self.scope_starts.clear();
+        self.current_chunk = std::ptr::null();
+        self.current_ip = 0;
     }
 
     /// Attaches a [`LineIndex`] so runtime errors can still report a
@@ -89,8 +242,31 @@ impl Vm {
     /// executing instruction, with source (or a line-index location)
     /// attached when known.
     pub fn err(&self, message: impl Into<String>) -> VmError {
-        let err = Error::at(Reason::Runtime, message, self.current_span);
+        let err = Error::at(Reason::Runtime, message, self.cur_span());
         self.attach_location(err)
+    }
+
+    /// [`Span`] of the instruction currently executing. Native functions
+    /// (which don't receive a `Span` argument) can use this to anchor errors
+    /// or re-enter the interpreter via [`Vm::call_value`] at the right spot.
+    pub fn current_span(&self) -> Span {
+        self.cur_span()
+    }
+
+    /// Resolves the span of the currently-executing instruction from the
+    /// lazily-tracked `current_ip`/`current_chunk`, without copying it on
+    /// every instruction. Falls back to a dummy span when no chunk is
+    /// running (e.g. a native function invoked before `Vm::run`).
+    fn cur_span(&self) -> Span {
+        if self.current_chunk.is_null() {
+            return Span::dummy();
+        }
+        unsafe { (*self.current_chunk).span_at(self.current_ip) }
+    }
+
+    /// Original source attached via [`Vm::with_source_file`], if any.
+    pub(crate) fn source_file(&self) -> Option<&SourceFile> {
+        self.source.as_ref()
     }
 
     /// Re-anchors an error built without span/source context - e.g. deep
@@ -100,7 +276,7 @@ impl Vm {
     /// loop, so every native-function error still gets a correct source
     /// snippet without threading a `Span` through `FromValue`/`IntoNativeFn`.
     pub fn annotate(&self, e: VmError) -> VmError {
-        let e = e.with_span(self.current_span);
+        let e = e.with_span(self.cur_span());
         self.attach_location(e)
     }
 
@@ -123,23 +299,147 @@ impl Vm {
         Ok(self.stack.pop().unwrap_or(VmValue::Null))
     }
 
+    /// Calls an arbitrary callable `VmValue` (a user function, closure, or
+    /// native function) with the given arguments and returns its result.
+    ///
+    /// Used by native stdlib modules (e.g. `std::gui`) that need to invoke
+    /// an rl-lang callback value from Rust - outside the normal `Call`
+    /// opcode dispatch path, e.g. from an egui event callback. Dispatches
+    /// directly on the callee instead of building a synthetic chunk:
+    /// native functions are invoked synchronously, and user functions /
+    /// closures get their own call frame executed to completion via the
+    /// shared [`Vm::run_frames`] loop. `self.stack`, `self.locals`, and
+    /// `self.scope_starts` are ordinary fields, so this is safe to call
+    /// reentrantly from inside an already-running dispatch loop (e.g. from
+    /// within a native function's own body).
+    pub fn call_value(
+        &mut self,
+        callee: &VmValue,
+        args: &[VmValue],
+        _span: Span,
+    ) -> Result<VmValue, VmError> {
+        self.invoke_callable(callee, args)
+    }
+
+    /// Direct callable dispatch backing [`Vm::call_value`] (synchronous
+    /// invocation). Binds the arguments into a fresh scope and pushes a
+    /// single call frame for user functions and closures; runs native
+    /// functions inline.
+    fn invoke_callable(&mut self, callee: &VmValue, args: &[VmValue]) -> Result<VmValue, VmError> {
+        match callee {
+            VmValue::Native(native) => {
+                let result = match native {
+                    crate::values::VmNative::Std(h) => (h.thunk)(self, args.to_vec(), ()),
+                    crate::values::VmNative::Legacy(f) => (f.func)(self, args.to_vec()),
+                };
+                result.map_err(|e| self.annotate(e))
+            }
+            VmValue::Function(func) => {
+                if args.len() != func.arity {
+                    return Err(self.err(format!(
+                        "{} expects {} args, got {}",
+                        func.name,
+                        func.arity,
+                        args.len()
+                    )));
+                }
+                let base = self.locals.len();
+                self.locals.resize(base + args.len(), VmValue::Null);
+                for (i, arg) in args.iter().enumerate() {
+                    self.locals[base + i] = arg.clone();
+                }
+                self.scope_starts.push(base);
+                let scope_base = self.scope_starts.len() - 1;
+                self.run_call_frame(FrameSource::Func(func.clone()), scope_base)
+            }
+            VmValue::Closure {
+                func,
+                captured,
+                capture_start,
+            } => {
+                if args.len() != func.arity {
+                    return Err(self.err(format!(
+                        "closure expects {} args, got {}",
+                        func.arity,
+                        args.len()
+                    )));
+                }
+                let base = self.locals.len();
+                self.locals
+                    .resize(base + (*capture_start) as usize, VmValue::Null);
+                self.locals.extend_from_slice(captured);
+                let params_start = base + (*capture_start) as usize + captured.len();
+                self.locals.resize(params_start + args.len(), VmValue::Null);
+                for (i, arg) in args.iter().enumerate() {
+                    self.locals[params_start + i] = arg.clone();
+                }
+                self.scope_starts.push(base);
+                let scope_base = self.scope_starts.len() - 1;
+                self.run_call_frame(FrameSource::Func(func.clone()), scope_base)
+            }
+            other => Err(self.err(format!("cannot call {other:?}"))),
+        }
+    }
+
+    /// Executes a single fresh call frame to completion, returning the value
+    /// its `Return` left on the stack. Used by [`Vm::invoke_callable`] to
+    /// run a user function / closure synchronously without routing through
+    /// the `Call` opcode.
+    fn run_call_frame(
+        &mut self,
+        source: FrameSource<'_>,
+        scope_base: usize,
+    ) -> Result<VmValue, VmError> {
+        let frames = vec![CallFrame {
+            source,
+            ip: 0,
+            scope_base,
+            frame_base: self.scope_starts.get(scope_base).copied().unwrap_or(0),
+        }];
+        self.run_frames(frames)?;
+        Ok(self.stack.pop().unwrap_or(VmValue::Null))
+    }
+
     /// Vm entry function
     pub fn run(&mut self, chunk: &Chunk) -> Result<(), VmError> {
-        let mut frames: Vec<CallFrame> = vec![CallFrame {
+        let frames = vec![CallFrame {
             source: FrameSource::Top(chunk),
             ip: 0,
             scope_base: self.scope_starts.len(),
+            frame_base: 0,
         }];
+        self.run_frames(frames)
+    }
 
-        // caching method
+    /// Runs a stack of call frames to completion.
+    ///
+    /// The dispatch loop lives here so it can be reused both for whole
+    /// programs (`run`) and for synchronous callable invocations
+    /// (`call_value`), which avoids constructing a synthetic chunk on every
+    /// higher-order callback call.
+    fn run_frames(&mut self, mut frames: Vec<CallFrame>) -> Result<(), VmError> {
         let mut cur_chunk: *const Chunk = frames[0].source.chunk();
+        self.current_chunk = cur_chunk;
         let mut ip: usize = 0;
         let mut scope_base: usize = frames[0].scope_base;
+        // `self.scope_starts[scope_base]` - the locals base of the current
+        // call frame. Constant for the frame's lifetime (only ever written by
+        // the frame's first `PushScope`), so cache it instead of re-indexing
+        // the scope table on every local access.
+        let mut frame_base: usize = frames[0].frame_base;
 
         macro_rules! chunk {
             () => {
                 unsafe { &*cur_chunk }
             };
+        }
+        macro_rules! read_u16 {
+            () => {{
+                // SAFETY: `ip` and `ip + 1` index the current chunk's operand
+                // bytes, which the compiler always writes in full pairs (see
+                // `Chunk::write_u16`), so both are in bounds here.
+                unsafe { (&*cur_chunk).read_u16_unchecked(ip) }
+            }};
         }
 
         loop {
@@ -151,33 +451,44 @@ impl Vm {
                 }
                 let top = frames.last().unwrap();
                 cur_chunk = top.source.chunk();
+                self.current_chunk = cur_chunk;
                 ip = top.ip;
                 scope_base = top.scope_base;
+                frame_base = top.frame_base;
                 continue;
             }
 
-            let op = OpCode::from_u8_unchecked(chunk!().code[ip]);
+            // SAFETY: `ip < code.len()` was checked above and the bytecode is
+            // compiler-emitted, so the byte is a valid opcode (see
+            // `OpCode::from_u8_unchecked`).
+            let op = unsafe { OpCode::from_u8_unchecked(*(&*cur_chunk).code.as_ptr().add(ip)) };
             ip += 1;
-            self.current_span = chunk!().span_at(ip - 1);
+            self.current_ip = ip - 1;
 
             match op {
                 OpCode::Const => {
-                    let idx = chunk!().read_u16(ip) as usize;
+                    let idx = read_u16!() as usize;
                     ip += 2;
-                    let val = chunk!().constants[idx].clone();
+                    // SAFETY: `idx` was emitted by the compiler and always
+                    // points at a valid constant slot.
+                    let val = unsafe { (&*cur_chunk).constants.get_unchecked(idx).clone() };
                     self.stack.push(val);
                 }
 
-                OpCode::Add => self.binary_numeric(|a, b| a + b, |a, b| a + b)?,
-                OpCode::Sub => self.binary_numeric(|a, b| a - b, |a, b| a - b)?,
-                OpCode::Mul => self.binary_numeric(|a, b| a * b, |a, b| a * b)?,
+                OpCode::Add => binary_arith!(self, checked_add, +, "+"),
+                OpCode::Sub => binary_arith!(self, checked_sub, -, "-"),
+                OpCode::Mul => binary_arith!(self, checked_mul, *, "*"),
                 OpCode::Div => self.binary_div()?,
 
                 OpCode::Negate => {
                     let v = self.pop()?;
                     let out = match v {
                         VmValue::Int(n) => VmValue::Int(-n),
+                        VmValue::SInt(n) => VmValue::SInt(-n),
+                        VmValue::BSByte(n) => VmValue::BSByte(-n),
+                        VmValue::SByte(n) => VmValue::SByte(-n),
                         VmValue::Float(n) => VmValue::Float(-n),
+                        VmValue::SFloat(n) => VmValue::SFloat(-n),
                         other => return Err(self.err(format!("cannot negate {other:?}"))),
                     };
                     self.stack.push(out);
@@ -191,11 +502,11 @@ impl Vm {
                     self.stack.push(out);
                 }
                 OpCode::Eq => {
-                    let (a, b) = self.pop_two()?;
+                    let (a, b) = self.pop_two_unchecked();
                     self.stack.push(VmValue::Bool(a == b));
                 }
                 OpCode::NotEq => {
-                    let (a, b) = self.pop_two()?;
+                    let (a, b) = self.pop_two_unchecked();
                     self.stack.push(VmValue::Bool(a != b));
                 }
                 OpCode::Less => self.binary_cmp(|o| o.is_lt())?,
@@ -204,25 +515,23 @@ impl Vm {
                 OpCode::GreaterEq => self.binary_cmp(|o| o.is_ge())?,
 
                 OpCode::GetLocal => {
-                    let flat = chunk!().read_u16(ip) as usize;
+                    let flat = read_u16!() as usize;
                     ip += 2;
-                    let frame_base = self.scope_starts[scope_base];
                     let val = self.locals[frame_base + flat].clone();
                     self.stack.push(val);
                 }
                 OpCode::SetLocal => {
-                    let flat = chunk!().read_u16(ip) as usize;
+                    let flat = read_u16!() as usize;
                     ip += 2;
                     let val = self
                         .stack
                         .last()
                         .cloned()
                         .ok_or_else(|| self.err("stack underflow on assignment"))?;
-                    let frame_base = self.scope_starts[scope_base];
                     self.locals[frame_base + flat] = val;
                 }
                 OpCode::GetGlobal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val =
                         self.globals.get(slot).cloned().ok_or_else(|| {
@@ -231,7 +540,7 @@ impl Vm {
                     self.stack.push(val);
                 }
                 OpCode::SetGlobal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val = self
                         .stack
@@ -244,7 +553,7 @@ impl Vm {
                     self.globals[slot] = val;
                 }
                 OpCode::DefineLocal => {
-                    let slot = chunk!().read_u16(ip) as usize;
+                    let slot = read_u16!() as usize;
                     ip += 2;
                     let val = self.pop()?;
 
@@ -254,11 +563,10 @@ impl Vm {
                         }
                         self.globals[slot] = val;
                     } else {
-                        let base = self.scope_starts[scope_base];
-                        if base + slot >= self.locals.len() {
-                            self.locals.resize(base + slot + 1, VmValue::Null);
+                        if frame_base + slot >= self.locals.len() {
+                            self.locals.resize(frame_base + slot + 1, VmValue::Null);
                         }
-                        self.locals[base + slot] = val;
+                        self.locals[frame_base + slot] = val;
                     }
                 }
                 OpCode::Pop => {
@@ -274,11 +582,19 @@ impl Vm {
                     }
                     let top = frames.last().unwrap();
                     cur_chunk = top.source.chunk();
+                    self.current_chunk = cur_chunk;
                     ip = top.ip;
                     scope_base = top.scope_base;
+                    frame_base = top.frame_base;
                 }
 
-                OpCode::PushScope => self.scope_starts.push(self.locals.len()),
+                OpCode::PushScope => {
+                    let base = self.locals.len();
+                    self.scope_starts.push(base);
+                    if self.scope_starts.len() - 1 == scope_base {
+                        frame_base = base;
+                    }
+                }
                 OpCode::PopScope => {
                     let num_active = self.scope_starts.len() - scope_base;
                     let min_active = if frames.len() > 1 { 1 } else { 0 };
@@ -290,12 +606,12 @@ impl Vm {
                 }
 
                 OpCode::Jump => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     ip += offset;
                 }
                 OpCode::JumpIfFalse => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     match self.pop()? {
                         VmValue::Bool(false) => ip += offset,
@@ -308,13 +624,13 @@ impl Vm {
                     }
                 }
                 OpCode::Loop => {
-                    let offset = chunk!().read_u16(ip) as usize;
+                    let offset = read_u16!() as usize;
                     ip += 2;
                     ip -= offset;
                 }
 
                 OpCode::Call => {
-                    let arg_count = chunk!().read_u16(ip) as usize;
+                    let arg_count = read_u16!() as usize;
                     ip += 2;
 
                     let callee_idx = self.stack.len() - 1 - arg_count;
@@ -339,13 +655,16 @@ impl Vm {
 
                             frames.last_mut().unwrap().ip = ip;
                             cur_chunk = &func.chunk as *const Chunk;
+                            self.current_chunk = cur_chunk;
                             frames.push(CallFrame {
                                 source: FrameSource::Func(func),
                                 ip: 0,
                                 scope_base: new_scope_base,
+                                frame_base: base,
                             });
                             ip = 0;
                             scope_base = new_scope_base;
+                            frame_base = base;
                         }
 
                         VmValue::Native(native) => {
@@ -356,8 +675,11 @@ impl Vm {
                             call_args.reverse();
                             self.pop()?; // discard the callee itself
 
-                            let result =
-                                (native.func)(self, call_args).map_err(|e| self.annotate(e))?;
+                            let result = match native {
+                                crate::values::VmNative::Std(h) => (h.thunk)(self, call_args, ()),
+                                crate::values::VmNative::Legacy(f) => (f.func)(self, call_args),
+                            }
+                            .map_err(|e| self.annotate(e))?;
                             self.stack.push(result);
                         }
 
@@ -388,13 +710,16 @@ impl Vm {
 
                             frames.last_mut().unwrap().ip = ip;
                             cur_chunk = &func.chunk as *const Chunk;
+                            self.current_chunk = cur_chunk;
                             frames.push(CallFrame {
                                 source: FrameSource::Func(func),
                                 ip: 0,
                                 scope_base: new_scope_base,
+                                frame_base: base,
                             });
                             ip = 0;
                             scope_base = new_scope_base;
+                            frame_base = base;
                         }
 
                         other => return Err(self.err(format!("cannot call {other:?}"))),
@@ -423,8 +748,10 @@ impl Vm {
                             }
                             let top = frames.last().unwrap();
                             cur_chunk = top.source.chunk();
+                            self.current_chunk = cur_chunk;
                             ip = top.ip;
                             scope_base = top.scope_base;
+                            frame_base = top.frame_base;
                         }
                         other => self.stack.push(other),
                     }
@@ -436,7 +763,7 @@ impl Vm {
                 }
 
                 OpCode::BuildArr => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building array"));
@@ -446,7 +773,7 @@ impl Vm {
                 }
 
                 OpCode::BuildTuple => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building tuple"));
@@ -483,7 +810,7 @@ impl Vm {
                 }
 
                 OpCode::BuildSet => {
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
                     if self.stack.len() < count {
                         return Err(self.err("stack underflow building set"));
@@ -500,7 +827,7 @@ impl Vm {
                 }
 
                 OpCode::BuildMap => {
-                    let count = chunk!().read_u16(ip) as usize; // number of entries
+                    let count = read_u16!() as usize; // number of entries
                     ip += 2;
                     if self.stack.len() < count * 2 {
                         return Err(self.err("stack underflow building map"));
@@ -520,11 +847,11 @@ impl Vm {
                 }
 
                 OpCode::BuildRecord => {
-                    let name_idx = chunk!().read_u16(ip) as usize;
+                    let name_idx = read_u16!() as usize;
                     ip += 2;
-                    let fields_idx = chunk!().read_u16(ip) as usize;
+                    let fields_idx = read_u16!() as usize;
                     ip += 2;
-                    let count = chunk!().read_u16(ip) as usize;
+                    let count = read_u16!() as usize;
                     ip += 2;
 
                     let VmValue::Str(name) = chunk!().constants[name_idx].clone() else {
@@ -554,7 +881,7 @@ impl Vm {
                 }
 
                 OpCode::FieldGet => {
-                    let field_idx = chunk!().read_u16(ip) as usize;
+                    let field_idx = read_u16!() as usize;
                     ip += 2;
                     let VmValue::Str(field) = chunk!().constants[field_idx].clone() else {
                         return Err(self.err("corrupt bytecode: field name is not a string"));
@@ -574,7 +901,7 @@ impl Vm {
                 }
 
                 OpCode::FieldSet => {
-                    let field_idx = chunk!().read_u16(ip) as usize;
+                    let field_idx = read_u16!() as usize;
                     ip += 2;
                     let VmValue::Str(field) = chunk!().constants[field_idx].clone() else {
                         return Err(self.err("corrupt bytecode: field name is not a string"));
@@ -595,9 +922,9 @@ impl Vm {
                     self.stack.push(value);
                 }
                 OpCode::BuildClosure => {
-                    let const_idx = chunk!().read_u16(ip) as usize;
+                    let const_idx = read_u16!() as usize;
                     ip += 2;
-                    let capture_start = chunk!().read_u16(ip);
+                    let capture_start = read_u16!();
                     ip += 2;
                     let VmValue::Function(func) = chunk!().constants[const_idx].clone() else {
                         return Err(
@@ -625,6 +952,133 @@ impl Vm {
                         capture_start,
                     });
                 }
+
+                OpCode::RegisterMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let func_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Function(func) = chunk!().constants[func_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method body is not a function"));
+                    };
+                    self.impl_methods.insert(key.to_string(), func);
+                }
+
+                OpCode::RegisterStdlibMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let value_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Native(native) = chunk!().constants[value_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: stdlib fallback is not a native"));
+                    };
+                    self.stdlib_methods.insert(key.to_string(), native);
+                }
+
+                OpCode::RegisterUserMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let func_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Function(func) = chunk!().constants[func_idx].clone() else {
+                        return Err(
+                            self.err("corrupt bytecode: user method body is not a function")
+                        );
+                    };
+                    self.user_methods.insert(key.to_string(), func);
+                }
+
+                OpCode::LookupAssoc => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let func = self
+                        .impl_methods
+                        .get(&*key)
+                        .cloned()
+                        .ok_or_else(|| self.err(format!("undefined function {key}")))?;
+                    self.stack.push(VmValue::Function(func));
+                }
+
+                OpCode::LookupMethod => {
+                    let name_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(method) = chunk!().constants[name_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method name is not a string"));
+                    };
+                    let caller = self
+                        .stack
+                        .last()
+                        .ok_or_else(|| self.err("stack underflow on method call"))?
+                        .clone();
+                    let insert_pos = self.stack.len() - 1;
+
+                    // Dispatch order mirrors the interpreter's `MethodCall`
+                    // handler (`evaluator.rs`): a record's `impl` method wins,
+                    // then the method name is resolved as a free function with
+                    // the receiver as its first argument - imported stdlib
+                    // functions first, then named user functions.
+                    let resolved: Option<VmValue> = match &caller {
+                        VmValue::Record { name, .. } => self
+                            .impl_methods
+                            .get(&format!("{name}::{method}"))
+                            .map(|func| VmValue::Function(func.clone())),
+                        _ => None,
+                    }
+                    .or_else(|| {
+                        self.stdlib_methods
+                            .get(&*method)
+                            .map(|n| VmValue::Native(n.clone()))
+                            .or_else(|| {
+                                self.user_methods
+                                    .get(&*method)
+                                    .map(|f| VmValue::Function(f.clone()))
+                            })
+                    });
+
+                    match resolved {
+                        Some(callee) => {
+                            self.stack.insert(insert_pos, callee);
+                        }
+                        None => match &caller {
+                            VmValue::Record { name, .. } => {
+                                return Err(
+                                    self.err(format!("record `{name}` has no method `{method}`"))
+                                );
+                            }
+                            other => {
+                                return Err(self.err(format!(
+                                    "cannot call method `{method}` on {}",
+                                    other.type_name()
+                                )));
+                            }
+                        },
+                    }
+                }
+
+                OpCode::Cast => {
+                    let code = read_u16!() as usize;
+                    ip += 2;
+                    let value = self.pop()?;
+                    let cast = self.cast(value, code)?;
+                    self.stack.push(cast);
+                }
             }
         }
     }
@@ -641,8 +1095,12 @@ impl Vm {
 
     fn index_as_usize(&self, index: &VmValue, len: usize) -> Result<usize, VmError> {
         let i = match index {
-            VmValue::Int(n) => *n,
-            VmValue::Byte(b) => *b as i64,
+            VmValue::Int(n) if *n < 0_i64 => {
+                return Err(self.err(format!("array index must be postive int, got {}", n)));
+            }
+            VmValue::Int(n) => *n as usize,
+            VmValue::Byte(b) => *b as usize,
+            VmValue::UInt(u) => *u as usize,
             other => {
                 return Err(self.err(format!(
                     "array index must be int or byte, got {}",
@@ -650,10 +1108,10 @@ impl Vm {
                 )));
             }
         };
-        if i < 0 || i as usize >= len {
+        if i >= len {
             return Err(self.err(format!("array index out of bounds: {i} (len {len})")));
         }
-        Ok(i as usize)
+        Ok(i)
     }
 
     fn index_get(&self, arr: &VmValue, index: &VmValue) -> Result<VmValue, VmError> {
@@ -701,6 +1159,95 @@ impl Vm {
         }
     }
 
+    /// Runs `value as <type>` for the given numeric target `code`
+    /// (see `CastTarget` in `compiler.rs`). Mirrors `rl-interpreter`'s
+    /// cast evaluation (`evaluator.rs`): sources are widened to `i128`/`f64`,
+    /// then narrowed via checked `try_from` into the target type.
+    fn cast(&self, value: VmValue, code: usize) -> Result<VmValue, VmError> {
+        fn as_i128(v: &VmValue) -> Option<i128> {
+            match v {
+                VmValue::Int(n) => Some(*n as i128),
+                VmValue::SInt(n) => Some(*n as i128),
+                VmValue::SUInt(n) => Some(*n as i128),
+                VmValue::Byte(n) => Some(*n as i128),
+                VmValue::SByte(n) => Some(*n as i128),
+                VmValue::BByte(n) => Some(*n as i128),
+                VmValue::BSByte(n) => Some(*n as i128),
+                VmValue::Float(f) => Some(*f as i128),
+                VmValue::SFloat(f) => Some(*f as i128),
+                _ => None,
+            }
+        }
+
+        fn as_f64(v: &VmValue) -> Option<f64> {
+            match v {
+                VmValue::Int(n) => Some(*n as f64),
+                VmValue::SInt(n) => Some(*n as f64),
+                VmValue::SUInt(n) => Some(*n as f64),
+                VmValue::Byte(n) => Some(*n as f64),
+                VmValue::SByte(n) => Some(*n as f64),
+                VmValue::BByte(n) => Some(*n as f64),
+                VmValue::BSByte(n) => Some(*n as f64),
+                VmValue::Float(f) => Some(*f),
+                VmValue::SFloat(f) => Some(*f as f64),
+                _ => None,
+            }
+        }
+
+        let bad_cast = || {
+            self.err(format!(
+                "invalid cast: cannot cast {}:{} to {:?}",
+                value.type_name(),
+                value,
+                cast_target_name(code)
+            ))
+        };
+
+        match code {
+            // Int
+            0 => as_i128(&value)
+                .map(|n| VmValue::Int(n as i64))
+                .ok_or_else(bad_cast),
+            // Float
+            1 => as_f64(&value).map(VmValue::Float).ok_or_else(bad_cast),
+            // UInt
+            2 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u64::try_from(n).map(VmValue::UInt).map_err(|_| bad_cast())),
+            // SFloat
+            3 => as_f64(&value)
+                .map(|f| VmValue::SFloat(f as f32))
+                .ok_or_else(bad_cast),
+            // SUInt
+            4 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u32::try_from(n).map(VmValue::SUInt).map_err(|_| bad_cast())),
+            // SInt
+            5 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| i32::try_from(n).map(VmValue::SInt).map_err(|_| bad_cast())),
+            // BByte
+            6 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u16::try_from(n).map(VmValue::BByte).map_err(|_| bad_cast())),
+            // BSByte
+            7 => as_i128(&value).ok_or_else(bad_cast).and_then(|n| {
+                i16::try_from(n)
+                    .map(VmValue::BSByte)
+                    .map_err(|_| bad_cast())
+            }),
+            // Byte
+            8 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| u8::try_from(n).map(VmValue::Byte).map_err(|_| bad_cast())),
+            // SByte
+            9 => as_i128(&value)
+                .ok_or_else(bad_cast)
+                .and_then(|n| i8::try_from(n).map(VmValue::SByte).map_err(|_| bad_cast())),
+            other => Err(self.err(format!("corrupt bytecode: unknown cast target {other}"))),
+        }
+    }
+
     #[inline(always)]
     fn pop_unchecked(&mut self) -> VmValue {
         debug_assert!(!self.stack.is_empty(), "stack underflow");
@@ -721,49 +1268,33 @@ impl Vm {
     fn pop(&mut self) -> Result<VmValue, VmError> {
         self.stack.pop().ok_or_else(|| self.err("stack underflow"))
     }
-    fn pop_two(&mut self) -> Result<(VmValue, VmValue), VmError> {
-        let b = self.pop()?;
-        let a = self.pop()?;
-        Ok((a, b))
-    }
-
-    /// Helper function for arth operations
-    /// handles +, -, *
-    /// currently promotes int to float
-    fn binary_numeric(
-        &mut self,
-        int_op: fn(i64, i64) -> i64,
-        float_op: fn(f64, f64) -> f64,
-    ) -> Result<(), VmError> {
-        let (a, b) = self.pop_two_unchecked();
-        let out = match (a, b) {
-            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(int_op(a, b)),
-            (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(float_op(a, b)),
-            // for now int promoted to float
-            // should disable later after wiring `as` Cast keyword
-            (VmValue::Int(a), VmValue::Float(b)) => VmValue::Float(float_op(a as f64, b)),
-            (VmValue::Float(a), VmValue::Int(b)) => VmValue::Float(float_op(a, b as f64)),
-            (a, b) => {
-                return Err(self.err(format!("cannot apply arithmetic op to {a:?} and {b:?}")));
-            }
-        };
-        self.stack.push(out);
-        Ok(())
-    }
 
     /// Helper function for arth operations
     /// handles /
-    /// currently promotes int to float
     fn binary_div(&mut self) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
+        macro_rules! int_div {
+            ($self:expr, $variant:ident, $a:expr, $b:expr) => {{
+                if $b == 0 {
+                    return Err($self.err("division by zero"));
+                }
+                VmValue::$variant(
+                    $a.checked_div($b)
+                        .ok_or_else(|| $self.err(format!("integer overflow: {} / {}", $a, $b)))?,
+                )
+            }};
+        }
         let out = match (a, b) {
-            (VmValue::Int(_), VmValue::Int(0)) => {
-                return Err(self.err("division by zero"));
-            }
-            (VmValue::Int(a), VmValue::Int(b)) => VmValue::Int(a / b),
+            (VmValue::Int(a), VmValue::Int(b)) => int_div!(self, Int, a, b),
+            (VmValue::UInt(a), VmValue::UInt(b)) => int_div!(self, UInt, a, b),
+            (VmValue::SInt(a), VmValue::SInt(b)) => int_div!(self, SInt, a, b),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => int_div!(self, SUInt, a, b),
+            (VmValue::BByte(a), VmValue::BByte(b)) => int_div!(self, BByte, a, b),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => int_div!(self, BSByte, a, b),
+            (VmValue::Byte(a), VmValue::Byte(b)) => int_div!(self, Byte, a, b),
+            (VmValue::SByte(a), VmValue::SByte(b)) => int_div!(self, SByte, a, b),
             (VmValue::Float(a), VmValue::Float(b)) => VmValue::Float(a / b),
-            (VmValue::Int(a), VmValue::Float(b)) => VmValue::Float(a as f64 / b),
-            (VmValue::Float(a), VmValue::Int(b)) => VmValue::Float(a / b as f64),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => VmValue::SFloat(a / b),
             (a, b) => return Err(self.err(format!("cannot divide {a:?} by {b:?}"))),
         };
         self.stack.push(out);
@@ -771,15 +1302,23 @@ impl Vm {
     }
 
     /// Helper function for comparsion operations
-    /// accepts float/float, int/int and promotes int to float
+    /// accepts every numeric VmValue variant (mirrors rl-interpreter's
+    /// `cmp_op!` macro: ints [Int, UInt, SInt, SUInt, BByte, BSByte,
+    /// Byte, SByte], floats [Float, SFloat])
     /// handles >, <, >=, <=
     fn binary_cmp(&mut self, pred: fn(std::cmp::Ordering) -> bool) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
         let ord = match (&a, &b) {
             (VmValue::Int(a), VmValue::Int(b)) => a.partial_cmp(b),
+            (VmValue::UInt(a), VmValue::UInt(b)) => a.partial_cmp(b),
+            (VmValue::SInt(a), VmValue::SInt(b)) => a.partial_cmp(b),
+            (VmValue::SUInt(a), VmValue::SUInt(b)) => a.partial_cmp(b),
+            (VmValue::BByte(a), VmValue::BByte(b)) => a.partial_cmp(b),
+            (VmValue::BSByte(a), VmValue::BSByte(b)) => a.partial_cmp(b),
+            (VmValue::Byte(a), VmValue::Byte(b)) => a.partial_cmp(b),
+            (VmValue::SByte(a), VmValue::SByte(b)) => a.partial_cmp(b),
             (VmValue::Float(a), VmValue::Float(b)) => a.partial_cmp(b),
-            (VmValue::Int(a), VmValue::Float(b)) => (*a as f64).partial_cmp(b),
-            (VmValue::Float(a), VmValue::Int(b)) => a.partial_cmp(&(*b as f64)),
+            (VmValue::SFloat(a), VmValue::SFloat(b)) => a.partial_cmp(b),
             _ => return Err(self.err(format!("cannot compare {a:?} and {b:?}"))),
         }
         .ok_or_else(|| self.err("comparison produced no ordering (NaN?)"))?;
@@ -791,5 +1330,23 @@ impl Vm {
 impl Default for Vm {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Maps a `CastTarget` code to its `TypeAnnotation` debug name, used in the
+/// `invalid cast` error message (matches the interpreter's `{:?}` output).
+fn cast_target_name(code: usize) -> &'static str {
+    match code {
+        0 => "Int",
+        1 => "Float",
+        2 => "UInt",
+        3 => "SFloat",
+        4 => "SUInt",
+        5 => "SInt",
+        6 => "BByte",
+        7 => "BSByte",
+        8 => "Byte",
+        9 => "SByte",
+        _ => "unknown",
     }
 }

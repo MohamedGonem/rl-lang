@@ -7,7 +7,7 @@ get result_unwrap from std::res
 fn connect() {
     println("connecting to 127.0.0.1:7878...")
 
-    dec int stream = result_unwrap(tcp_connect("127.0.0.1:7878"))
+    dec handle stream = result_unwrap(tcp_connect("127.0.0.1:7878"))
     println("connected!")
 
     result_unwrap(tcp_write(stream, "hi server, this is the client\n"))

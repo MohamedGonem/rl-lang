@@ -1,6 +1,6 @@
 [package]
 name = "rl-ast"
-version = "0.3.2"
+version = "1.0.0"
 readme = "readme.md"
 edition.workspace = true
 license.workspace = true

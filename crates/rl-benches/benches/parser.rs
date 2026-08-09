@@ -1,7 +1,7 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rl_benches::*;
 
-fn bench_v0_1_4_parser(c: &mut Criterion) {
+fn bench_parser(c: &mut Criterion) {
     let mut group = c.benchmark_group("v0.1.4/parser");
     group.measurement_time(std::time::Duration::from_secs(10));
     group.sample_size(200);
@@ -93,5 +93,5 @@ fn bench_v0_1_4_parser(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches_v0_1_4_parser, bench_v0_1_4_parser);
-criterion_main!(benches_v0_1_4_parser);
+criterion_group!(benches_parser, bench_parser);
+criterion_main!(benches_parser);

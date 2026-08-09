@@ -3,22 +3,33 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::rc::Rc;
 
+use rl_ast::statements::HandleKind;
+
 use crate::Chunk;
 use crate::native::NativeFn;
+use crate::runtime::VmRuntime;
+use rl_std_core::NativeHandle;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum VmValue {
     Null,
     Int(i64),
-    Float(f64),
-    Bool(bool),
+    UInt(u64),
+    SInt(i32),
+    SUInt(u32),
+    BByte(u16),
+    BSByte(i16),
     Byte(u8),
+    SByte(i8),
+    Float(f64),
+    SFloat(f32),
+    Bool(bool),
     Char(char),
     Str(Rc<str>),
     /// user defined function call
     Function(Rc<VmFunction>),
     /// std function call
-    Native(Rc<VmNativeFn>),
+    Native(VmNative),
     Ok(Box<VmValue>),
     Err(Box<VmValue>),
     Error(Box<VmValue>),
@@ -38,6 +49,11 @@ pub enum VmValue {
         func: Rc<VmFunction>,
         captured: Rc<Vec<VmValue>>,
         capture_start: u16,
+    },
+    /// An opaque resource id scoped to one stdlib module (`c`, `audio`, ...).
+    Handle {
+        kind: HandleKind,
+        id: u64,
     },
 }
 
@@ -90,9 +106,15 @@ impl RecordFields {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum VmMapKey {
     Int(i64),
+    UInt(u64),
+    SInt(i32),
+    SUInt(u32),
+    BByte(u16),
+    BSByte(i16),
+    Byte(u8),
+    SByte(i8),
     Str(Rc<str>),
     Bool(bool),
-    Byte(u8),
     Char(char),
 }
 
@@ -100,9 +122,15 @@ impl VmMapKey {
     pub fn from_value(v: &VmValue) -> Option<VmMapKey> {
         match v {
             VmValue::Int(i) => Some(VmMapKey::Int(*i)),
+            VmValue::UInt(i) => Some(VmMapKey::UInt(*i)),
+            VmValue::SInt(i) => Some(VmMapKey::SInt(*i)),
+            VmValue::SUInt(i) => Some(VmMapKey::SUInt(*i)),
+            VmValue::BByte(b) => Some(VmMapKey::BByte(*b)),
+            VmValue::BSByte(b) => Some(VmMapKey::BSByte(*b)),
+            VmValue::Byte(b) => Some(VmMapKey::Byte(*b)),
+            VmValue::SByte(b) => Some(VmMapKey::SByte(*b)),
             VmValue::Str(s) => Some(VmMapKey::Str(s.clone())),
             VmValue::Bool(b) => Some(VmMapKey::Bool(*b)),
-            VmValue::Byte(b) => Some(VmMapKey::Byte(*b)),
             VmValue::Char(c) => Some(VmMapKey::Char(*c)),
             _ => None,
         }
@@ -110,9 +138,15 @@ impl VmMapKey {
     pub fn into_value(self) -> VmValue {
         match self {
             VmMapKey::Int(i) => VmValue::Int(i),
+            VmMapKey::UInt(i) => VmValue::UInt(i),
+            VmMapKey::SInt(i) => VmValue::SInt(i),
+            VmMapKey::SUInt(i) => VmValue::SUInt(i),
+            VmMapKey::BByte(b) => VmValue::BByte(b),
+            VmMapKey::BSByte(b) => VmValue::BSByte(b),
+            VmMapKey::Byte(b) => VmValue::Byte(b),
+            VmMapKey::SByte(b) => VmValue::SByte(b),
             VmMapKey::Str(s) => VmValue::Str(s),
             VmMapKey::Bool(b) => VmValue::Bool(b),
-            VmMapKey::Byte(b) => VmValue::Byte(b),
             VmMapKey::Char(c) => VmValue::Char(c),
         }
     }
@@ -123,13 +157,20 @@ impl fmt::Display for VmValue {
         match self {
             VmValue::Null => write!(f, "null"),
             VmValue::Int(i) => write!(f, "{}", i),
-            VmValue::Float(fl) => write!(f, "{}", fl),
-            VmValue::Bool(b) => write!(f, "{}", b),
+            VmValue::UInt(u) => write!(f, "{}", u),
+            VmValue::SInt(i) => write!(f, "{}", i),
+            VmValue::SUInt(u) => write!(f, "{}", u),
+            VmValue::BByte(b) => write!(f, "{}", b),
+            VmValue::BSByte(b) => write!(f, "{}", b),
             VmValue::Byte(b) => write!(f, "{}", b),
-            VmValue::Char(c) => write!(f, "'{}'", c),
+            VmValue::SByte(b) => write!(f, "{}", b),
+            VmValue::Float(fl) => write!(f, "{}", fl),
+            VmValue::SFloat(fl) => write!(f, "{}", fl),
+            VmValue::Bool(b) => write!(f, "{}", b),
+            VmValue::Char(c) => write!(f, "{}", c),
             VmValue::Str(s) => write!(f, "{}", s),
             VmValue::Function(func) => write!(f, "<fn {}/{}>", func.name, func.arity),
-            VmValue::Native(func) => write!(f, "<native fn {}>", func.name),
+            VmValue::Native(func) => write!(f, "<native fn {}>", func.name()),
             VmValue::Ok(inner) => write!(f, "ok({})", inner),
             VmValue::Err(inner) => write!(f, "err({})", inner),
             VmValue::Error(inner) => write!(f, "error({})", inner),
@@ -185,6 +226,7 @@ impl fmt::Display for VmValue {
             }
             VmValue::Tag { name, variant } => write!(f, "{}.{}", name, variant),
             VmValue::Closure { func, .. } => write!(f, "<closure {}/{}>", func.name, func.arity),
+            VmValue::Handle { kind, id } => write!(f, "<{:?} handle #{}>", kind, id),
         }
     }
 }
@@ -195,9 +237,16 @@ impl VmValue {
         match self {
             VmValue::Null => "null",
             VmValue::Int(_) => "int",
-            VmValue::Float(_) => "float",
-            VmValue::Bool(_) => "bool",
+            VmValue::UInt(_) => "uint",
+            VmValue::SInt(_) => "small int",
+            VmValue::SUInt(_) => "small uint",
+            VmValue::BByte(_) => "big byte",
+            VmValue::BSByte(_) => "big sbyte",
             VmValue::Byte(_) => "byte",
+            VmValue::SByte(_) => "sbyte",
+            VmValue::Float(_) => "float",
+            VmValue::SFloat(_) => "small float",
+            VmValue::Bool(_) => "bool",
             VmValue::Char(_) => "char",
             VmValue::Str(_) => "string",
             VmValue::Function(_) => "function",
@@ -212,6 +261,13 @@ impl VmValue {
             VmValue::Record { .. } => "record",
             VmValue::Tag { .. } => "tag",
             VmValue::Closure { .. } => "closure",
+            VmValue::Handle { kind, .. } => match kind {
+                HandleKind::C => "c handle",
+                HandleKind::Net => "net handle",
+                HandleKind::Http => "http handle",
+                HandleKind::Audio => "audio handle",
+                HandleKind::Gui => "gui handle",
+            },
         }
     }
 
@@ -240,8 +296,45 @@ impl PartialEq for VmFunction {
 }
 
 /// A native (Rust-implemented) function bound into `VmValue::Native`.
-/// Compiled call paths like `std::io::println` resolve to one of these
-/// at compile time and get embedded as a constant, same as `VmFunction`.
+///
+/// During the `rl-std` migration this is an enum: `Std` holds a thin
+/// function-pointer descriptor from the shared stdlib; `Legacy` holds the old
+/// `Rc<dyn Fn>` machinery for modules not yet moved. Once every module has
+/// migrated, `Legacy` (and `VmNativeFn` below) are removed and this collapses
+/// to a plain `NativeHandle<VmRuntime>`.
+#[derive(Clone)]
+pub enum VmNative {
+    /// A shared-stdlib function (thin `fn` pointer, no allocation).
+    Std(NativeHandle<VmRuntime>),
+    /// A not-yet-migrated function using the old boxed-closure machinery.
+    Legacy(Rc<VmNativeFn>),
+}
+
+impl VmNative {
+    /// The function's name (used for resolution and equality).
+    pub fn name(&self) -> &str {
+        match self {
+            VmNative::Std(h) => h.name,
+            VmNative::Legacy(f) => &f.name,
+        }
+    }
+}
+
+impl fmt::Debug for VmNative {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "VmNative({})", self.name())
+    }
+}
+
+impl PartialEq for VmNative {
+    fn eq(&self, other: &Self) -> bool {
+        self.name() == other.name()
+    }
+}
+
+/// A native (Rust-implemented) function bound into `VmValue::Native` via the
+/// legacy `Rc<dyn Fn>` machinery (kept until every module migrates to
+/// `rl-std`).
 pub struct VmNativeFn {
     pub name: String,
     pub func: NativeFn,

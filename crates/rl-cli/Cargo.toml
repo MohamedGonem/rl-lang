@@ -1,6 +1,6 @@
 [package]
 name = "rl-cli"
-version = "0.2.2"
+version = "1.0.0"
 readme = "readme.md"
 edition.workspace = true
 license.workspace = true
@@ -18,11 +18,11 @@ rl-ast.workspace = true
 rl-parser.workspace = true
 rl-resolver.workspace = true
 rl-vm.workspace = true
-tokio = {workspace = true , optional = true }
-rl-cranelift = { workspace = true, optional = true}
+tokio = { workspace = true, optional = true }
+rl-cranelift = { workspace = true, optional = true }
 rl-interpreter.workspace = true
 rl-checker.workspace = true
-rl-docs.workspace = true
+rl-docs = { workspace = true, optional = true }
 rl-tooling.workspace = true
 rl-repl = { workspace = true, optional = true }
 rl-lsp = { workspace = true, optional = true }
@@ -33,12 +33,15 @@ log = { workspace = true, optional = true }
 env_logger = { workspace = true, optional = true }
 
 [features]
-default = ["repl", "run", "eval", "vm", "docs-tui"]
+default = ["repl", "vm", "docs", "docs-tui"]
 run = []
+treewalker = ["rl-repl/treewalker"]
+vm = ["rl-repl/vm"]
+cranelift = ["vm", "rl-cranelift"]
 repl = ["dep:rl-repl"]
+docs = ["dep:rl-docs"]
+docs-tui = ["docs", "rl-docs/tui"]
 debug = ["dep:env_logger", "dep:log"]
-eval = []
-vm = []
-cranelift = ["rl-cranelift"]
 lsp = ["dep:rl-lsp", "dep:tokio"]
-docs-tui = ["rl-docs/tui"]
+# deprecated alias - kept for existing feature invocations
+eval = ["treewalker"]

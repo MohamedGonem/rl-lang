@@ -54,6 +54,39 @@ println(PI() * pow(r, 2.0))  // 78.53981633974483
 
 ## Installation
 
+### Via install script (recommended)
+
+Prebuilt binaries are published for every [release](https://github.com/rl-lang/rl-lang/releases). The install script downloads the build you pick (or the latest stable) and puts it on your PATH.
+
+**Linux / WSL** (installs to `$HOME/.local/bin`; set `RL_INSTALL_DIR` to override):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.sh -o install.sh
+bash install.sh
+```
+
+**Android (Termux)** - works the same way on aarch64 devices (install script detects Termux and downloads the Android build):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.sh -o install.sh
+bash install.sh
+```
+
+Non-interactively (install the standard `rl` build of `v1.0.0`):
+
+```bash
+RL_VARIANT=rl bash install.sh v1.0.0
+```
+
+**Windows (PowerShell)** (installs to `%LOCALAPPDATA%\rl-lang\bin` and adds it to your user PATH - restart your terminal afterwards):
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/rl-lang/rl-lang/main/install.ps1 -OutFile install.ps1
+.\install.ps1
+```
+
+Available builds include `rl` (treewalker + VM), `rlc` (VM-only), `rlp` (treewalker-only), and `rlsp` (language server). Debug variants are suffixed with `d` (e.g. `rld`).
+
 ### From source
 
 ```bash
@@ -135,11 +168,13 @@ Feature flags:
 
 | Flag        | State              | Description  |
 | :---------: | :----------------: | :----------: |
-| `run`       | `On` by default    | -            |
-| `eval`      | `On` by default    | This flag for actually running the code ( weather in `interpreter` or `vm )            |
+| `run`       | `Off` by default   | -            |
+| `eval`      | `Off` by default   | Deprecated alias for `treewalker`            |
+| `treewalker`| `Off` by default   | This flag for the `treewalker` backend (enabled in release builds)             |
 | `vm`        | `On` by default    | This flag for `vm` backend         |
 | `cranelift` | `Off` experimental | This flag for `cranelift` backend used for native compilations             |
 | `repl`      | `On` by default    | This flag for the interactive TUI shell `REPL`             |
+| `docs`      | `On` by default    | This flag for the `rl-docs` documentation tooling             |
 | `docs-tui`  | `On` by default    | This flag for the interactive TUI mode for browsing `rl-docs`             |
 | `debug`     | `Off` by default   | This flag for logging and debugging purposes             |
 | `lsp`       | `Off` by default   | This flag for language server protocol used by IDEs and other editors             | 
@@ -158,6 +193,10 @@ Feature flags:
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubyPaws39"><img src="https://avatars.githubusercontent.com/u/280778337?v=4?s=100" width="100px;" alt="RubyPaws39"/><br /><sub><b>RubyPaws39</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=RubyPaws39" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/CapThunder19"><img src="https://avatars.githubusercontent.com/u/161865581?v=4?s=100" width="100px;" alt="Anirudh Patwal"/><br /><sub><b>Anirudh Patwal</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=CapThunder19" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://naimish.xyz"><img src="https://avatars.githubusercontent.com/u/206333897?v=4?s=100" width="100px;" alt="Naimish"/><br /><sub><b>Naimish</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=theroguevigilante" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ajaythxkur"><img src="https://avatars.githubusercontent.com/u/62602303?v=4?s=100" width="100px;" alt="Ajay Thakur"/><br /><sub><b>Ajay Thakur</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=ajaythxkur" title="Tests">⚠️</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/asymmetricoral"><img src="https://avatars.githubusercontent.com/u/50928191?v=4?s=100" width="100px;" alt="lia"/><br /><sub><b>lia</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=asymmetricoral" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>

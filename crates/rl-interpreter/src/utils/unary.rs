@@ -36,7 +36,11 @@ impl Evaluator {
             },
             TokenType::Minus => match &operand {
                 Value::Integer(i) => Value::Integer(-i),
+                Value::SInteger(i) => Value::SInteger(-i),
+                Value::BSByte(i) => Value::BSByte(-i),
+                Value::SByte(i) => Value::SByte(-i),
                 Value::Float(f) => Value::Float(-f),
+                Value::SFloat(f) => Value::SFloat(-f),
                 _ => return Err(self.type_mismatch_unary("-", &operand, operand_span, span)),
             },
             _ => return Err(self.err("unknown unary operator", span)),

@@ -3,8 +3,7 @@ use crate::entry::FnEntry;
 pub static ASSERT_GT: FnEntry = FnEntry {
     signature: "assert_gt(a, b, msg?)",
     description: "errors if `a` is not greater than `b`; accepts int, float, or byte",
-    example: r#"
-get std::debug::assert_gt
+    example: r#"get std::debug::assert_gt
 
 assert_gt(2, 1)"#,
     expected_output: None,

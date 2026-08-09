@@ -10,7 +10,6 @@ use rl_ast::statements::{
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
-use std::sync::Arc;
 use std::{path::Path, rc::Rc};
 
 impl Evaluator {
@@ -27,6 +26,26 @@ impl Evaluator {
             StatementKind::TagDeclaration { name, variants } => {
                 self.tags.insert(name.clone(), variants.clone());
             }
+            StatementKind::ResolvedImplBlock { record, methods } => {
+                for m in methods {
+                    if let StatementKind::ResolvedFunctionDeclaration {
+                        name,
+                        params,
+                        return_type,
+                        body,
+                        ..
+                    } = &m.kind
+                    {
+                        let func = Rc::new(FunctionData {
+                            params: Rc::new(params.clone()),
+                            body: Rc::new(body.clone()),
+                            return_type: Some(return_type.clone()),
+                            captured_env: vec![],
+                        });
+                        self.impl_methods.insert(format!("{record}::{name}"), func);
+                    }
+                }
+            }
             StatementKind::ResolvedVariableDeclaration {
                 slot,
                 value,
@@ -41,6 +60,19 @@ impl Evaluator {
                 // initialiser's runtime type *is* the declared type.
                 let effective_type = if *type_annotation == TypeAnnotation::Infer {
                     val_type
+                } else if type_annotation.contains_handle_infer() {
+                    match type_annotation.resolve_handle_infer(&val_type) {
+                        Some(resolved) => resolved,
+                        None => {
+                            return Err(self.err(
+                                                format!(
+                                                    "`dec handle` requires a std module call returning a handle, got {:?}",
+                                                    val_type
+                                                ),
+                                                statement.span,
+                                            ));
+                        }
+                    }
                 } else {
                     if !Self::types_compatible(&val_type, type_annotation)
                         && val_type != *type_annotation
@@ -497,7 +529,7 @@ impl Evaluator {
                                 statement.span,
                             )
                         })?;
-                        Ok((name.clone(), Arc::clone(f)))
+                        Ok((name.clone(), f.clone()))
                     })
                     .collect::<Result<_, Error>>()?;
                 for (name, f) in fns {
@@ -976,7 +1008,8 @@ impl Evaluator {
                 | StatementKind::ResolvedMap { .. }
                 | StatementKind::ResolvedConstantMap { .. }
                 | StatementKind::TagDeclaration { .. }
-                | StatementKind::RecordDeclaration { .. } => self.evaluate_statement(statement)?,
+                | StatementKind::RecordDeclaration { .. }
+                | StatementKind::ResolvedImplBlock { .. } => self.evaluate_statement(statement)?,
                 _ => {}
             }
         }

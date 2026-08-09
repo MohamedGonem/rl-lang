@@ -1,0 +1,12 @@
+[package]
+name = "rl-std-core"
+version = "1.0.0"
+readme = "readme.md"
+edition.workspace = true
+license.workspace = true
+description = "Runtime-agnostic core for the rl-lang standard library: the Runtime abstraction, native-function descriptors, value conversions, and stdlib signatures"
+repository.workspace = true
+
+[dependencies]
+rl-ast.workspace = true
+rl-utils.workspace = true

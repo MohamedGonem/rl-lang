@@ -10,6 +10,9 @@ mod exit;
 mod pid;
 mod set_cwd;
 mod sleep;
+mod with_exec;
+mod with_exec_code;
+mod with_exec_lines;
 
 pub static PROCESS: StdEntry = StdEntry {
     name: "process",
@@ -30,4 +33,7 @@ static FUNCTIONS: &[&FnEntry] = &[
     &pid::PID,
     &set_cwd::SET_CWD,
     &sleep::SLEEP,
+    &with_exec::WITH_EXEC,
+    &with_exec_code::WITH_EXEC_CODE,
+    &with_exec_lines::WITH_EXEC_LINES,
 ];

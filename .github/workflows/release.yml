@@ -12,56 +12,144 @@ jobs:
   release:
     name: Release
     strategy:
+      fail-fast: false
       matrix:
+        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu, aarch64-pc-windows-msvc, aarch64-linux-android]
+        group: [g1, g2, g3, g4]
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            name_default: rl
-            name_debug: rl_debug
+            platform: linux
+            arch: x86_64
 
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            name_default: rl.exe
-            name_debug: rl_debug.exe
+            platform: windows
+            arch: x86_64
+
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: aarch64
+
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+            platform: android
+            arch: aarch64
+
+          - group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
+
+          - group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+
+          - group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl,rl_treewalker,rl_treewalker_no_docs"
+
+          - group: g4
+            variants: "rl_treewalker_no_repl,rl_treewalker_no_docs_repl,rl_treewalker_debug,rl_treewalker_debug_no_docs,rl_treewalker_debug_no_repl,rl_treewalker_debug_no_docs_repl,rl_lsp"
 
     runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_GHA_CACHE_TAG: rl-v1-${{ matrix.target }}
     steps:
+      - name: Install build deps (linux)
+        if: matrix.os == 'ubuntu-latest' && matrix.platform != 'android'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libasound2-dev
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            sudo dpkg --add-architecture arm64
+            sudo printf '%s\n' \
+              'Types: deb' \
+              'URIs: http://archive.ubuntu.com/ubuntu/' \
+              'Suites: noble noble-updates noble-backports' \
+              'Components: main restricted universe multiverse' \
+              'Architectures: amd64' \
+              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+              '' \
+              'Types: deb' \
+              'URIs: http://security.ubuntu.com/ubuntu/' \
+              'Suites: noble-security' \
+              'Components: main restricted universe multiverse' \
+              'Architectures: amd64' \
+              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+              '' \
+              'Types: deb' \
+              'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
+              'Suites: noble noble-updates noble-backports' \
+              'Components: main restricted universe multiverse' \
+              'Architectures: arm64' \
+              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+              '' \
+              'Types: deb' \
+              'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
+              'Suites: noble-security' \
+              'Components: main restricted universe multiverse' \
+              'Architectures: arm64' \
+              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+              | sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null
+            sudo apt-get update
+            sudo apt-get install -y gcc-aarch64-linux-gnu libasound2-dev:arm64
+          fi
+
+      - name: Set up Android SDK
+        if: matrix.platform == 'android'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        if: matrix.platform == 'android'
+        run: sdkmanager "ndk;27.0.12077973"
+
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Build default
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Copy default binary (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: cp target/${{ matrix.target }}/release/rl ${{ matrix.name_default }}
-
-      - name: Copy default binary (Windows)
+      - name: Install zip (Windows)
         if: matrix.os == 'windows-latest'
-        run: copy target\${{ matrix.target }}\release\rl.exe ${{ matrix.name_default }}
-        shell: cmd
+        run: choco install zip -y
 
-      - name: Build debug feature
-        run: cargo build --release --features debug --target ${{ matrix.target }}
+      - name: Start sccache
+        uses: mozilla/sccache-action@v0.0.10
 
-      - name: Copy debug binary (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: cp target/${{ matrix.target }}/release/rl ${{ matrix.name_debug }}
-
-      - name: Copy debug binary (Windows)
-        if: matrix.os == 'windows-latest'
-        run: copy target\${{ matrix.target }}\release\rl.exe ${{ matrix.name_debug }}
-        shell: cmd
+      - name: Build variants (${{ matrix.group }})
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" = "android" ]; then
+            NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
+            fi
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              NDK_ROOT="$(ls -d "$ANDROID_HOME"/ndk/* "$ANDROID_SDK_ROOT"/ndk/* 2>/dev/null | head -n1)"
+            fi
+            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+              echo "Android NDK not found" >&2
+              exit 1
+            fi
+            export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+            export CC_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+            export CXX_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
+            export AR_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          elif [ "${{ matrix.arch }}" = "aarch64" ]; then
+            export PKG_CONFIG_ALLOW_CROSS=1
+            export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          fi
+          bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist "${{ matrix.variants }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
-          path: |
-            ${{ matrix.name_default }}
-            ${{ matrix.name_debug }}
+          name: ${{ matrix.target }}-${{ matrix.group }}
+          path: dist/*
 
   publish:
     name: Publish Release
@@ -76,14 +164,24 @@ jobs:
         with:
           path: artifacts
 
+      - name: Detect pre-release
+        id: detect
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
           generate_release_notes: true
-          # Auto-flags the GitHub release as a pre-release when the tag
-          # has a SemVer pre-release part (e.g. v0.3.0-rc.1, v0.2.0-beta.2)
-          prerelease: auto
+          # Flags the release as a pre-release when the tag has a SemVer
+          # pre-release part (e.g. v0.3.0-rc.1, v0.2.0-beta.2). The input is
+          # a strict boolean - it is computed here instead of in YAML.
+          prerelease: ${{ steps.detect.outputs.value }}
 
   announce:
     name: Announce on Discord

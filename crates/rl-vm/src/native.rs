@@ -10,8 +10,10 @@
 //! the moment they rejoin the main dispatch loop (see the `OpCode::Call`
 //! handler in `vm_logic.rs`).
 
-use crate::values::{VmNativeFn, VmValue};
+use crate::runtime::VmRuntime;
+use crate::values::{VmNative, VmNativeFn, VmValue};
 use crate::vm_logic::{Vm, VmError};
+use rl_std_core::NativeHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::span::Span;
 use std::collections::HashMap;
@@ -26,12 +28,15 @@ fn rt_err(message: impl Into<String>) -> VmError {
 /// A heap-allocated native function callable from rl bytecode.
 pub type NativeFn = Rc<dyn Fn(&mut Vm, Vec<VmValue>) -> Result<VmValue, VmError>>;
 
-/// A named collection of [`VmNativeFn`]s, optionally containing sub-[`Module`]s.
+/// A named collection of native functions, optionally containing
+/// sub-[`Module`]s.
+#[derive(Clone)]
 pub struct Module {
     /// The module name as used in import paths (e.g. `"io"`, `"math"`).
     pub name: String,
-    /// Named functions registered in this module.
-    pub functions: HashMap<String, Rc<VmNativeFn>>,
+    /// Named functions registered in this module (either a migrated `rl-std`
+    /// thin-pointer handle or a legacy boxed closure).
+    pub functions: HashMap<String, VmNative>,
     /// Named submodules (e.g. `math::consts`).
     pub submodules: HashMap<String, Module>,
 }
@@ -53,10 +58,10 @@ impl Module {
         let name = name.into();
         self.functions.insert(
             name.clone(),
-            Rc::new(VmNativeFn {
+            VmNative::Legacy(Rc::new(VmNativeFn {
                 name,
                 func: f.into_native(),
-            }),
+            })),
         );
         self
     }
@@ -70,11 +75,33 @@ impl Module {
         let name = name.into();
         self.functions.insert(
             name.clone(),
-            Rc::new(VmNativeFn {
+            VmNative::Legacy(Rc::new(VmNativeFn {
                 name,
                 func: Rc::new(f),
-            }),
+            })),
         );
+        self
+    }
+
+    /// Builds a module from a set of migrated `rl-std` thin-pointer handles.
+    pub fn from_std(name: impl Into<String>, handles: Vec<NativeHandle<VmRuntime>>) -> Self {
+        let mut functions = HashMap::new();
+        for h in handles {
+            functions.insert(h.name.to_string(), VmNative::Std(h));
+        }
+        Self {
+            name: name.into(),
+            functions,
+            submodules: HashMap::new(),
+        }
+    }
+
+    /// Adds already-built `rl-std` handles to this module (used when a module
+    /// mixes migrated functions with legacy submodules).
+    pub fn with_std_handles(mut self, handles: Vec<NativeHandle<VmRuntime>>) -> Self {
+        for h in handles {
+            self.functions.insert(h.name.to_string(), VmNative::Std(h));
+        }
         self
     }
 
@@ -84,9 +111,9 @@ impl Module {
         self
     }
 
-    /// Walks the module tree along `path`, returning the [`VmNativeFn`] at the leaf,
-    /// or `None` if any segment is missing.
-    pub fn resolve(&self, path: &[String]) -> Option<Rc<VmNativeFn>> {
+    /// Walks the module tree along `path`, returning the native function at the
+    /// leaf, or `None` if any segment is missing.
+    pub fn resolve(&self, path: &[String]) -> Option<VmNative> {
         if path.is_empty() {
             return None;
         }
@@ -114,8 +141,70 @@ impl FromValue for i64 {
     fn from_value(v: VmValue) -> Result<Self, VmError> {
         match v {
             VmValue::Int(i) => Ok(i),
-            VmValue::Byte(b) => Ok(b as i64),
             other => Err(rt_err(format!("expected int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u64 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::UInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected uint, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small int, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SUInt(i) => Ok(i),
+            other => Err(rt_err(format!("expected small uint, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BSByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::BByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected big byte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for i8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SByte(b) => Ok(b),
+            other => Err(rt_err(format!("expected sbyte, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for u8 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::Byte(b) => Ok(b),
+            other => Err(rt_err(format!("expected byte, got {other:?}"))),
         }
     }
 }
@@ -124,6 +213,15 @@ impl FromValue for f64 {
     fn from_value(v: VmValue) -> Result<Self, VmError> {
         match v {
             VmValue::Float(f) => Ok(f),
+            other => Err(rt_err(format!("expected float, got {other:?}"))),
+        }
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(v: VmValue) -> Result<Self, VmError> {
+        match v {
+            VmValue::SFloat(f) => Ok(f),
             other => Err(rt_err(format!("expected float, got {other:?}"))),
         }
     }
@@ -179,9 +277,57 @@ impl IntoValue for i64 {
     }
 }
 
+impl IntoValue for u64 {
+    fn into_value(self) -> VmValue {
+        VmValue::UInt(self)
+    }
+}
+
+impl IntoValue for i32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SInt(self)
+    }
+}
+
+impl IntoValue for u32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SUInt(self)
+    }
+}
+
+impl IntoValue for i16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BSByte(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> VmValue {
+        VmValue::BByte(self)
+    }
+}
+
+impl IntoValue for i8 {
+    fn into_value(self) -> VmValue {
+        VmValue::SByte(self)
+    }
+}
+
+impl IntoValue for u8 {
+    fn into_value(self) -> VmValue {
+        VmValue::Byte(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> VmValue {
         VmValue::Float(self)
+    }
+}
+
+impl IntoValue for f32 {
+    fn into_value(self) -> VmValue {
+        VmValue::SFloat(self)
     }
 }
 

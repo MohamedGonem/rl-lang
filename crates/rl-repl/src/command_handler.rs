@@ -11,45 +11,48 @@
 //! | `:load <file>`       | Print a file's contents into the output       |
 //! | `:attach <file>`     | Lex, parse, and evaluate a file into the env  |
 //! | `:detach <file>`     | Remove a file from the attached list          |
+//! | `:clear`             | Clear the output buffer                       |
+//! | `:reset`             | Reset the evaluator to a fresh environment    |
 //! | `:exit`              | Exit the REPL                                 |
 //!
 //! Note: `:detach` removes the file from the tracked list but does **not**
 //! undefine variables or functions already loaded into the evaluator environment.
+//! `:reset` is the stronger operation - it replaces the evaluator entirely,
+//! clearing all defined variables/functions and the attached-files list.
 
 use std::{fs, path::PathBuf};
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use rl_docs::entries;
 
-use crate::{lines_types::OutputLine, utils::push_error};
-use rl_interpreter::evaluator::Evaluator;
+use crate::{backend::ReplBackend, lines_types::OutputLine, theme, utils::push_error};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::source::SourceFile;
 
-/// Dispatches a `:command` string, mutating `output`, `evaluator`, and `attached` as needed.
+/// Dispatches a `:command` string, mutating `output`, `backend`, and `attached` as needed.
 pub fn handle_command(
     cmd: &str,
     output: &mut Vec<OutputLine>,
-    evaluator: &mut Evaluator,
+    backend: &mut dyn ReplBackend,
     attached: &mut Vec<PathBuf>,
 ) {
     let parts: Vec<&str> = cmd.splitn(2, ' ').collect();
     match parts[0] {
         ":help" => {
             let cmd = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let arg = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             output.push(OutputLine::Styled(vec![(
                 "Commands".to_string(),
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(theme::TITLE)
                     .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             )]));
             let entries: &[(&str, Option<&str>, &str)] = &[
@@ -60,6 +63,8 @@ pub fn handle_command(
                 (":load", Some(" <file>"), "load and print file"),
                 (":attach", Some(" <file>"), "import file into env"),
                 (":detach", Some(" <file>"), "remove attached file"),
+                (":clear", None, "clear the output buffer"),
+                (":reset", None, "reset evaluator to a fresh env"),
                 (":exit", None, "quit  (ctrl+c also works)"),
             ];
             for (command, argument, description) in entries {
@@ -78,16 +83,16 @@ pub fn handle_command(
         }
         ":stdlib" => {
             let header = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::TITLE)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
             let modname = Style::default()
-                .fg(Color::Cyan)
+                .fg(theme::ACCENT)
                 .add_modifier(Modifier::BOLD);
             let sig = Style::default()
-                .fg(Color::LightBlue)
+                .fg(theme::ACCENT2)
                 .add_modifier(Modifier::ITALIC);
-            let sep = Style::default().fg(Color::DarkGray);
-            let desc = Style::default().fg(Color::White);
+            let sep = Style::default().fg(theme::TEXT_DIM);
+            let desc = Style::default().fg(theme::TEXT);
 
             if parts.len() == 1 {
                 output.push(OutputLine::Styled(vec![(
@@ -180,22 +185,14 @@ pub fn handle_command(
                             return;
                         }
                     };
-                    let (_file_ast, stmts) = match Parser::parse(tokens, source.clone()) {
+                    let (file_ast, stmts) = match Parser::parse(tokens, source.clone()) {
                         Ok(s) => s,
                         Err(e) => {
                             push_error(output, &e);
                             return;
                         }
                     };
-                    evaluator.set_source_file(source);
-                    let mut ok = true;
-                    for stmt in &stmts {
-                        if let Err(e) = evaluator.evaluate_statement(stmt) {
-                            push_error(output, &e);
-                            ok = false;
-                            break;
-                        }
-                    }
+                    let ok = backend.attach_parsed(source, file_ast, stmts, output);
                     if ok {
                         attached.push(path.clone());
                         output.push(OutputLine::Info(format!("attached {}", path.display())));
@@ -222,6 +219,17 @@ pub fn handle_command(
                     path.display()
                 )));
             }
+        }
+
+        ":clear" => {
+            output.clear();
+        }
+
+        ":reset" => {
+            backend.reset();
+            attached.clear();
+            output.clear();
+            output.push(OutputLine::Info("environment reset".into()));
         }
 
         _ => {

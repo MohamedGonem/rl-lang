@@ -66,6 +66,8 @@ impl TypeChecker {
             ty,
             TypeAnnotation::Int
                 | TypeAnnotation::CInt
+                | TypeAnnotation::UInt
+                | TypeAnnotation::CUInt
                 | TypeAnnotation::String
                 | TypeAnnotation::CString
                 | TypeAnnotation::Bool

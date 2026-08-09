@@ -38,6 +38,48 @@ impl TypeChecker {
                     return;
                 }
 
+                if type_annotation.contains_handle_infer() {
+                    match &value_type {
+                        CheckType::Unknown => {
+                            self.declare(name.clone(), CheckType::Unknown, false, statement.span);
+                        }
+                        CheckType::Known(actual) => {
+                            match type_annotation.resolve_handle_infer(actual) {
+                                Some(resolved) => {
+                                    self.declare(
+                                        name.clone(),
+                                        CheckType::Known(resolved),
+                                        false,
+                                        statement.span,
+                                    );
+                                }
+                                None => {
+                                    self.error(
+                                        format!(
+                                            "`dec handle` requires a std module call returning a handle, got {}",
+                                            value_type.info()),
+                                        statement.span);
+                                    self.declare(
+                                        name.clone(),
+                                        CheckType::Unknown,
+                                        false,
+                                        statement.span,
+                                    );
+                                }
+                            }
+                        }
+                        _ => {
+                            self.error(
+                                format!(
+                                    "`dec handle` requires a std module call returning a handle, got {}",
+                                    value_type.info()),
+                                statement.span);
+                            self.declare(name.clone(), CheckType::Unknown, false, statement.span);
+                        }
+                    }
+                    return;
+                }
+
                 let declared = CheckType::Known(type_annotation.clone());
 
                 if !value_type.matches(&declared) {
@@ -510,6 +552,38 @@ impl TypeChecker {
                 self.pop_return_type();
                 self.pop_scope();
             }
+
+            StatementKind::ImplBlock { record, methods } => {
+                if !self.records.contains_key(record) {
+                    self.error(format!("unknown record type `{}`", record), statement.span);
+                }
+                for m in methods {
+                    let StatementKind::FunctionDeclaration {
+                        params,
+                        return_type,
+                        body,
+                        ..
+                    } = &m.kind
+                    else {
+                        continue;
+                    };
+                    self.push_scope();
+                    for param in params {
+                        self.declare(
+                            param.param_name.clone(),
+                            CheckType::Known(param.param_type.clone()),
+                            false,
+                            m.span,
+                        );
+                    }
+                    self.push_return_type(return_type.clone());
+                    for stmt in body {
+                        self.check_statement(stmt);
+                    }
+                    self.pop_return_type();
+                    self.pop_scope();
+                }
+            }
             StatementKind::Return(expr) => {
                 // is the expression a valid type? otherwise null
                 let actual_type = match expr {
@@ -522,6 +596,9 @@ impl TypeChecker {
                         (expected.clone(), actual_type.clone()),
                         (
                             TypeAnnotation::Int | TypeAnnotation::CInt,
+                            CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte)
+                        ) | (
+                            TypeAnnotation::UInt | TypeAnnotation::CUInt,
                             CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte)
                         )
                     );
@@ -851,6 +928,24 @@ impl TypeChecker {
                 }
                 StatementKind::TagDeclaration { name, variants } if wanted(name) => {
                     self.tags.insert(name.clone(), variants.clone());
+                }
+
+                StatementKind::ImplBlock { record, methods } if wanted(record) => {
+                    for m in methods {
+                        if let StatementKind::FunctionDeclaration {
+                            name,
+                            params,
+                            return_type,
+                            ..
+                        } = &m.kind
+                        {
+                            let fn_type = CheckType::Function {
+                                params: params.iter().map(|p| p.param_type.clone()).collect(),
+                                return_type: return_type.clone(),
+                            };
+                            self.methods.insert((record.clone(), name.clone()), fn_type);
+                        }
+                    }
                 }
 
                 StatementKind::ImportFile { path: nested } => {

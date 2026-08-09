@@ -22,23 +22,41 @@
 //! ```
 
 use crate::evaluator::Evaluator;
+use crate::runtime::EvalRuntime;
 use crate::values::Value;
 use rl_ast::statements::TypeAnnotation;
+use rl_std_core::NativeHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::span::Span;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// A thread-safe, heap-allocated native function callable from rl.
+/// A thread-safe, heap-allocated native function callable from rl (legacy
+/// boxed-closure machinery, kept until every module migrates to `rl-std`).
 pub type NativeFn =
     Arc<dyn Fn(&mut Evaluator, Vec<Value>, Span) -> Result<Value, Error> + Send + Sync>;
 
-/// A named collection of [`NativeFn`]s, optionally containing sub-[`Module`]s.
+/// A native function bound into the interpreter's module tree.
+///
+/// During the `rl-std` migration this is an enum: `Std` holds a thin
+/// function-pointer descriptor from the shared stdlib; `Legacy` holds the old
+/// `Arc<dyn Fn>` machinery for modules not yet moved. A plain `fn` pointer is
+/// `Send + Sync`, so nothing about the interpreter's thread-safety regresses.
+#[derive(Clone)]
+pub enum EvalNative {
+    /// A shared-stdlib function (thin `fn` pointer, no allocation).
+    Std(NativeHandle<EvalRuntime>),
+    /// A not-yet-migrated function using the old boxed-closure machinery.
+    Legacy(NativeFn),
+}
+
+/// A named collection of native functions, optionally containing
+/// sub-[`Module`]s.
 pub struct Module {
     /// The module name as used in import paths (e.g. `"io"`, `"math"`).
     pub name: String,
     /// Named functions registered in this module.
-    pub functions: HashMap<String, NativeFn>,
+    pub functions: HashMap<String, EvalNative>,
     /// Named submodules (e.g. `math::consts`).
     pub submodules: HashMap<String, Module>,
 }
@@ -57,7 +75,8 @@ impl Module {
     where
         F: IntoNativeFn<A>,
     {
-        self.functions.insert(name.into(), f.into_native());
+        self.functions
+            .insert(name.into(), EvalNative::Legacy(f.into_native()));
         self
     }
 
@@ -67,7 +86,30 @@ impl Module {
     where
         F: Fn(&mut Evaluator, Vec<Value>, Span) -> Result<Value, Error> + Send + Sync + 'static,
     {
-        self.functions.insert(name.into(), Arc::new(f));
+        self.functions
+            .insert(name.into(), EvalNative::Legacy(Arc::new(f)));
+        self
+    }
+
+    /// Builds a module from a set of migrated `rl-std` thin-pointer handles.
+    pub fn from_std(name: impl Into<String>, handles: Vec<NativeHandle<EvalRuntime>>) -> Self {
+        let mut functions = HashMap::new();
+        for h in handles {
+            functions.insert(h.name.to_string(), EvalNative::Std(h));
+        }
+        Self {
+            name: name.into(),
+            functions,
+            submodules: HashMap::new(),
+        }
+    }
+
+    /// Adds already-built `rl-std` handles to this module (used when a module
+    /// mixes migrated functions with legacy submodules).
+    pub fn with_std_handles(mut self, handles: Vec<NativeHandle<EvalRuntime>>) -> Self {
+        for h in handles {
+            self.functions.insert(h.name.to_string(), EvalNative::Std(h));
+        }
         self
     }
 
@@ -77,9 +119,9 @@ impl Module {
         self
     }
 
-    /// Walks the module tree along `path`, returning the [`NativeFn`] at the leaf,
-    /// or `None` if any segment is missing.
-    pub fn resolve(&self, path: &[String]) -> Option<&NativeFn> {
+    /// Walks the module tree along `path`, returning the native function at the
+    /// leaf, or `None` if any segment is missing.
+    pub fn resolve(&self, path: &[String]) -> Option<&EvalNative> {
         if path.is_empty() {
             return None;
         }
@@ -139,6 +181,42 @@ impl ValueType for u8 {
     }
 }
 
+impl ValueType for i32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SInt
+    }
+}
+
+impl ValueType for u32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SUInt
+    }
+}
+
+impl ValueType for i16 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::BSByte
+    }
+}
+
+impl ValueType for u16 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::BByte
+    }
+}
+
+impl ValueType for i8 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SByte
+    }
+}
+
+impl ValueType for f32 {
+    fn type_annotation() -> TypeAnnotation {
+        TypeAnnotation::SFloat
+    }
+}
+
 /// Converts a [`Value`] into a typed Rust value, or returns a runtime error.
 /// Implemented for `i64`, `f64`, `String`, `bool`, `char`, `Vec<T>`, and `Value` itself.
 pub trait FromValue: Sized {
@@ -155,7 +233,19 @@ impl FromValue for i64 {
     fn from_value(v: Value, span: Span) -> Result<Self, Error> {
         match v {
             Value::Integer(i) => Ok(i),
-            Value::Byte(b) => Ok(b as i64),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected integer, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u64 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::UInteger(u) => Ok(u),
             other => Err(Error::at(
                 Reason::Runtime,
                 format!("expected integer, got {}", other.type_name()),
@@ -172,6 +262,84 @@ impl FromValue for f64 {
             other => Err(Error::at(
                 Reason::Runtime,
                 format!("expected float, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SInteger(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i32, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SUInteger(u) => Ok(u),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected u32, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i16 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::BSByte(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i16, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for u16 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::BByte(u) => Ok(u),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected u16, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for i8 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SByte(i) => Ok(i),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected i8, got {}", other.type_name()),
+                span,
+            )),
+        }
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(v: Value, span: Span) -> Result<Self, Error> {
+        match v {
+            Value::SFloat(f) => Ok(f),
+            other => Err(Error::at(
+                Reason::Runtime,
+                format!("expected f32, got {}", other.type_name()),
                 span,
             )),
         }
@@ -257,6 +425,12 @@ impl IntoValue for i64 {
     }
 }
 
+impl IntoValue for u64 {
+    fn into_value(self) -> Value {
+        Value::UInteger(self)
+    }
+}
+
 impl IntoValue for f64 {
     fn into_value(self) -> Value {
         Value::Float(self)
@@ -284,6 +458,42 @@ impl IntoValue for char {
 impl IntoValue for u8 {
     fn into_value(self) -> Value {
         Value::Byte(self)
+    }
+}
+
+impl IntoValue for i32 {
+    fn into_value(self) -> Value {
+        Value::SInteger(self)
+    }
+}
+
+impl IntoValue for u32 {
+    fn into_value(self) -> Value {
+        Value::SUInteger(self)
+    }
+}
+
+impl IntoValue for i16 {
+    fn into_value(self) -> Value {
+        Value::BSByte(self)
+    }
+}
+
+impl IntoValue for u16 {
+    fn into_value(self) -> Value {
+        Value::BByte(self)
+    }
+}
+
+impl IntoValue for i8 {
+    fn into_value(self) -> Value {
+        Value::SByte(self)
+    }
+}
+
+impl IntoValue for f32 {
+    fn into_value(self) -> Value {
+        Value::SFloat(self)
     }
 }
 

@@ -9,7 +9,7 @@
 //! |---|---|
 //! | [`lexing_loop`] | source -> [`Vec<Token>`] |
 //! | [`parsing_loop`] | tokens -> [`Vec<Statement>`] |
-//! | [`eval_loop`] | statements -> execution (`eval` feature only) |
+//! | [`eval_loop`] | statements -> execution (`treewalker` feature only) |
 //!
 //! [`Vec<Token>`]: crate::lexer::tokentypes::Token
 //! [`Vec<Statement>`]: crate::ast::statements::Statement
@@ -18,14 +18,15 @@ use log::info;
 
 use rl_ast::Ast;
 
-#[cfg(feature = "eval")]
+#[cfg(any(feature = "treewalker", feature = "vm"))]
 use rl_interpreter::evaluator::Evaluator;
 
+#[cfg(feature = "vm")]
+use rl_utils::line_index::LineIndex;
 use {
     rl_ast::statements::Statement,
     rl_lexer::{tokenizer::Tokenizer, tokentypes::Token},
     rl_parser::parser_logic::Parser,
-    rl_utils::line_index::LineIndex,
     rl_utils::source::SourceFile,
 };
 
@@ -57,11 +58,11 @@ pub fn parsing_loop(source: SourceFile, tokens: Vec<Token>) -> (Ast, Vec<Stateme
 
 /// Resolves and evaluates `statements`, or prints the error and exits.
 ///
-/// Only available with the `eval` feature. Constructs a fresh [`Evaluator`]
+/// Only available with the `treewalker` feature. Constructs a fresh [`Evaluator`]
 /// with the stdlib loaded, runs the [`Resolver`] pass, then evaluates the program.
 ///
 /// [`Resolver`]: crate::resolver
-#[cfg(feature = "eval")]
+#[cfg(feature = "treewalker")]
 pub fn eval_loop(
     source: SourceFile,
     ast: Ast,
@@ -90,7 +91,7 @@ pub fn eval_loop(
     info!("evaluation done");
 }
 
-#[cfg(all(feature = "eval", feature = "vm"))]
+#[cfg(feature = "vm")]
 pub fn vm_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
     let chunk = compile_to_chunk(source.clone(), ast, statements);
     run_chunk(&chunk, Some(source), None);
@@ -99,7 +100,7 @@ pub fn vm_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
 /// Resolves and compiles `statements` down to a bytecode [`rl_vm::Chunk`],
 /// or prints the error and exits. Shared by `vm_loop` and the `compile`
 /// subcommand.
-#[cfg(all(feature = "eval", feature = "vm"))]
+#[cfg(feature = "vm")]
 pub fn compile_to_chunk(source: SourceFile, ast: Ast, statements: Vec<Statement>) -> rl_vm::Chunk {
     use rl_vm::Compiler;
 
@@ -135,7 +136,7 @@ pub fn compile_to_chunk(source: SourceFile, ast: Ast, statements: Vec<Statement>
 ///   `.rlc` doesn't embed the original source text, but does embed a
 ///   [`LineIndex`], so those errors still get a precise `file:line:col`
 ///   location instead of a bare message. Ignored when `source` is `Some`.
-#[cfg(all(feature = "eval", feature = "vm"))]
+#[cfg(feature = "vm")]
 pub fn run_chunk(chunk: &rl_vm::Chunk, source: Option<SourceFile>, line_index: Option<LineIndex>) {
     use rl_vm::Vm;
 
@@ -156,7 +157,7 @@ pub fn run_chunk(chunk: &rl_vm::Chunk, source: Option<SourceFile>, line_index: O
 
 /// Loads and runs a precompiled `.rlc` bytecode file, or prints the error
 /// and exits.
-#[cfg(all(feature = "eval", feature = "vm"))]
+#[cfg(feature = "vm")]
 pub fn run_rlc_file(path: &std::path::Path) {
     let bytes = std::fs::read(path).unwrap_or_else(|_| {
         eprintln!("error: could not read file '{}'", path.display());
@@ -168,7 +169,7 @@ pub fn run_rlc_file(path: &std::path::Path) {
 
 /// Deserializes compiled `.rlc` bytecode and runs it on the VM, or prints
 /// the error and exits. `label` is used only for error messages.
-#[cfg(all(feature = "eval", feature = "vm"))]
+#[cfg(feature = "vm")]
 pub fn run_rlc_bytes(bytes: &[u8], label: &str) {
     use rl_vm::{deserialize_chunk, stdlib};
 
@@ -183,7 +184,7 @@ pub fn run_rlc_bytes(bytes: &[u8], label: &str) {
     run_chunk(&chunk, None, line_index);
 }
 
-#[cfg(all(feature = "eval", feature = "cranelift", feature = "vm"))]
+#[cfg(all(feature = "cranelift", feature = "vm"))]
 pub fn cranelift_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
     use rl_vm::Compiler;
 

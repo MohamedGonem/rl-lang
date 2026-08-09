@@ -3,14 +3,18 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::{
     native::{IntoNativeFn, Module},
     stdlib,
-    stdlib::{http::HttpHandle, net::NetHandle, random::xoshiro::Xoshiro256},
     values::{FunctionData, MapKey, Value},
 };
+use rl_std::audio::AudioHandle;
+use rl_std::c::CHandle;
+use rl_std::gui::GuiHandle;
+use rl_std::http::HttpHandle;
+use rl_std::net::NetHandle;
+use rl_std_core::Xoshiro256;
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
 use rl_lexer::tokentypes::TokenType;
 use rl_resolver::Resolver;
@@ -75,19 +79,47 @@ pub struct Evaluator {
     // for diffrent calls
     pub user_args_offset: usize,
     /// Side-table of native networking resources (`std::net`), keyed by handle id.
-    pub net_handles: HashMap<i64, NetHandle>,
+    pub net_handles: HashMap<u64, NetHandle>,
     /// Next handle id to hand out for `std::net` resources; only ever increments.
-    pub net_next_handle: i64,
+    pub net_next_handle: u64,
     /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
-    pub http_handles: HashMap<i64, HttpHandle>,
+    pub http_handles: HashMap<u64, HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
-    pub http_next_handle: i64,
+    pub http_next_handle: u64,
+    /// Side-table of native C-interop resources (`std::c`), keyed by handle id.
+    pub c_handles: HashMap<u64, CHandle>,
+    /// Next handle id to hand out for `std::c` resources; only ever increments.
+    pub c_next_handle: u64,
+    /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
+    pub audio_handles: HashMap<u64, AudioHandle>,
+    /// Next handle id to hand out for `std::audio` resources; only ever increments.
+    pub audio_next_handle: u64,
+    /// Output device selected via `std::audio::set_output_device`, if any;
+    /// `None` means the system default device.
+    pub audio_output_device: Option<String>,
+    /// Global volume scalar set via `std::audio::set_master_volume`, applied
+    /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
+    pub audio_master_volume: f32,
+    /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
+    pub gui_handles: HashMap<u64, GuiHandle<Value>>,
+    /// Next handle id to hand out for `std::gui` resources; only ever increments.
+    pub gui_next_handle: u64,
+    /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
+    /// click callbacks have run, so the window closes on the next frame instead
+    /// of being torn down mid-callback.
+    pub gui_quit_requested: bool,
     /// Maps `record` type names to their declared `(field name, field type)` list,
     /// in declaration order. Populated when a `RecordDeclaration` statement runs.
     pub records: HashMap<String, Vec<(String, TypeAnnotation)>>,
     /// Maps `tag` (enum) type names to their declared variant name list,
     /// in declaration order. Populated when a `TagDeclaration` statement runs.
     pub tags: HashMap<String, Vec<String>>,
+    /// Maps `"Record::method"` names to their function body, populated when
+    /// an `impl` block statement runs. Instance methods (declared with a
+    /// leading `self` param) are dispatched here from `MethodCall`; associated
+    /// functions (no `self`, e.g. `Point::new`) are dispatched here from
+    /// `call_path` when given a two-segment path.
+    pub impl_methods: HashMap<String, Rc<FunctionData>>,
 }
 
 impl Default for Evaluator {
@@ -116,8 +148,18 @@ impl Evaluator {
             net_next_handle: 1,
             http_handles: HashMap::new(),
             http_next_handle: 1,
+            c_handles: HashMap::new(),
+            c_next_handle: 1,
+            audio_handles: HashMap::new(),
+            audio_next_handle: 1,
+            audio_output_device: None,
+            audio_master_volume: 1.0,
+            gui_handles: HashMap::new(),
+            gui_next_handle: 1,
+            gui_quit_requested: false,
             records: HashMap::new(),
             tags: HashMap::new(),
+            impl_methods: HashMap::new(),
         }
     }
 
@@ -145,32 +187,64 @@ impl Evaluator {
     {
         self.root_module
             .functions
-            .insert(name.into(), f.into_native());
+            .insert(name.into(), crate::native::EvalNative::Legacy(f.into_native()));
         self
     }
 
     /// Loads the full stdlib into the root module under `std::*`.
     pub fn with_stdlib(self) -> Self {
+        use crate::runtime::EvalRuntime;
         self.with_module(
             Module::new("std")
-                .with_module(stdlib::math::module())
-                .with_module(stdlib::io::module())
-                .with_module(stdlib::bitwise::module())
-                .with_module(stdlib::string::module())
-                .with_module(stdlib::types::module())
-                .with_module(stdlib::array::module())
-                .with_module(stdlib::path::module())
-                .with_module(stdlib::fs::module())
-                .with_module(stdlib::random::module())
-                .with_module(stdlib::time::module())
-                .with_module(stdlib::process::module())
-                .with_module(stdlib::result::module())
-                .with_module(stdlib::terminal::module())
+                .with_module(
+                    Module::from_std("math", rl_std::math::handles::<EvalRuntime>()).with_module(
+                        Module::from_std(
+                            "consts",
+                            rl_std::math::constants::handles::<EvalRuntime>(),
+                        ),
+                    ),
+                )
+                .with_module(Module::from_std("io", rl_std::io::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "bitwise",
+                    rl_std::bitwise::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std(
+                    "str",
+                    rl_std::string::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("types", rl_std::types::handles::<EvalRuntime>()))
+                .with_module(
+                    Module::from_std("array", rl_std::array::handles::<EvalRuntime>())
+                        .with_function("len", stdlib::len::std_len),
+                )
+                .with_module(Module::from_std("path", rl_std::path::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("fs", rl_std::fs::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "random",
+                    rl_std::random::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("time", rl_std::time::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "process",
+                    rl_std::process::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("res", rl_std::result::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "term",
+                    rl_std::terminal::handles::<EvalRuntime>(),
+                ))
                 .with_module(stdlib::rl::module())
-                .with_module(stdlib::debug::module())
-                .with_module(stdlib::net::module())
-                .with_module(stdlib::http::module())
-                .with_module(stdlib::collections::module()),
+                .with_module(Module::from_std("debug", rl_std::debug::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("net", rl_std::net::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("http", rl_std::http::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "collections",
+                    rl_std::collections::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std("c", rl_std::c::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("audio", rl_std::audio::handles::<EvalRuntime>()))
+                .with_module(Module::from_std("gui", rl_std::gui::handles::<EvalRuntime>())),
         )
     }
 
@@ -201,11 +275,39 @@ impl Evaluator {
                     TypeAnnotation::Int
                 }
             }
+            Value::UInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CUInt
+                } else {
+                    TypeAnnotation::UInt
+                }
+            }
+            Value::SInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CSInt
+                } else {
+                    TypeAnnotation::SInt
+                }
+            }
+            Value::SUInteger(_) => {
+                if is_const {
+                    TypeAnnotation::CSUInt
+                } else {
+                    TypeAnnotation::SUInt
+                }
+            }
             Value::Float(_) => {
                 if is_const {
                     TypeAnnotation::CFloat
                 } else {
                     TypeAnnotation::Float
+                }
+            }
+            Value::SFloat(_) => {
+                if is_const {
+                    TypeAnnotation::CSFloat
+                } else {
+                    TypeAnnotation::SFloat
                 }
             }
             Value::String(_) => {
@@ -227,6 +329,27 @@ impl Evaluator {
                     TypeAnnotation::CByte
                 } else {
                     TypeAnnotation::Byte
+                }
+            }
+            Value::SByte(_) => {
+                if is_const {
+                    TypeAnnotation::CSByte
+                } else {
+                    TypeAnnotation::SByte
+                }
+            }
+            Value::BByte(_) => {
+                if is_const {
+                    TypeAnnotation::CBByte
+                } else {
+                    TypeAnnotation::BByte
+                }
+            }
+            Value::BSByte(_) => {
+                if is_const {
+                    TypeAnnotation::CBSByte
+                } else {
+                    TypeAnnotation::BSByte
                 }
             }
             Value::Char(_) => {
@@ -311,6 +434,8 @@ impl Evaluator {
                     TypeAnnotation::Result(Box::new(inner_ty))
                 }
             }
+
+            Value::Handle { kind, .. } => TypeAnnotation::Handle(*kind),
         }
     }
 
@@ -396,9 +521,16 @@ impl Evaluator {
         match &self.resolver.ast_arena.exprs.get(id).kind {
             ExpressionKind::Null => Ok(Value::Null),
             ExpressionKind::Integer(i) => Ok(Value::Integer(*i)),
+            ExpressionKind::UInt(u) => Ok(Value::UInteger(*u)),
+            ExpressionKind::SInt(i) => Ok(Value::SInteger(*i)),
+            ExpressionKind::SUInt(u) => Ok(Value::SUInteger(*u)),
             ExpressionKind::Byte(b) => Ok(Value::Byte(*b)),
+            ExpressionKind::SByte(b) => Ok(Value::SByte(*b)),
+            ExpressionKind::BByte(b) => Ok(Value::BByte(*b)),
+            ExpressionKind::BSByte(b) => Ok(Value::BSByte(*b)),
             ExpressionKind::Bool(b) => Ok(Value::Bool(*b)),
             ExpressionKind::Float(f) => Ok(Value::Float(*f)),
+            ExpressionKind::SFloat(f) => Ok(Value::SFloat(*f)),
             ExpressionKind::Character(c) => Ok(Value::Char(*c)),
             ExpressionKind::String(s) => {
                 let s = s.clone();
@@ -414,32 +546,47 @@ impl Evaluator {
                     &self.resolver.ast_arena.exprs.get(target).kind
                 {
                     let (depth, slot) = (*depth, *slot);
+                    let is_map = matches!(
+                        self.slot_ref(depth, slot),
+                        Some(EnvironmentItem::PItem(p)) if matches!(p.value, Value::Map { .. })
+                    );
                     let idx = self.evaluate(index)?;
                     self.check_not_null(&idx, index_span)?;
-                    match idx {
-                        Value::Integer(i) => {
-                            if i < 0 {
-                                return Err(
-                                    self.err(format!("index cannot be negative: {}", i), span)
-                                );
+                    if !is_map {
+                        match idx {
+                            Value::Integer(i) if i >= 0 => {
+                                return self.index_read(depth, slot, &[i as usize], span);
                             }
-                            return self.index_read(depth, slot, &[i as usize], span);
-                        }
-                        Value::Byte(b) => {
-                            return self.index_read(depth, slot, &[b as usize], span);
-                        }
-                        _ => {
-                            let arr = self.evaluate(target)?;
-                            self.check_not_null(&arr, target_span)?;
-                            return self.index_read_value(
-                                &arr,
-                                &idx,
-                                target_span,
-                                index_span,
-                                span,
-                            );
+                            Value::SInteger(i) if i >= 0 => {
+                                return self.index_read(depth, slot, &[i as usize], span);
+                            }
+                            Value::SByte(b) if b >= 0 => {
+                                return self.index_read(depth, slot, &[b as usize], span);
+                            }
+                            Value::BSByte(b) if b >= 0 => {
+                                return self.index_read(depth, slot, &[b as usize], span);
+                            }
+                            Value::Byte(b) => {
+                                return self.index_read(depth, slot, &[b as usize], span);
+                            }
+                            Value::UInteger(u) => {
+                                return self.index_read(depth, slot, &[u as usize], span);
+                            }
+                            Value::SUInteger(u) => {
+                                return self.index_read(depth, slot, &[u as usize], span);
+                            }
+                            Value::Integer(_)
+                            | Value::SInteger(_)
+                            | Value::SByte(_)
+                            | Value::BSByte(_) => {
+                                return Err(self.err("index cannot be negative".to_string(), span));
+                            }
+                            _ => {}
                         }
                     }
+                    let arr = self.evaluate(target)?;
+                    self.check_not_null(&arr, target_span)?;
+                    return self.index_read_value(&arr, &idx, target_span, index_span, span);
                 }
 
                 let arr = self.evaluate(target)?;
@@ -708,6 +855,10 @@ impl Evaluator {
                     _ => unreachable!(),
                 };
                 let first_arg = self.evaluate(caller)?;
+                let record_name = match &first_arg {
+                    Value::Struct { name, .. } => Some(name.clone()),
+                    _ => None,
+                };
                 let mut evaluated_args = vec![first_arg];
                 for i in 0..len {
                     let arg_id = match &self.resolver.ast_arena.exprs.get(id).kind {
@@ -715,6 +866,13 @@ impl Evaluator {
                         _ => unreachable!(),
                     };
                     evaluated_args.push(self.evaluate(arg_id)?);
+                }
+                if method.len() == 1
+                    && let Some(rname) = record_name
+                    && let Some(f) = self.impl_methods.get(&format!("{rname}::{}", method[0]))
+                {
+                    let f = Rc::clone(f);
+                    return self.call_value(Value::Function(f), evaluated_args, span);
                 }
                 self.call_path(&method, evaluated_args, span)
             }
@@ -759,24 +917,123 @@ impl Evaluator {
                 let value_span = self.resolver.ast_arena.exprs.get(value).span;
                 let val = self.evaluate(value)?;
                 self.check_not_null(&val, value_span)?;
-                match (&val, &target_type) {
-                    (Value::Integer(n), TypeAnnotation::Float) => Ok(Value::Float(*n as f64)),
-                    (Value::Integer(n), TypeAnnotation::Byte) => Ok(Value::Byte(*n as u8)),
-                    (Value::Integer(_), TypeAnnotation::Int) => Ok(val),
-                    (Value::Float(f), TypeAnnotation::Int) => Ok(Value::Integer(*f as i64)),
-                    (Value::Float(f), TypeAnnotation::Byte) => Ok(Value::Byte(*f as u8)),
-                    (Value::Float(_), TypeAnnotation::Float) => Ok(val),
-                    (Value::Byte(b), TypeAnnotation::Float) => Ok(Value::Float(*b as f64)),
-                    (Value::Byte(b), TypeAnnotation::Int) => Ok(Value::Integer(*b as i64)),
-                    (Value::Byte(_), TypeAnnotation::Byte) => Ok(val),
-                    _ => Err(self.err(
+
+                // Widen any numeric Value into i128 / f64 so we only need one arm per TARGET type.
+                fn as_i128(v: &Value) -> Option<i128> {
+                    match v {
+                        Value::Integer(n) => Some(*n as i128),
+                        Value::UInteger(n) => Some(*n as i128),
+                        Value::SInteger(n) => Some(*n as i128),
+                        Value::SUInteger(n) => Some(*n as i128),
+                        Value::Byte(n) => Some(*n as i128),
+                        Value::SByte(n) => Some(*n as i128),
+                        Value::BByte(n) => Some(*n as i128),
+                        Value::BSByte(n) => Some(*n as i128),
+                        Value::Float(f) => Some(*f as i128),
+                        Value::SFloat(f) => Some(*f as i128),
+                        _ => None,
+                    }
+                }
+
+                fn as_f64(v: &Value) -> Option<f64> {
+                    match v {
+                        Value::Integer(n) => Some(*n as f64),
+                        Value::UInteger(n) => Some(*n as f64),
+                        Value::SInteger(n) => Some(*n as f64),
+                        Value::SUInteger(n) => Some(*n as f64),
+                        Value::Byte(n) => Some(*n as f64),
+                        Value::SByte(n) => Some(*n as f64),
+                        Value::BByte(n) => Some(*n as f64),
+                        Value::BSByte(n) => Some(*n as f64),
+                        Value::Float(f) => Some(*f),
+                        Value::SFloat(f) => Some(*f as f64),
+                        _ => None,
+                    }
+                }
+
+                let bad_cast = |v: &Value| {
+                    self.err(
                         format!(
-                            "invalid cast: cannot cast {} to {:?}",
-                            val.type_name(),
+                            "invalid cast: cannot cast {}:{} to {:?}",
+                            v.type_name(),
+                            v,
                             target_type
                         ),
                         span,
-                    )),
+                    )
+                };
+
+                match &target_type {
+                    // -> i64
+                    TypeAnnotation::Int => as_i128(&val)
+                        .map(|n| Value::Integer(n as i64))
+                        .ok_or_else(|| bad_cast(&val)),
+
+                    // -> f64
+                    TypeAnnotation::Float => {
+                        as_f64(&val).map(Value::Float).ok_or_else(|| bad_cast(&val))
+                    }
+
+                    // -> u64
+                    TypeAnnotation::UInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u64::try_from(n)
+                            .map(Value::UInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> f32
+                    TypeAnnotation::SFloat => as_f64(&val)
+                        .map(|f| Value::SFloat(f as f32))
+                        .ok_or_else(|| bad_cast(&val)),
+
+                    // -> u32
+                    TypeAnnotation::SUInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u32::try_from(n)
+                            .map(Value::SUInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i32
+                    TypeAnnotation::SInt => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i32::try_from(n)
+                            .map(Value::SInteger)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> u16
+                    TypeAnnotation::BByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u16::try_from(n)
+                            .map(Value::BByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i16
+                    TypeAnnotation::BSByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i16::try_from(n)
+                            .map(Value::BSByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> u8
+                    TypeAnnotation::Byte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        u8::try_from(n).map(Value::Byte).map_err(|_| bad_cast(&val))
+                    }
+
+                    // -> i8
+                    TypeAnnotation::SByte => {
+                        let n = as_i128(&val).ok_or_else(|| bad_cast(&val))?;
+                        i8::try_from(n)
+                            .map(Value::SByte)
+                            .map_err(|_| bad_cast(&val))
+                    }
+
+                    _ => Err(bad_cast(&val)),
                 }
             }
 
@@ -1060,9 +1317,19 @@ impl Evaluator {
         args: Vec<Value>,
         span: Span,
     ) -> Result<Value, Error> {
-        if let Some(f) = self.root_module.resolve(path) {
-            let f = Arc::clone(f);
-            return match f(self, args, span) {
+        // `Record::method` associated function, e.g. `Point::new(1, 2)`.
+        if path.len() == 2
+            && let Some(f) = self.impl_methods.get(&format!("{}::{}", path[0], path[1]))
+        {
+            let f = Rc::clone(f);
+            return self.call_value(Value::Function(f), args, span);
+        }
+        if let Some(native) = self.root_module.resolve(path).cloned() {
+            let result = match native {
+                crate::native::EvalNative::Std(h) => (h.thunk)(self, args, span),
+                crate::native::EvalNative::Legacy(f) => f(self, args, span),
+            };
+            return match result {
                 Ok(v) => Ok(v),
                 Err(e) if e.span().is_some() => Err(match &self.source_file {
                     Some(file) => e.with_source_file(file),
@@ -1080,26 +1347,29 @@ impl Evaluator {
         let mut err = self.err(format!("undefined function {}", path.join("::")), span);
         // suggest a stdlib leaf name if the last segment is a close typo
         if let Some(last) = path.last() {
-            let candidates = stdlib::math::KEYWORDS
+            let candidates = rl_std::array::KEYWORDS
                 .iter()
-                .chain(stdlib::math::constants::KEYWORDS)
-                .chain(stdlib::bitwise::KEYWORDS)
-                .chain(stdlib::io::KEYWORDS)
-                .chain(stdlib::string::KEYWORDS)
-                .chain(stdlib::types::KEYWORDS)
-                .chain(stdlib::array::KEYWORDS)
-                .chain(stdlib::path::KEYWORDS)
-                .chain(stdlib::fs::KEYWORDS)
-                .chain(stdlib::random::KEYWORDS)
-                .chain(stdlib::time::KEYWORDS)
-                .chain(stdlib::process::KEYWORDS)
-                .chain(stdlib::result::KEYWORDS)
-                .chain(stdlib::terminal::KEYWORDS)
+                .chain(rl_std::audio::KEYWORDS)
+                .chain(rl_std::bitwise::KEYWORDS)
+                .chain(rl_std::c::KEYWORDS)
+                .chain(rl_std::collections::KEYWORDS)
+                .chain(rl_std::debug::KEYWORDS)
+                .chain(rl_std::fs::KEYWORDS)
+                .chain(rl_std::gui::KEYWORDS)
+                .chain(rl_std::http::KEYWORDS)
+                .chain(rl_std::io::KEYWORDS)
+                .chain(rl_std::math::KEYWORDS)
+                .chain(rl_std::math::constants::KEYWORDS)
+                .chain(rl_std::net::KEYWORDS)
+                .chain(rl_std::path::KEYWORDS)
+                .chain(rl_std::process::KEYWORDS)
+                .chain(rl_std::random::KEYWORDS)
+                .chain(rl_std::result::KEYWORDS)
                 .chain(stdlib::rl::KEYWORDS)
-                .chain(stdlib::debug::KEYWORDS)
-                .chain(stdlib::net::KEYWORDS)
-                .chain(stdlib::http::KEYWORDS)
-                .chain(stdlib::collections::KEYWORDS)
+                .chain(rl_std::string::KEYWORDS)
+                .chain(rl_std::terminal::KEYWORDS)
+                .chain(rl_std::time::KEYWORDS)
+                .chain(rl_std::types::KEYWORDS)
                 .copied();
             if let Some(suggestion) = closest_match(last, candidates) {
                 err = err.with_help(format!("did you mean `{}`?", suggestion));

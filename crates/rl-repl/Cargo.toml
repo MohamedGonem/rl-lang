@@ -1,6 +1,6 @@
 [package]
 name = "rl-repl"
-version = "0.2.2"
+version = "1.0.0"
 readme = "readme.md"
 edition.workspace = true
 license.workspace = true
@@ -10,9 +10,16 @@ repository.workspace = true
 [dependencies]
 rl-ast.workspace = true
 rl-docs.workspace = true
-rl-interpreter.workspace = true
+rl-interpreter = { workspace = true, optional = true }
 rl-parser.workspace = true
 rl-lexer.workspace = true
+rl-resolver = { workspace = true, optional = true }
 rl-utils.workspace = true
+rl-vm = { workspace = true, optional = true }
 crossterm.workspace = true
 ratatui.workspace = true
+
+[features]
+default = ["treewalker"]
+treewalker = ["dep:rl-interpreter"]
+vm = ["dep:rl-vm", "dep:rl-resolver"]

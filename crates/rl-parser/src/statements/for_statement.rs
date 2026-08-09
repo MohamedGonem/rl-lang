@@ -94,6 +94,7 @@ impl Parser {
                 let start_id = self.ast_arena.exprs.get(start_expr);
                 let range_start = match start_id.kind {
                     ExpressionKind::Integer(i) => i,
+                    ExpressionKind::UInt(u) => u as i64,
                     ExpressionKind::Byte(b) => b as i64,
                     _ => return Err(self.err("range should be integers only", start_id.span)),
                 };
@@ -102,6 +103,7 @@ impl Parser {
                 let end_id = self.ast_arena.exprs.get(end_expr);
                 let range_end = match end_id.kind {
                     ExpressionKind::Integer(i) => i,
+                    ExpressionKind::UInt(u) => u as i64,
                     ExpressionKind::Byte(b) => b as i64,
                     _ => return Err(self.err("range should be integers only", end_id.span)),
                 };
@@ -131,6 +133,7 @@ impl Parser {
                     let item_id = self.ast_arena.exprs.get(item);
                     match item_id.kind {
                         ExpressionKind::Integer(i) => iterable_list.push(i),
+                        ExpressionKind::UInt(u) => iterable_list.push(u as i64),
                         ExpressionKind::Byte(b) => iterable_list.push(b as i64),
                         _ => return Err(self.err("list items must be integers", item_id.span)),
                     }

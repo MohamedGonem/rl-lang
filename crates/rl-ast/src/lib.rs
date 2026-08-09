@@ -88,10 +88,17 @@ fn remap_expr_kind(kind: &mut ExpressionKind, offset: u32, target_arena_id: u32)
     use ExpressionKind::*;
     match kind {
         Null
+        | SInt(_)
+        | SUInt(_)
         | Integer(_)
+        | UInt(_)
         | Byte(_)
+        | SByte(_)
+        | BByte(_)
+        | BSByte(_)
         | String(_)
         | Bool(_)
+        | SFloat(_)
         | Float(_)
         | Character(_)
         | Identifier(_)
@@ -268,6 +275,10 @@ fn remap_stmt_kind(kind: &mut StatementKind, offset: u32, target_arena_id: u32) 
         | ResolvedFunctionDeclaration { body, .. }
         | ResolvedImportFile { body, .. } => {
             remap_stmts(body, offset, target_arena_id);
+        }
+
+        ImplBlock { methods, .. } | ResolvedImplBlock { methods, .. } => {
+            remap_stmts(methods, offset, target_arena_id);
         }
 
         Match { value, arms } => {

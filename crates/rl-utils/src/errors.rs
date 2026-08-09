@@ -281,3 +281,67 @@ impl Error {
         &self.message
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        errors::{ErrorReason, Reason},
+        source::SourceFile,
+        span::Span,
+    };
+
+    use super::Error;
+
+    #[test]
+    fn error_basic() {
+        let span = Span::new(1, 5);
+        let error = Error::at(Reason::Parse, "syntax error", span);
+
+        assert_eq!(error.message(), "syntax error");
+        assert_eq!(error.span(), Some(span));
+    }
+
+    #[test]
+    fn test_error_builders() {
+        let span1 = Span::new(0, 3);
+        let span2 = Span::new(5, 8);
+
+        let err = Error::at(Reason::Compile, "type error", span1)
+            .with_primary_label("expected int")
+            .with_label(span2, "found string")
+            .with_help("try casting")
+            .with_source_name("main.rl");
+
+        assert_eq!(err.message(), "type error");
+        assert_eq!(err.span(), Some(span1));
+    }
+
+    #[test]
+    fn test_error_with_source_file() {
+        let span = Span::new(0, 5);
+        let source_file = SourceFile::new("main.rl", "print(\"foobar\")".to_string());
+
+        let err = Error::at(Reason::Lexer, "bad token", span).with_source_file(&source_file);
+
+        assert_eq!(err.span(), Some(span));
+    }
+
+    #[test]
+    fn test_span_override() {
+        let span_override = Span::new(1, 5);
+        let error =
+            Error::at(Reason::Parse, "syntax error", Span::new(0, 0)).with_span(span_override);
+
+        assert_eq!(error.message(), "syntax error");
+        assert_eq!(error.span(), Some(span_override));
+    }
+
+    #[test]
+    fn test_error_reason_string() {
+        let reason = ErrorReason::init(
+            Reason::Interpreter,
+            Some(vec!["stack overflow".to_string()]),
+        );
+        assert_eq!(reason.get_type_string(), "Interpreter Error");
+    }
+}

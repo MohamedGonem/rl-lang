@@ -56,6 +56,16 @@ impl Parser {
         self.tokens[self.current].token.clone()
     }
 
+    /// Returns the [`TokenType`] one position past the read head, without
+    /// consuming anything. Returns [`TokenType::Eof`] if that would run past
+    /// the end of the token stream.
+    pub fn peek_next(&self) -> TokenType {
+        self.tokens
+            .get(self.current + 1)
+            .map(|t| t.token.clone())
+            .unwrap_or(TokenType::Eof)
+    }
+
     /// Returns the [`TokenType`] of the most recently consumed token.
     ///
     /// # Panics
@@ -78,6 +88,7 @@ impl Parser {
         let current = self.peek();
         match (token_type, &current) {
             (TokenType::NumberLiteral(_), TokenType::NumberLiteral(_)) => true,
+            (TokenType::SignedLiteral(_), TokenType::SignedLiteral(_)) => true,
             (TokenType::ByteLiteral(_), TokenType::ByteLiteral(_)) => true,
             (TokenType::StringLiteral(_), TokenType::StringLiteral(_)) => true,
             (TokenType::FloatLiteral(_), TokenType::FloatLiteral(_)) => true,
@@ -202,6 +213,47 @@ impl Parser {
                     Ok(TypeAnnotation::Enum(name))
                 } else {
                     Ok(TypeAnnotation::Record(name))
+                }
+            }
+
+            TokenType::UInt => {
+                self.advance();
+                Ok(TypeAnnotation::UInt)
+            }
+            TokenType::SByte => {
+                self.advance();
+                Ok(TypeAnnotation::SByte)
+            }
+            TokenType::Big => {
+                self.advance();
+                match self.peek() {
+                    TokenType::Byte => {
+                        self.advance();
+                        Ok(TypeAnnotation::BByte)
+                    }
+                    TokenType::SByte => {
+                        self.advance();
+                        Ok(TypeAnnotation::BSByte)
+                    }
+                    _ => Err(self.err("`big` only applies to byte types", self.peek_span())),
+                }
+            }
+            TokenType::Small => {
+                self.advance();
+                match self.peek() {
+                    TokenType::Int => {
+                        self.advance();
+                        Ok(TypeAnnotation::SInt)
+                    }
+                    TokenType::UInt => {
+                        self.advance();
+                        Ok(TypeAnnotation::SUInt)
+                    }
+                    TokenType::Float => {
+                        self.advance();
+                        Ok(TypeAnnotation::SFloat)
+                    }
+                    _ => Err(self.err("`small` only applies to int/float types", self.peek_span())),
                 }
             }
 

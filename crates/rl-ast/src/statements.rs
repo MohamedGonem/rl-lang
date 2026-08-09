@@ -27,6 +27,16 @@ pub struct Statement {
     pub span: Span,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum HandleKind {
+    C = 0,
+    Net = 1,
+    Http = 2,
+    Audio = 3,
+    Gui = 4,
+}
+
 impl Statement {
     pub fn new(kind: StatementKind, span: Span) -> Self {
         Self { kind, span }
@@ -284,6 +294,25 @@ pub enum StatementKind {
         fields: Vec<(String, TypeAnnotation)>,
     },
 
+    /// An `impl` block attaching methods to a record:
+    /// `impl Name { fn method(self) { ... } }`.
+    ///
+    /// A method with `self` as its first parameter is an instance method,
+    /// called via `value.method(args)`. A method without `self` is an
+    /// associated function, called via `Name::method(args)`.
+    ///
+    /// `methods` holds unresolved `FunctionDeclaration` statements.
+    ImplBlock {
+        record: String,
+        methods: Vec<Statement>,
+    },
+    /// Resolver-annotated impl block. `methods` holds
+    /// `ResolvedFunctionDeclaration` statements whose `slot` is unused
+    ResolvedImplBlock {
+        record: String,
+        methods: Vec<Statement>,
+    },
+
     /// A tag (enum) type declaration: `tag Name { VariantA, VariantB }`.
     TagDeclaration {
         name: String,
@@ -314,30 +343,46 @@ pub enum FunctionAttribute {
 pub enum TypeAnnotation {
     /// Mutable 64-bit signed integer.
     Int,
+    /// Mutable 64-bit unsigned integer.
+    UInt,
+    SInt,
+    SUInt,
     /// Mutable 64-bit float.
     Float,
+    SFloat,
     /// Mutable boolean.
     Bool,
     /// Mutable string.
     String,
     /// Mutable byte (`u8`).
     Byte,
+    SByte,
+    BByte,
+    BSByte,
     /// Mutable character.
     Char,
     /// Mutable array with a typed element.
     Array(Box<TypeAnnotation>),
     Map(Box<TypeAnnotation>, Box<TypeAnnotation>),
     Set(Box<TypeAnnotation>),
+    CSInt,
+    CSUInt,
     /// Constant 64-bit signed integer.
     CInt,
+    /// Constant 64-bit Unsigned integer.
+    CUInt,
     /// Constant 64-bit float.
     CFloat,
+    CSFloat,
     /// Constant boolean.
     CBool,
     /// Constant string.
     CString,
     /// Constant byte.
     CByte,
+    CSByte,
+    CBByte,
+    CBSByte,
     /// Constant character.
     CChar,
     /// Constant array with a typed element.
@@ -369,6 +414,14 @@ pub enum TypeAnnotation {
     Enum(String),
     /// A named tag (enum) type, constant binding.
     CEnum(String),
+
+    Generic(String),
+    Callback(Vec<TypeAnnotation>, Box<TypeAnnotation>),
+
+    // ---std-specific---
+    Handle(HandleKind),
+    /// Placeholder used by `dec handle name = v` bindings.
+    HandleInfer,
 }
 
 /// A single function or lambda parameter: a name and its type annotation.
@@ -376,4 +429,69 @@ pub enum TypeAnnotation {
 pub struct Param {
     pub param_name: String,
     pub param_type: TypeAnnotation,
+}
+
+impl TypeAnnotation {
+    pub fn contains_handle_infer(&self) -> bool {
+        match self {
+            TypeAnnotation::HandleInfer => true,
+            TypeAnnotation::Array(inner)
+            | TypeAnnotation::CArray(inner)
+            | TypeAnnotation::Set(inner)
+            | TypeAnnotation::CSet(inner)
+            | TypeAnnotation::Result(inner)
+            | TypeAnnotation::CResult(inner) => inner.contains_handle_infer(),
+
+            TypeAnnotation::Map(k, v) | TypeAnnotation::CMap(k, v) => {
+                k.contains_handle_infer() || v.contains_handle_infer()
+            }
+
+            TypeAnnotation::Tuple(items) | TypeAnnotation::CTuple(items) => {
+                items.iter().any(TypeAnnotation::contains_handle_infer)
+            }
+
+            _ => false,
+        }
+    }
+
+    pub fn resolve_handle_infer(&self, actual: &TypeAnnotation) -> Option<TypeAnnotation> {
+        use TypeAnnotation::*;
+
+        if !self.contains_handle_infer() {
+            return if self == actual {
+                Some(self.clone())
+            } else {
+                None
+            };
+        }
+
+        Some(match (self, actual) {
+            (HandleInfer, Handle(kind)) => Handle(*kind),
+            (Array(d), Array(a)) | (Array(d), CArray(a)) => {
+                Array(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (CArray(d), Array(a)) | (CArray(d), CArray(a)) => {
+                CArray(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (Set(d), Set(a)) | (Set(d), CSet(a)) => Set(Box::new(d.resolve_handle_infer(a)?)),
+            (CSet(d), Set(a)) | (CSet(d), CSet(a)) => CSet(Box::new(d.resolve_handle_infer(a)?)),
+            (Result(d), Result(a)) | (Result(d), CResult(a)) => {
+                Result(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (CResult(d), Result(a)) | (CResult(d), CResult(a)) => {
+                CResult(Box::new(d.resolve_handle_infer(a)?))
+            }
+            (Map(dk, dv), Map(ak, av)) | (Map(dk, dv), CMap(ak, av)) => Map(
+                Box::new(dk.resolve_handle_infer(ak)?),
+                Box::new(dv.resolve_handle_infer(av)?),
+            ),
+            (Tuple(d), Tuple(a)) | (Tuple(d), CTuple(a)) if d.len() == a.len() => Tuple(Rc::new(
+                d.iter()
+                    .zip(a.iter())
+                    .map(|(d, a)| d.resolve_handle_infer(a))
+                    .collect::<Option<Vec<_>>>()?,
+            )),
+            _ => return None,
+        })
+    }
 }

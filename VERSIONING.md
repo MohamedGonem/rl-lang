@@ -12,7 +12,7 @@ rl-lang follows [SemVer 2.0](https://semver.org/): `MAJOR.MINOR.PATCH[-PRERELEAS
 | **Alpha** | `x.y.z-alpha` / `-alpha.N` | Earliest testing -- feature incomplete, actively changing, expect breakage; for maintainers/close contributors only | `v0.3.0-alpha`, `v0.3.0-alpha.2` |
 | **Beta** | `x.y.z-beta` / `-beta.N` | Feature-complete but unstable -- hunting for bugs; safe for wider early testers | `v0.3.0-beta`, `v0.3.0-beta.2` |
 | **RC** | `x.y.z-rc.N` | "This is what we intend to ship" -- no known bugs, waiting to see if anything surfaces | `v0.3.0-rc.1` |
-| **Dev / nightly** | `x.y.z-dev` / `-nightly.DATE` | Automated/continuous builds off `main`, not a deliberate release -- most volatile | `v0.3.0-dev`, `v0.3.0-nightly.2026.07.19` |
+| **Dev / nightly** | `x.y.z-dev` / `-nightly.DATE` | Automated/continuous builds off `dev`, not a deliberate release -- most volatile | `v0.3.0-dev`, `v0.3.0-nightly.2026.07.19` |
 
 **Ordering:** a pre-release always sorts before the version it leads to: `0.3.0-alpha < 0.3.0-alpha.1 < 0.3.0-beta < 0.3.0-rc.1 < 0.3.0`. `v0.3.0-rc.1` means "release candidate for the upcoming 0.3.0," not "something after 0.3.0."
 

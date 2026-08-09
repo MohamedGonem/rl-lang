@@ -19,3 +19,19 @@ impl SourceFile {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SourceFile;
+
+    #[test]
+    fn source_file_basic() {
+        let name = "main.rl";
+        let text = "println(\"foobar\")";
+
+        let source_file = SourceFile::new(name, text.to_string());
+
+        assert_eq!(&*source_file.name, name);
+        assert_eq!(&*source_file.text, text);
+    }
+}

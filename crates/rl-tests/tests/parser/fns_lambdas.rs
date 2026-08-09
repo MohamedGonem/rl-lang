@@ -1,16 +1,14 @@
-use {
-    rl_ast::{
-        nodes::ExpressionKind,
-        statements::{FunctionAttribute, Param, StatementKind, TypeAnnotation},
-    },
-    rl_utils::span::Span,
+use rl_ast::{
+    nodes::ExpressionKind,
+    statements::{FunctionAttribute, Param, StatementKind, TypeAnnotation},
 };
 
-use crate::common;
+use crate::common::{self, span_of, span_of_last, span_whole};
 
 #[test]
 fn fn_simple() {
-    let (ast, statements) = common::parse("fn x (int x) {return x}");
+    let source = "fn x (int x) {return x}";
+    let (ast, statements) = common::parse(source);
     assert_eq!(statements.len(), 1, "expected exactly one statement");
     match &statements[0].kind {
         StatementKind::FunctionDeclaration {
@@ -36,19 +34,20 @@ fn fn_simple() {
                 &ast,
                 Some((
                     ExpressionKind::Identifier("x".to_string()),
-                    Span::new(21, 22),
+                    span_of_last(source, "x"),
                 )),
-                Span::new(14, 22),
+                span_of(source, "return x"),
             );
         }
         other => panic!("expected FunctionDeclaration, got {:?}", other),
     }
-    assert_eq!(statements[0].span, Span::new(0, 23));
+    assert_eq!(statements[0].span, span_whole(source));
 }
 
 #[test]
 fn fn_fn_param() {
-    let (ast, statements) = common::parse("fn x (fn x, int y) {return x(y)}");
+    let source = "fn x (fn x, int y) {return x(y)}";
+    let (ast, statements) = common::parse(source);
     assert_eq!(statements.len(), 1, "expected exactly one statement");
     match &statements[0].kind {
         StatementKind::FunctionDeclaration {
@@ -76,11 +75,11 @@ fn fn_fn_param() {
             assert_eq!(*attribute, None);
             assert_eq!(body.len(), 1, "expected exactly one body statement");
 
-            assert_eq!(body[0].span, Span::new(20, 31));
+            assert_eq!(body[0].span, span_of(source, "return x(y)"));
             match &body[0].kind {
                 StatementKind::Return(Some(id)) => {
                     let expr = ast.exprs.get(*id);
-                    assert_eq!(expr.span, Span::new(27, 31));
+                    assert_eq!(expr.span, span_of(source, "x(y)"));
                     match &expr.kind {
                         ExpressionKind::Call { path, args } => {
                             assert_eq!(path, &vec!["x".to_string()]);
@@ -89,7 +88,7 @@ fn fn_fn_param() {
                                 &ast,
                                 args[0],
                                 ExpressionKind::Identifier("y".to_string()),
-                                Span::new(29, 30),
+                                span_of_last(source, "y"),
                             );
                         }
                         other => panic!("expected Call, got {:?}", other),
@@ -100,12 +99,13 @@ fn fn_fn_param() {
         }
         other => panic!("expected FunctionDeclaration, got {:?}", other),
     }
-    assert_eq!(statements[0].span, Span::new(0, 32));
+    assert_eq!(statements[0].span, span_whole(source));
 }
 
 #[test]
 fn dec_fn_lambda() {
-    let (ast, statements) = common::parse("dec fn x = fn(int x) {return x}");
+    let source = "dec fn x = fn(int x) {return x}";
+    let (ast, statements) = common::parse(source);
     assert_eq!(statements.len(), 1, "expected exactly one statement");
     match &statements[0].kind {
         StatementKind::VariableDeclaration {
@@ -118,7 +118,7 @@ fn dec_fn_lambda() {
             assert_eq!(*type_annotation, TypeAnnotation::Fn);
 
             let expr = ast.exprs.get(*value);
-            assert_eq!(expr.span, Span::new(11, 31));
+            assert_eq!(expr.span, span_of(source, "fn(int x) {return x}"));
             match &expr.kind {
                 ExpressionKind::Lambda {
                     params,
@@ -139,9 +139,9 @@ fn dec_fn_lambda() {
                         &ast,
                         Some((
                             ExpressionKind::Identifier("x".to_string()),
-                            Span::new(29, 30),
+                            span_of_last(source, "x"),
                         )),
-                        Span::new(22, 30),
+                        span_of(source, "return x"),
                     );
                 }
                 other => panic!("expected Lambda, got {:?}", other),
@@ -149,7 +149,7 @@ fn dec_fn_lambda() {
         }
         other => panic!("expected VariableDeclaration, got {:?}", other),
     }
-    assert_eq!(statements[0].span, Span::new(0, 31));
+    assert_eq!(statements[0].span, span_whole(source));
 }
 
 #[test]

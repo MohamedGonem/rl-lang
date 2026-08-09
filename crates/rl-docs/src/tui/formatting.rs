@@ -74,9 +74,9 @@ fn token_color(token: &TokenType) -> Color {
     match token {
         // keywords
         Null | Fn | In | For | While | Return | Break | Continue | Get | From | If | Else
-        | Const | Dec | As | Ok | Err | Match | Record | Tag | Loop => Color::Magenta,
+        | Const | Dec | As | Ok | Err | Match | Record | Tag | Loop | Impl => Color::Magenta,
         // type keywords
-        Int | Float | Bool | String | Byte | Char | Array | Error | Result | Map | Set => {
+        Int | UInt | Float | Bool | String | Byte | Char | Array | Error | Result | Map | Set => {
             Color::LightBlue
         }
         // literals
