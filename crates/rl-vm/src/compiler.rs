@@ -708,6 +708,8 @@ impl<'a> Compiler<'a> {
                     TokenType::LessEqual => OpCode::LessEq,
                     TokenType::Greater => OpCode::Greater,
                     TokenType::GreaterEqual => OpCode::GreaterEq,
+                    TokenType::And => return self.compile_logical(*left, *right, span, true),
+                    TokenType::Or => return self.compile_logical(*left, *right, span, false),
                     other => {
                         return Err(self.err(
                             format!("unsupported binary operator in vm compiler: {other:?}"),
@@ -1199,6 +1201,37 @@ impl<'a> Compiler<'a> {
         self.chunk.write_op(OpCode::Index, span);
         self.emit_define_slot(base, span);
 
+        Ok(())
+    }
+
+    fn compile_logical(
+        &mut self,
+        left: ExprId,
+        right: ExprId,
+        span: Span,
+        is_and: bool,
+    ) -> Result<(), CompileError> {
+        self.compile_expr(left)?;
+        let branch = self.emit_jump(OpCode::JumpIfFalse, span);
+
+        if is_and {
+            self.compile_expr(right)?;
+            self.emit_const(VmValue::Bool(true), span);
+            self.chunk.write_op(OpCode::Eq, span);
+        } else {
+            self.emit_const(VmValue::Bool(true), span);
+        }
+        let end = self.emit_jump(OpCode::Jump, span);
+
+        self.patch_jump(branch);
+        if is_and {
+            self.emit_const(VmValue::Bool(false), span);
+        } else {
+            self.compile_expr(right)?;
+            self.emit_const(VmValue::Bool(true), span);
+            self.chunk.write_op(OpCode::Eq, span);
+        }
+        self.patch_jump(end);
         Ok(())
     }
 
