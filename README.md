@@ -181,30 +181,16 @@ Feature flags:
 
 ## Contributors
 
-<!-- ALL-CONTRIBUTORS-LIST:START -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MohamedGonem"><img src="https://avatars.githubusercontent.com/u/73464078?v=4?s=100" width="100px;" alt="Mohamed Gonem"/><br /><sub><b>Mohamed Gonem</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=MohamedGonem" title="Code">💻</a> <a href="https://github.com/rl-lang/rl-lang/commits?author=MohamedGonem" title="Documentation">📖</a> <a href="#ideas-MohamedGonem" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/rl-lang/rl-lang/commits?author=MohamedGonem" title="Tests">⚠️</a> <a href="#example-MohamedGonem" title="Examples">💡</a> <a href="#infra-MohamedGonem" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#tool-MohamedGonem" title="Tools">🔧</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://yt-dl.flawlessco.de"><img src="https://avatars.githubusercontent.com/u/37778817?v=4?s=100" width="100px;" alt="Flawlesscode"/><br /><sub><b>Flawlesscode</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=FlawlessDeveloper" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kill-ux"><img src="https://avatars.githubusercontent.com/u/185858933?v=4?s=100" width="100px;" alt="Mustapha Boutoub"/><br /><sub><b>Mustapha Boutoub</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=kill-ux" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/RubyPaws39"><img src="https://avatars.githubusercontent.com/u/280778337?v=4?s=100" width="100px;" alt="RubyPaws39"/><br /><sub><b>RubyPaws39</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=RubyPaws39" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/CapThunder19"><img src="https://avatars.githubusercontent.com/u/161865581?v=4?s=100" width="100px;" alt="Anirudh Patwal"/><br /><sub><b>Anirudh Patwal</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=CapThunder19" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://naimish.xyz"><img src="https://avatars.githubusercontent.com/u/206333897?v=4?s=100" width="100px;" alt="Naimish"/><br /><sub><b>Naimish</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=theroguevigilante" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ajaythxkur"><img src="https://avatars.githubusercontent.com/u/62602303?v=4?s=100" width="100px;" alt="Ajay Thakur"/><br /><sub><b>Ajay Thakur</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=ajaythxkur" title="Tests">⚠️</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/asymmetricoral"><img src="https://avatars.githubusercontent.com/u/50928191?v=4?s=100" width="100px;" alt="lia"/><br /><sub><b>lia</b></sub></a><br /><a href="https://github.com/rl-lang/rl-lang/commits?author=asymmetricoral" title="Tests">⚠️</a></td>
-    </tr>
-  </tbody>
-</table>
+<!--
+  Deprecation notice:
+    The all contributors bot integration is deprecated for this repo
+    migrated contributors showcase to contrib.rocks
+-->
 
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+<a href="https://github.com/rl-lang/rl-lang/graphs">
+  <img src="https://contrib.rocks/image?repo=rl-lang/rl-lang" />
+</a>
+<!-- made with contrib.rocks (many thanks :D) -->
 
 ## License
 
