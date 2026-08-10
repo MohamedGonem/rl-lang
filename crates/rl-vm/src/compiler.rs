@@ -1092,14 +1092,13 @@ impl<'a> Compiler<'a> {
         arms: &[(MatchPattern, Vec<Statement>)],
         span: Span,
     ) -> Result<(), CompileError> {
-        self.chunk.write_op(OpCode::PushScope, span);
-        self.scope_bases.push(self.next_slot);
+        let slot = self.next_slot;
+        self.next_slot += 1;
+        let vslot = slot;
+        let is_global = self.scope_bases.is_empty();
 
         self.compile_expr(value)?;
-        let _slot = self.next_slot;
-        self.next_slot += 1;
-        self.chunk.write_op(OpCode::DefineLocal, span);
-        self.chunk.write_u16(_slot, span);
+        self.emit_define_slot(vslot, span);
 
         let mut end_jumps = Vec::new();
         for (pattern, body) in arms {
@@ -1107,8 +1106,7 @@ impl<'a> Compiler<'a> {
                 MatchPattern::Wildcard => None,
                 MatchPattern::Literal(expr) => {
                     self.compile_expr(*expr)?;
-                    self.chunk.write_op(OpCode::GetLocal, span);
-                    self.chunk.write_u16(_slot, span);
+                    self.emit_get_slot(vslot, is_global, span);
                     self.chunk.write_op(OpCode::Eq, span);
                     Some(self.emit_jump(OpCode::JumpIfFalse, span))
                 }
@@ -1126,8 +1124,7 @@ impl<'a> Compiler<'a> {
             self.patch_jump(j);
         }
 
-        self.chunk.write_op(OpCode::PopScope, span);
-        self.next_slot = self.scope_bases.pop().unwrap();
+        self.next_slot = slot;
         Ok(())
     }
 
