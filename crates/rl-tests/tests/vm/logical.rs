@@ -66,3 +66,43 @@ fn logical_or_evaluates_right_side_when_left_is_false() {
         err.message()
     );
 }
+
+#[test]
+fn logical_and_short_circuits_when_left_is_false() {
+    let result = common::compile_and_run(
+        r#"
+        dec bool x = false and (1 / 0 == 1)
+        x
+        "#,
+    )
+    .expect("left `false` should short-circuit `and` without dividing by zero");
+
+    assert_eq!(result, VmValue::Bool(false));
+}
+
+#[test]
+fn logical_or_short_circuits_when_left_is_true() {
+    let result = common::compile_and_run(
+        r#"
+        dec bool x = true or (1 / 0 == 1)
+        x
+        "#,
+    )
+    .expect("left `true` should short-circuit `or` without dividing by zero");
+
+    assert_eq!(result, VmValue::Bool(true));
+}
+
+#[test]
+fn logical_and_keeps_stack_balanced_around_dec() {
+    let result = common::compile_and_run(
+        r#"
+        dec bool x = true and false
+        dec int y = 42
+        y
+        "#,
+    )
+    .expect("vm run failed");
+
+    assert_eq!(result, VmValue::Int(42));
+}
