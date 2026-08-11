@@ -50,4 +50,12 @@ impl TypeChecker {
         self.error_with_help(format!("undefined variable {}", name), span, suggestion);
         CheckType::Unknown
     }
+
+    pub fn lookup_silent(&self, name: &str) -> Option<CheckType> {
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(name))
+            .map(|item| item.type_annotation.clone())
+    }
 }

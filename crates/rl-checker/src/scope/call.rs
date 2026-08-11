@@ -44,9 +44,18 @@ impl TypeChecker {
         if path.len() == 1 {
             let name = &path[0];
 
-            if let Some(f) = self.stdlib_fn_names.get(name.as_str()).cloned() {
+            if let Some(f) = self.imported_std_fns.get(name.as_str()).cloned() {
                 self.push_stdlib_hover(path, span);
                 return self.check_stdlib_call(&f, arg_types, span);
+            }
+            if self.stdlib_fn_names.contains_key(name.as_str())
+                && self.lookup_silent(name).is_none()
+            {
+                self.error(
+                    format!("'{name}' is a stdlib function - import it before use"),
+                    span,
+                );
+                return CheckType::Unknown;
             }
             let item_type = self.lookup(name, span);
             return self.check_call_value(item_type, arg_types, span);
