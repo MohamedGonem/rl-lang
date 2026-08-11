@@ -49,7 +49,13 @@ impl TypeChecker {
                 return self.check_stdlib_call(&f, arg_types, span);
             }
             if self.stdlib_fn_names.contains_key(name.as_str())
-                && self.lookup_silent(name).is_none()
+                && self
+                    .scopes
+                    .iter()
+                    .rev()
+                    .find_map(|scope| scope.get(name))
+                    .map(|item| item.type_annotation.clone())
+                    .is_none()
             {
                 self.error(
                     format!("'{name}' is a stdlib function - import it before use"),
