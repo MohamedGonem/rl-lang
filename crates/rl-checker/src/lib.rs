@@ -59,6 +59,7 @@ impl TypeChecker {
             return_type_stack: Vec::new(),
             loop_depth: 0,
             stdlib_fn_names,
+            imported_std_fns: HashMap::new(),
             hovers: Vec::new(),
             definitions: Vec::new(),
             record_spans: HashMap::new(),
