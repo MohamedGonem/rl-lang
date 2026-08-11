@@ -27,9 +27,9 @@ use rl_tooling::workflows::generate;
 use rl_tooling::{format::format_tokens, package::EmbeddedProgram};
 use std::path::PathBuf;
 
-use crate::logic_loops::{lexing_loop, parsing_loop};
 #[cfg(feature = "treewalker")]
 use crate::logic_loops::eval_loop;
+use crate::logic_loops::{lexing_loop, parsing_loop};
 #[cfg(feature = "lsp")]
 use rl_lsp::run_lsp;
 use rl_tooling::dev::read_rl_toml;
@@ -149,6 +149,10 @@ enum Commands {
         /// Browse docs in an interactive terminal UI instead of printing them
         #[arg(long)]
         tui: bool,
+
+        /// Browse docs in an interactive terminal UI instead of printing them
+        #[arg(long)]
+        website: bool,
 
         /// Print output as JSON instead of Markdown
         #[arg(long)]
@@ -366,7 +370,9 @@ fn main() {
                 crate::logic_loops::cranelift_loop(source, ast, statements);
                 #[cfg(not(feature = "cranelift"))]
                 {
-                    eprintln!("error: --cranelift requires the `cranelift` feature (which implies `vm`)");
+                    eprintln!(
+                        "error: --cranelift requires the `cranelift` feature (which implies `vm`)"
+                    );
                     std::process::exit(1)
                 }
             } else {
@@ -476,6 +482,7 @@ fn main() {
             no_highlight,
             out_dir,
             tui,
+            website,
         } => {
             if generate {
                 {
@@ -728,6 +735,15 @@ fn main() {
                     );
                     std::process::exit(1);
                 }
+            }
+
+            if website {
+                rl_docs::website::build_and_open_website(
+                    &matched_std,
+                    &matched_concepts,
+                    &matched_tutorial,
+                );
+                std::process::exit(1);
             }
 
             let rendered = if json {

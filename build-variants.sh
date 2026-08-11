@@ -91,20 +91,20 @@ features_for() {
     exit 1
   fi
 
-  [ "$no_docs" = "0" ] && feats="${feats},docs"
+  [ "$no_docs" = "0" ] && feats="${feats},docs,docs-tui"
   [ "$no_repl" = "0" ] && feats="${feats},repl"
   [ "$debug" = "1" ] && feats="${feats},debug"
 
   echo "$feats"
 }
 
-package_linux() {
-  local actual="$1" bin_path="$2"
+package_elf() {
+  local actual="$1" bin_path="$2" label="$3"
   local stage
   stage=$(mktemp -d)
   cp "$bin_path" "$stage/${actual}"
   chmod +x "$stage/${actual}"
-  tar -czf "$OUT_DIR/${actual}-linux-${ARCH}.tar.gz" -C "$stage" "${actual}"
+  tar -czf "$OUT_DIR/${actual}-${label}-${ARCH}.tar.gz" -C "$stage" "${actual}"
   rm -rf "$stage"
 }
 
@@ -160,8 +160,10 @@ build_one() {
 
   if [ "$platform" = "windows" ]; then
     package_windows "$actual" "$bin_src"
+  elif [ "$platform" = "android" ]; then
+    package_elf "$actual" "$bin_src" "android"
   else
-    package_linux "$actual" "$bin_src"
+    package_elf "$actual" "$bin_src" "linux"
   fi
 }
 

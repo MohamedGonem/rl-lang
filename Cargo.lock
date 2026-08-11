@@ -203,6 +203,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "num_enum",
+ "simd_cesu8",
  "thiserror 2.0.19",
 ]
 
@@ -3769,6 +3770,8 @@ name = "rl-commons"
 version = "1.0.0"
 dependencies = [
  "rl-ast",
+ "rl-std",
+ "rl-std-core",
 ]
 
 [[package]]
@@ -3799,11 +3802,6 @@ dependencies = [
 name = "rl-interpreter"
 version = "1.0.0"
 dependencies = [
- "cpal",
- "crossterm",
- "eframe",
- "libffi",
- "libloading",
  "log",
  "rl-ast",
  "rl-checker",
@@ -3811,12 +3809,9 @@ dependencies = [
  "rl-lexer",
  "rl-parser",
  "rl-resolver",
+ "rl-std",
+ "rl-std-core",
  "rl-utils",
- "rodio",
- "shell-words",
- "symphonia",
- "tiny_http",
- "ureq",
 ]
 
 [[package]]
@@ -3876,10 +3871,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "rl-std"
+version = "1.0.0"
+dependencies = [
+ "cpal",
+ "crossterm",
+ "eframe",
+ "libffi",
+ "libloading",
+ "rl-ast",
+ "rl-std-core",
+ "rl-std-macros",
+ "rl-utils",
+ "rodio",
+ "shell-words",
+ "symphonia",
+ "tiny_http",
+ "ureq",
+]
+
+[[package]]
+name = "rl-std-core"
+version = "1.0.0"
+dependencies = [
+ "rl-ast",
+ "rl-utils",
+]
+
+[[package]]
+name = "rl-std-macros"
+version = "1.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "rl-tests"
 version = "1.0.0"
 dependencies = [
  "rl-ast",
+ "rl-checker",
  "rl-commons",
  "rl-interpreter",
  "rl-lexer",
@@ -3913,22 +3946,14 @@ dependencies = [
 name = "rl-vm"
 version = "1.0.0"
 dependencies = [
- "cpal",
- "crossterm",
- "eframe",
- "libffi",
- "libloading",
  "rl-ast",
  "rl-checker",
  "rl-lexer",
  "rl-parser",
  "rl-resolver",
+ "rl-std",
+ "rl-std-core",
  "rl-utils",
- "rodio",
- "shell-words",
- "symphonia",
- "tiny_http",
- "ureq",
  "zstd",
 ]
 

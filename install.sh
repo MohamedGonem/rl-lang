@@ -155,6 +155,13 @@ detect_arch() {
   esac
 }
 
+detect_termux() {
+  [ -n "${TERMUX_VERSION:-}" ] && return 0
+  [ -n "${PREFIX:-}" ] && return 0
+  [ -d /data/data/com.termux ] && return 0
+  return 1
+}
+
 release_exists() {
   local tag="$1" json
   json="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/tags/${tag}" 2>/dev/null)" || true
@@ -248,9 +255,9 @@ install_one() {
     return 1
   fi
 
-  info "Installing ${variant} (${actual}) ${version} (linux-${arch})..."
+  info "Installing ${variant} (${actual}) ${version} (${PLATFORM_LABEL}-${arch})..."
 
-  asset="${actual}-linux-${arch}.tar.gz"
+  asset="${actual}-${PLATFORM_LABEL}-${arch}.tar.gz"
   url="https://github.com/${REPO}/releases/download/${version}/${asset}"
 
   tmpdir=$(mktemp -d)
@@ -273,14 +280,19 @@ install_one() {
 }
 
 main() {
-  if [ "$(uname -s)" != "Linux" ]; then
-    err "This script only supports Linux. Use install.ps1 on Windows."
+  if [ "$(uname -s)" != "Linux" ] && ! detect_termux; then
+    err "This script only supports Linux (or Termux on Android). Use install.ps1 on Windows."
     exit 1
   fi
 
   local arch version requested variants variant failed=0 installed=0 total=0
 
   arch="$(detect_arch)"
+  if detect_termux; then
+    PLATFORM_LABEL="android"
+  else
+    PLATFORM_LABEL="linux"
+  fi
 
   if [ "$#" -ge 1 ]; then
     requested="$1"
@@ -298,6 +310,7 @@ main() {
   printf '  %srl-lang installer%s\n' "${C_BOLD}" "${C_RESET}"
   msg "  ${C_DIM}repo:    ${C_RESET}${REPO}"
   msg "  ${C_DIM}arch:    ${C_RESET}${arch}"
+  msg "  ${C_DIM}platform:${C_RESET} ${PLATFORM_LABEL}"
   msg "  ${C_DIM}version: ${C_RESET}${version}"
   msg "  ${C_DIM}install: ${C_RESET}${INSTALL_DIR}"
   msg "  ${C_DIM}----------------------------------------${C_RESET}"

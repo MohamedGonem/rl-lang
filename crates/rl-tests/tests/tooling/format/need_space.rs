@@ -2,7 +2,6 @@ use rl_tooling::format::format_tokens;
 
 use crate::common;
 
-
 #[test]
 fn no_space_after_opening_tokens() {
     let tokens = common::lex("( x )");
@@ -20,7 +19,7 @@ fn no_space_before_closing_tokens() {
 #[test]
 fn no_space_before_comma() {
     let tokens = common::lex("foo(a , b)");
-    
+
     assert_eq!(format_tokens(&tokens), "foo(a, b)");
 }
 

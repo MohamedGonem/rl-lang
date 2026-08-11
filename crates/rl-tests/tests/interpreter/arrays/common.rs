@@ -1,4 +1,3 @@
-
 use {rl_ast::statements::TypeAnnotation, rl_interpreter::values::Value};
 
 pub fn int_array(items: Vec<i64>) -> Value {

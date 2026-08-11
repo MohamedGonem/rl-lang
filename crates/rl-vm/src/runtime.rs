@@ -1,0 +1,475 @@
+//! [`VmRuntime`] - the [`Runtime`] implementation binding the shared `rl-std`
+//! stdlib to the bytecode VM's [`VmValue`] / [`Vm`].
+//!
+//! The VM does not thread a call span into native functions (`Span = ()`); it
+//! re-anchors any error at the call site via [`Vm::annotate`] after the native
+//! returns. Compound-value type annotations are ignored (the VM does not track
+//! `items_type`).
+
+use crate::values::{VmMapKey, VmValue};
+use crate::vm_logic::Vm;
+use rl_ast::statements::TypeAnnotation;
+use rl_std_core::Runtime;
+use rl_utils::errors::Error;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+
+/// Zero-sized marker binding the shared stdlib to the VM.
+pub struct VmRuntime;
+
+impl Runtime for VmRuntime {
+    type Value = VmValue;
+    type Cx = Vm;
+    type Span = ();
+
+    fn error(cx: &Self::Cx, msg: impl Into<String>, _span: Self::Span) -> Error {
+        // `Vm::err` anchors at the currently-executing instruction and attaches
+        // source; the call-site `Vm::annotate` re-anchors identically.
+        cx.err(msg)
+    }
+
+    fn as_i64(v: &Self::Value) -> Option<i64> {
+        if let VmValue::Int(x) = v { Some(*x) } else { None }
+    }
+    fn as_u64(v: &Self::Value) -> Option<u64> {
+        if let VmValue::UInt(x) = v { Some(*x) } else { None }
+    }
+    fn as_i32(v: &Self::Value) -> Option<i32> {
+        if let VmValue::SInt(x) = v { Some(*x) } else { None }
+    }
+    fn as_u32(v: &Self::Value) -> Option<u32> {
+        if let VmValue::SUInt(x) = v { Some(*x) } else { None }
+    }
+    fn as_i16(v: &Self::Value) -> Option<i16> {
+        if let VmValue::BSByte(x) = v { Some(*x) } else { None }
+    }
+    fn as_u16(v: &Self::Value) -> Option<u16> {
+        if let VmValue::BByte(x) = v { Some(*x) } else { None }
+    }
+    fn as_i8(v: &Self::Value) -> Option<i8> {
+        if let VmValue::SByte(x) = v { Some(*x) } else { None }
+    }
+    fn as_u8(v: &Self::Value) -> Option<u8> {
+        if let VmValue::Byte(x) = v { Some(*x) } else { None }
+    }
+    fn as_f64(v: &Self::Value) -> Option<f64> {
+        if let VmValue::Float(x) = v { Some(*x) } else { None }
+    }
+    fn as_f32(v: &Self::Value) -> Option<f32> {
+        if let VmValue::SFloat(x) = v { Some(*x) } else { None }
+    }
+    fn as_bool(v: &Self::Value) -> Option<bool> {
+        if let VmValue::Bool(x) = v { Some(*x) } else { None }
+    }
+    fn as_char(v: &Self::Value) -> Option<char> {
+        if let VmValue::Char(x) = v { Some(*x) } else { None }
+    }
+    fn as_str(v: &Self::Value) -> Option<&str> {
+        if let VmValue::Str(s) = v { Some(s) } else { None }
+    }
+
+    fn type_name(v: &Self::Value) -> &'static str {
+        v.type_name()
+    }
+    fn display(v: &Self::Value) -> String {
+        v.to_string()
+    }
+    fn is_callable(v: &Self::Value) -> bool {
+        matches!(
+            v,
+            VmValue::Function(_) | VmValue::Native(_) | VmValue::Closure { .. }
+        )
+    }
+
+    fn from_i64(x: i64) -> Self::Value {
+        VmValue::Int(x)
+    }
+    fn from_u64(x: u64) -> Self::Value {
+        VmValue::UInt(x)
+    }
+    fn from_i32(x: i32) -> Self::Value {
+        VmValue::SInt(x)
+    }
+    fn from_u32(x: u32) -> Self::Value {
+        VmValue::SUInt(x)
+    }
+    fn from_i16(x: i16) -> Self::Value {
+        VmValue::BSByte(x)
+    }
+    fn from_u16(x: u16) -> Self::Value {
+        VmValue::BByte(x)
+    }
+    fn from_i8(x: i8) -> Self::Value {
+        VmValue::SByte(x)
+    }
+    fn from_u8(x: u8) -> Self::Value {
+        VmValue::Byte(x)
+    }
+    fn from_f64(x: f64) -> Self::Value {
+        VmValue::Float(x)
+    }
+    fn from_f32(x: f32) -> Self::Value {
+        VmValue::SFloat(x)
+    }
+    fn from_bool(x: bool) -> Self::Value {
+        VmValue::Bool(x)
+    }
+    fn from_char(x: char) -> Self::Value {
+        VmValue::Char(x)
+    }
+    fn from_string(x: String) -> Self::Value {
+        VmValue::Str(Rc::from(x.as_str()))
+    }
+    fn null() -> Self::Value {
+        VmValue::Null
+    }
+
+    fn ok(v: Self::Value) -> Self::Value {
+        VmValue::Ok(Box::new(v))
+    }
+    fn err(v: Self::Value) -> Self::Value {
+        VmValue::Err(Box::new(v))
+    }
+    fn error_value(v: Self::Value) -> Self::Value {
+        VmValue::Error(Box::new(v))
+    }
+
+    fn array(items: Vec<Self::Value>, _elem: TypeAnnotation) -> Self::Value {
+        VmValue::Arr(Rc::new(items))
+    }
+    fn tuple(items: Vec<Self::Value>) -> Self::Value {
+        VmValue::Tuple(Rc::new(items))
+    }
+    fn map(
+        entries: Vec<(Self::Value, Self::Value)>,
+        _key: TypeAnnotation,
+        _val: TypeAnnotation,
+    ) -> Self::Value {
+        let mut m = HashMap::new();
+        for (k, v) in entries {
+            if let Some(key) = crate::values::VmMapKey::from_value(&k) {
+                m.insert(key, v);
+            }
+        }
+        VmValue::Map(Rc::new(RefCell::new(m)))
+    }
+    fn set(items: Vec<Self::Value>, _elem: TypeAnnotation) -> Self::Value {
+        let mut s = HashSet::new();
+        for item in items {
+            if let Some(key) = crate::values::VmMapKey::from_value(&item) {
+                s.insert(key);
+            }
+        }
+        VmValue::Set(Rc::new(RefCell::new(s)))
+    }
+    fn as_array(v: &Self::Value) -> Option<(&[Self::Value], TypeAnnotation)> {
+        match v {
+            VmValue::Arr(items) => Some((&items[..], TypeAnnotation::Infer)),
+            _ => None,
+        }
+    }
+    fn as_tuple(v: &Self::Value) -> Option<&[Self::Value]> {
+        match v {
+            VmValue::Tuple(items) => Some(&items[..]),
+            _ => None,
+        }
+    }
+    fn as_ok_inner(v: &Self::Value) -> Option<Self::Value> {
+        if let VmValue::Ok(b) = v { Some((**b).clone()) } else { None }
+    }
+    fn as_err_inner(v: &Self::Value) -> Option<Self::Value> {
+        if let VmValue::Err(b) = v { Some((**b).clone()) } else { None }
+    }
+    fn as_error_inner(v: &Self::Value) -> Option<Self::Value> {
+        if let VmValue::Error(b) = v { Some((**b).clone()) } else { None }
+    }
+    fn as_set(v: &Self::Value) -> Option<(Vec<Self::Value>, TypeAnnotation)> {
+        match v {
+            VmValue::Set(rc) => Some((
+                rc.borrow().iter().map(|k| k.clone().into_value()).collect(),
+                TypeAnnotation::Infer,
+            )),
+            _ => None,
+        }
+    }
+    fn as_map(
+        v: &Self::Value,
+    ) -> Option<(Vec<(Self::Value, Self::Value)>, TypeAnnotation, TypeAnnotation)> {
+        match v {
+            VmValue::Map(rc) => Some((
+                rc.borrow()
+                    .iter()
+                    .map(|(k, val)| (k.clone().into_value(), val.clone()))
+                    .collect(),
+                TypeAnnotation::Infer,
+                TypeAnnotation::Infer,
+            )),
+            _ => None,
+        }
+    }
+    fn is_valid_key(v: &Self::Value) -> bool {
+        crate::values::VmMapKey::from_value(v).is_some()
+    }
+    fn keys_equal(a: &Self::Value, b: &Self::Value) -> bool {
+        match (
+            crate::values::VmMapKey::from_value(a),
+            crate::values::VmMapKey::from_value(b),
+        ) {
+            (Some(x), Some(y)) => x == y,
+            _ => false,
+        }
+    }
+    fn values_equal(a: &Self::Value, b: &Self::Value) -> bool {
+        a == b
+    }
+
+    fn set_insert(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow_mut().insert(key))
+            }
+            _ => None,
+        }
+    }
+    fn set_remove(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_contains(v: &Self::Value, item: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Set(items) => {
+                let key = VmMapKey::from_value(item)?;
+                Some(items.borrow().contains(&key))
+            }
+            _ => None,
+        }
+    }
+    fn set_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            VmValue::Set(items) => Some(items.borrow().len()),
+            _ => None,
+        }
+    }
+    fn set_element_type(v: &Self::Value) -> Option<TypeAnnotation> {
+        match v {
+            VmValue::Set(_) => Some(TypeAnnotation::Infer),
+            _ => None,
+        }
+    }
+
+    fn map_insert(v: &Self::Value, key: &Self::Value, value: &Self::Value) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                if let Some(key) = VmMapKey::from_value(key) {
+                    entries.borrow_mut().insert(key, value.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_get(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow().get(&key).cloned())
+            }
+            _ => None,
+        }
+    }
+    fn map_remove(v: &Self::Value, key: &Self::Value) -> Option<Option<Self::Value>> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow_mut().remove(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_contains(v: &Self::Value, key: &Self::Value) -> Option<bool> {
+        match v {
+            VmValue::Map(entries) => {
+                let key = VmMapKey::from_value(key)?;
+                Some(entries.borrow().contains_key(&key))
+            }
+            _ => None,
+        }
+    }
+    fn map_len(v: &Self::Value) -> Option<usize> {
+        match v {
+            VmValue::Map(entries) => Some(entries.borrow().len()),
+            _ => None,
+        }
+    }
+    fn map_key_value_types(v: &Self::Value) -> Option<(TypeAnnotation, TypeAnnotation)> {
+        match v {
+            VmValue::Map(_) => Some((TypeAnnotation::Infer, TypeAnnotation::Infer)),
+            _ => None,
+        }
+    }
+    fn map_clear(v: &Self::Value) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                entries.borrow_mut().clear();
+                true
+            }
+            _ => false,
+        }
+    }
+    fn map_for_each<F: FnMut(Self::Value, Self::Value)>(v: &Self::Value, mut f: F) -> bool {
+        match v {
+            VmValue::Map(entries) => {
+                for (k, val) in entries.borrow().iter() {
+                    f(k.clone().into_value(), val.clone());
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn value_type(_v: &Self::Value) -> TypeAnnotation {
+        // The VM does not track element types, so it never performs the
+        // interpreter's container element-type checks.
+        TypeAnnotation::Infer
+    }
+    fn types_compatible(_actual: &TypeAnnotation, _expected: &TypeAnnotation) -> bool {
+        true
+    }
+
+    fn call_value(
+        cx: &mut Self::Cx,
+        callee: &Self::Value,
+        args: &[Self::Value],
+        _span: Self::Span,
+    ) -> Result<Self::Value, Error> {
+        cx.call_value(callee, args, rl_utils::span::Span::dummy())
+    }
+    fn callable_return_type(_v: &Self::Value) -> Option<TypeAnnotation> {
+        None
+    }
+
+    fn rng(cx: &mut Self::Cx) -> &mut rl_std_core::Xoshiro256 {
+        &mut cx.rng
+    }
+    fn output_buffer(cx: &mut Self::Cx) -> &mut Option<String> {
+        &mut cx.output_buffer
+    }
+    fn user_args_offset(cx: &Self::Cx) -> usize {
+        cx.user_args_offset
+    }
+    fn as_handle(v: &Self::Value, kind: rl_ast::statements::HandleKind) -> Option<u64> {
+        match v {
+            VmValue::Handle { kind: k, id } if *k == kind => Some(*id),
+            _ => None,
+        }
+    }
+    fn make_handle(kind: rl_ast::statements::HandleKind, id: u64) -> Self::Value {
+        VmValue::Handle { kind, id }
+    }
+}
+
+impl rl_std::net::NetStore for VmRuntime {
+    fn net_insert(cx: &mut Vm, h: rl_std::net::NetHandle) -> u64 {
+        let id = cx.net_next_handle;
+        cx.net_next_handle += 1;
+        cx.net_handles.insert(id, h);
+        id
+    }
+    fn net_get(cx: &Vm, id: u64) -> Option<&rl_std::net::NetHandle> {
+        cx.net_handles.get(&id)
+    }
+    fn net_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::net::NetHandle> {
+        cx.net_handles.get_mut(&id)
+    }
+    fn net_remove(cx: &mut Vm, id: u64) -> Option<rl_std::net::NetHandle> {
+        cx.net_handles.remove(&id)
+    }
+}
+
+impl rl_std::c::CStore for VmRuntime {
+    fn c_insert(cx: &mut Vm, h: rl_std::c::CHandle) -> u64 {
+        let id = cx.c_next_handle;
+        cx.c_next_handle += 1;
+        cx.c_handles.insert(id, h);
+        id
+    }
+    fn c_get(cx: &Vm, id: u64) -> Option<&rl_std::c::CHandle> {
+        cx.c_handles.get(&id)
+    }
+    fn c_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::c::CHandle> {
+        cx.c_handles.get_mut(&id)
+    }
+    fn c_remove(cx: &mut Vm, id: u64) -> Option<rl_std::c::CHandle> {
+        cx.c_handles.remove(&id)
+    }
+}
+
+impl rl_std::http::HttpStore for VmRuntime {
+    fn http_insert(cx: &mut Vm, h: rl_std::http::HttpHandle) -> u64 {
+        let id = cx.http_next_handle;
+        cx.http_next_handle += 1;
+        cx.http_handles.insert(id, h);
+        id
+    }
+    fn http_get(cx: &Vm, id: u64) -> Option<&rl_std::http::HttpHandle> {
+        cx.http_handles.get(&id)
+    }
+    fn http_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::http::HttpHandle> {
+        cx.http_handles.get_mut(&id)
+    }
+    fn http_remove(cx: &mut Vm, id: u64) -> Option<rl_std::http::HttpHandle> {
+        cx.http_handles.remove(&id)
+    }
+}
+
+impl rl_std::audio::AudioStore for VmRuntime {
+    fn audio_insert(cx: &mut Vm, h: rl_std::audio::AudioHandle) -> u64 {
+        let id = cx.audio_next_handle;
+        cx.audio_next_handle += 1;
+        cx.audio_handles.insert(id, h);
+        id
+    }
+    fn audio_get(cx: &Vm, id: u64) -> Option<&rl_std::audio::AudioHandle> {
+        cx.audio_handles.get(&id)
+    }
+    fn audio_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::audio::AudioHandle> {
+        cx.audio_handles.get_mut(&id)
+    }
+    fn audio_remove(cx: &mut Vm, id: u64) -> Option<rl_std::audio::AudioHandle> {
+        cx.audio_handles.remove(&id)
+    }
+    fn audio_output_device(cx: &mut Vm) -> &mut Option<String> {
+        &mut cx.audio_output_device
+    }
+    fn audio_master_volume(cx: &mut Vm) -> &mut f32 {
+        &mut cx.audio_master_volume
+    }
+    fn audio_handles_values<'a>(
+        cx: &'a Vm,
+    ) -> Box<dyn Iterator<Item = &'a rl_std::audio::AudioHandle> + 'a> {
+        Box::new(cx.audio_handles.values())
+    }
+}
+
+impl rl_std::gui::GuiStore for VmRuntime {
+    fn gui_handles(cx: &mut Vm) -> &mut std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
+        &mut cx.gui_handles
+    }
+    fn gui_handles_ref(cx: &Vm) -> &std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
+        &cx.gui_handles
+    }
+    fn gui_next_handle(cx: &mut Vm) -> &mut u64 {
+        &mut cx.gui_next_handle
+    }
+    fn gui_quit_requested(cx: &mut Vm) -> &mut bool {
+        &mut cx.gui_quit_requested
+    }
+}

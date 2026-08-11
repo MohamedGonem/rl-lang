@@ -49,9 +49,8 @@ fn levenshtein(a: &str, b: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::levenshtein;
     use super::closest_match;
-
+    use super::levenshtein;
 
     #[test]
     fn test_levenshtein() {
@@ -65,7 +64,10 @@ mod tests {
     fn test_closest_match() {
         let target = "println(\"foo\"";
         let correct_closest_match = "println(\"foo\")";
-        assert_eq!(closest_match(target, [correct_closest_match, "alice", "bob"]), Some(correct_closest_match));
+        assert_eq!(
+            closest_match(target, [correct_closest_match, "alice", "bob"]),
+            Some(correct_closest_match)
+        );
         assert_eq!(closest_match(target, ["alice", "bob", "charlie"]), None);
     }
 }

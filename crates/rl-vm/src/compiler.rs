@@ -465,9 +465,20 @@ impl<'a> Compiler<'a> {
                 }));
                 let slot = self.next_slot;
                 self.next_slot += 1;
-                self.emit_const(func, span);
+                let func_idx = self.chunk.add_constant(func);
+                self.chunk.write_op(OpCode::Const, span);
+                self.chunk.write_u16(func_idx, span);
                 self.chunk.write_op(OpCode::DefineLocal, span);
                 self.chunk.write_u16(slot, span);
+                // Register the function as a method-call fallback so
+                // `value.name(...)` calls it with the receiver as its first
+                // argument (mirrors the interpreter's `fn_names`).
+                let key_idx = self
+                    .chunk
+                    .add_constant(VmValue::Str(Rc::from(name.as_str())));
+                self.chunk.write_op(OpCode::RegisterUserMethod, span);
+                self.chunk.write_u16(key_idx, span);
+                self.chunk.write_u16(func_idx, span);
                 Ok(())
             }
 
@@ -501,7 +512,18 @@ impl<'a> Compiler<'a> {
                     .collect::<Result<_, CompileError>>()?;
 
                 for (name, f) in names.iter().zip(fns) {
-                    self.stdlib.functions.insert(name.clone(), f);
+                    self.stdlib.functions.insert(name.clone(), f.clone());
+                    // Register the import as a method-call fallback so
+                    // `value.name(...)` calls it with the receiver as its
+                    // first argument (mirrors the interpreter's `call_path`
+                    // stdlib step).
+                    let key_idx = self
+                        .chunk
+                        .add_constant(VmValue::Str(Rc::from(name.as_str())));
+                    let value_idx = self.chunk.add_constant(VmValue::Native(f));
+                    self.chunk.write_op(OpCode::RegisterStdlibMethod, span);
+                    self.chunk.write_u16(key_idx, span);
+                    self.chunk.write_u16(value_idx, span);
                 }
 
                 Ok(())
@@ -673,6 +695,11 @@ impl<'a> Compiler<'a> {
                 operator,
                 right,
             } => {
+                match operator {
+                    TokenType::And => return self.compile_logical(*left, *right, span, true),
+                    TokenType::Or => return self.compile_logical(*left, *right, span, false),
+                    _ => {}
+                }
                 self.compile_expr(*left)?;
                 self.compile_expr(*right)?;
                 let op = match operator {
@@ -760,12 +787,18 @@ impl<'a> Compiler<'a> {
                 method,
                 args,
             } => {
-                if method.len() != 1 {
-                    return Err(self.err(
-                        "namespaced method calls (`value.module::method(...)`) are not yet \
-                         supported by the vm compiler",
-                        span,
-                    ));
+                if method.len() > 1 {
+                    let native = self.stdlib.resolve(method).ok_or_else(|| {
+                        self.err(format!("undefined function {}", method.join("::")), span)
+                    })?;
+                    self.emit_const(VmValue::Native(native), span); // callee
+                    self.compile_expr(*caller)?; // receiver = arg 1
+                    for arg in args {
+                        self.compile_expr(*arg)?;
+                    }
+                    self.chunk.write_op(OpCode::Call, span);
+                    self.chunk.write_u16((args.len() + 1) as u16, span);
+                    return Ok(());
                 }
                 // Instance method dispatch, e.g. `point.magnitude()`. The
                 // record type is only known at runtime, so the caller is
@@ -965,10 +998,9 @@ impl<'a> Compiler<'a> {
                     TypeAnnotation::BByte => CastTarget::BBYTE,
                     TypeAnnotation::BSByte => CastTarget::BSBYTE,
                     other => {
-                        return Err(self.err(
-                            format!("unsupported cast target type {other:?}"),
-                            span,
-                        ));
+                        return Err(
+                            self.err(format!("unsupported cast target type {other:?}"), span)
+                        );
                     }
                 };
                 self.chunk.write_op(OpCode::Cast, span);
@@ -1069,14 +1101,13 @@ impl<'a> Compiler<'a> {
         arms: &[(MatchPattern, Vec<Statement>)],
         span: Span,
     ) -> Result<(), CompileError> {
-        self.chunk.write_op(OpCode::PushScope, span);
-        self.scope_bases.push(self.next_slot);
+        let slot = self.next_slot;
+        self.next_slot += 1;
+        let vslot = slot;
+        let is_global = self.scope_bases.is_empty();
 
         self.compile_expr(value)?;
-        let _slot = self.next_slot;
-        self.next_slot += 1;
-        self.chunk.write_op(OpCode::DefineLocal, span);
-        self.chunk.write_u16(_slot, span);
+        self.emit_define_slot(vslot, span);
 
         let mut end_jumps = Vec::new();
         for (pattern, body) in arms {
@@ -1084,8 +1115,7 @@ impl<'a> Compiler<'a> {
                 MatchPattern::Wildcard => None,
                 MatchPattern::Literal(expr) => {
                     self.compile_expr(*expr)?;
-                    self.chunk.write_op(OpCode::GetLocal, span);
-                    self.chunk.write_u16(_slot, span);
+                    self.emit_get_slot(vslot, is_global, span);
                     self.chunk.write_op(OpCode::Eq, span);
                     Some(self.emit_jump(OpCode::JumpIfFalse, span))
                 }
@@ -1103,8 +1133,7 @@ impl<'a> Compiler<'a> {
             self.patch_jump(j);
         }
 
-        self.chunk.write_op(OpCode::PopScope, span);
-        self.next_slot = self.scope_bases.pop().unwrap();
+        self.next_slot = slot;
         Ok(())
     }
 
@@ -1181,6 +1210,37 @@ impl<'a> Compiler<'a> {
         self.chunk.write_op(OpCode::Index, span);
         self.emit_define_slot(base, span);
 
+        Ok(())
+    }
+
+    fn compile_logical(
+        &mut self,
+        left: ExprId,
+        right: ExprId,
+        span: Span,
+        is_and: bool,
+    ) -> Result<(), CompileError> {
+        self.compile_expr(left)?;
+        let branch = self.emit_jump(OpCode::JumpIfFalse, span);
+
+        if is_and {
+            self.compile_expr(right)?;
+            self.emit_const(VmValue::Bool(true), span);
+            self.chunk.write_op(OpCode::Eq, span);
+        } else {
+            self.emit_const(VmValue::Bool(true), span);
+        }
+        let end = self.emit_jump(OpCode::Jump, span);
+
+        self.patch_jump(branch);
+        if is_and {
+            self.emit_const(VmValue::Bool(false), span);
+        } else {
+            self.compile_expr(right)?;
+            self.emit_const(VmValue::Bool(true), span);
+            self.chunk.write_op(OpCode::Eq, span);
+        }
+        self.patch_jump(end);
         Ok(())
     }
 

@@ -5,7 +5,6 @@ fn array_type_mismatch_is_error() {
     assert!(eval_program(r#"dec arr[int] x = ["not an int"]"#).is_err());
 }
 
-
 #[test]
 fn array_out_of_bounds_is_error() {
     assert!(

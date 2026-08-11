@@ -33,7 +33,7 @@ log = { workspace = true, optional = true }
 env_logger = { workspace = true, optional = true }
 
 [features]
-default = ["repl", "treewalker", "vm", "docs", "docs-tui"]
+default = ["repl", "vm", "docs", "docs-tui"]
 run = []
 treewalker = ["rl-repl/treewalker"]
 vm = ["rl-repl/vm"]

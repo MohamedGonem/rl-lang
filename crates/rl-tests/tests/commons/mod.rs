@@ -188,6 +188,14 @@ fn array_arr_push_takes_array_t_and_t_returns_result_array_t() {
 }
 
 #[test]
+fn array_len_resolves_as_an_untyped_legacy_function() {
+    let tree = stdlib_names();
+    let path = vec!["std".to_string(), "array".to_string(), "len".to_string()];
+    let f = tree.resolve(&path).expect("array len should resolve");
+    assert!(f.signatures.is_empty());
+}
+
+#[test]
 fn array_arr_max_has_int_and_float_overloads_only() {
     let tree = stdlib_names();
     let path = vec!["array".to_string(), "arr_max".to_string()];

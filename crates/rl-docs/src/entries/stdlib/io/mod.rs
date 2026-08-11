@@ -3,6 +3,7 @@ use crate::entry::{FnEntry, StdEntry};
 mod append_file;
 mod delete_file;
 mod eprint;
+mod eprintln;
 mod print;
 mod println;
 mod read;
@@ -22,19 +23,20 @@ pub static IO: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
-    &read::READ,
-    &read::READ_PROMPT,
-    &read_int::READ_INT,
-    &read_int::READ_INT_PROMPT,
-    &read_float::READ_FLOAT,
-    &read_float::READ_FLOAT_PROMPT,
     &append_file::APPEND_FILE,
     &delete_file::DELETE_FILE,
-    &read_file::READ_FILE,
-    &read_lines::READ_LINES,
-    &read_bytes::READ_BYTES,
-    &write_file::WRITE_FILE,
+    &eprint::EPRINT,
+    &eprintln::EPRINTLN,
     &print::PRINT,
     &println::PRINTLN,
-    &eprint::EPRINT,
+    &read::READ,
+    &read::READ_PROMPT,
+    &read_bytes::READ_BYTES,
+    &read_file::READ_FILE,
+    &read_float::READ_FLOAT,
+    &read_float::READ_FLOAT_PROMPT,
+    &read_int::READ_INT,
+    &read_int::READ_INT_PROMPT,
+    &read_lines::READ_LINES,
+    &write_file::WRITE_FILE,
 ];

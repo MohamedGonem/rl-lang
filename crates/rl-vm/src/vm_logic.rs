@@ -2,9 +2,10 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::VmNative;
 use crate::chunk::{Chunk, OpCode};
-use crate::stdlib::gui::GuiHandle;
 use crate::values::{RecordFields, VmFunction, VmMapKey, VmValue};
+use rl_std::gui::GuiHandle;
 use rl_utils::errors::{Error, Reason};
 use rl_utils::line_index::LineIndex;
 use rl_utils::source::SourceFile;
@@ -113,15 +114,26 @@ pub struct Vm {
     /// functions, `Record::method(...)`) and `OpCode::LookupMethod`
     /// (instance methods, `value.method(...)`).
     impl_methods: HashMap<String, Rc<VmFunction>>,
+    /// stdlib functions imported via `get x from std::module`, keyed by
+    /// name. Populated by `OpCode::RegisterStdlibMethod` (emitted per
+    /// import) and consulted by `OpCode::LookupMethod` as the
+    /// free-function fallback for `value.method(...)` on non-record
+    /// receivers - mirroring the interpreter's `call_path` stdlib step.
+    stdlib_methods: HashMap<String, VmNative>,
+    /// named user functions, keyed by name. Populated by
+    /// `OpCode::RegisterUserMethod` (emitted per function declaration) and
+    /// consulted by `OpCode::LookupMethod` after the stdlib fallback -
+    /// mirroring the interpreter's `fn_names`.
+    user_methods: HashMap<String, Rc<VmFunction>>,
     /// Side-table of native C-interop resources (`std::c`), keyed by handle
     /// id. `pub(crate)` (unlike every field above) because, unlike every
     /// other native function so far, `std::c`'s functions need persistent
     /// state across calls, not just their own arguments - see `stdlib::c`.
-    pub(crate) c_handles: HashMap<u64, crate::stdlib::c::CHandle>,
+    pub(crate) c_handles: HashMap<u64, rl_std::c::CHandle>,
     /// Next handle id to hand out for `std::c` resources; only ever increments.
     pub(crate) c_next_handle: u64,
     /// Side-table of native audio-playback resources (`std::audio`), keyed by handle id.
-    pub(crate) audio_handles: HashMap<u64, crate::stdlib::audio::AudioHandle>,
+    pub(crate) audio_handles: HashMap<u64, rl_std::audio::AudioHandle>,
     /// Next handle id to hand out for `std::audio` resources; only ever increments.
     pub(crate) audio_next_handle: u64,
     /// Output device selected via `std::audio::set_output_device`, if any;
@@ -131,7 +143,7 @@ pub struct Vm {
     /// on top of each sound's own `sound_set_volume` value. Defaults to `1.0`.
     pub(crate) audio_master_volume: f32,
     /// Side-table of native GUI resources (`std::gui`), keyed by handle id.
-    pub(crate) gui_handles: HashMap<u64, GuiHandle>,
+    pub(crate) gui_handles: HashMap<u64, GuiHandle<VmValue>>,
     /// Next handle id to hand out for `std::gui` resources; only ever increments.
     pub(crate) gui_next_handle: u64,
     /// Set by `gui_quit`; checked by `gui_run`'s frame loop after that frame's
@@ -139,15 +151,15 @@ pub struct Vm {
     /// of being torn down mid-callback.
     pub(crate) gui_quit_requested: bool,
     /// Side-table of native TCP/UDP resources (`std::net`), keyed by handle id.
-    pub(crate) net_handles: HashMap<u64, crate::stdlib::net::NetHandle>,
+    pub(crate) net_handles: HashMap<u64, rl_std::net::NetHandle>,
     /// Next handle id to hand out for `std::net` resources; only ever increments.
     pub(crate) net_next_handle: u64,
     /// Side-table of native HTTP resources (`std::http`), keyed by handle id.
-    pub(crate) http_handles: HashMap<u64, crate::stdlib::http::HttpHandle>,
+    pub(crate) http_handles: HashMap<u64, rl_std::http::HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
     pub(crate) http_next_handle: u64,
     /// PRNG state for `std::random`, seeded from the system clock at startup.
-    pub(crate) rng: crate::stdlib::random::xoshiro::Xoshiro256,
+    pub(crate) rng: rl_std_core::Xoshiro256,
     /// Number of leading `std::env::args()` entries to skip when reporting
     /// `std::process::args()` (defaults to 1 - the program name itself).
     pub user_args_offset: usize,
@@ -169,6 +181,8 @@ impl Vm {
             source: None,
             line_index: None,
             impl_methods: HashMap::new(),
+            stdlib_methods: HashMap::new(),
+            user_methods: HashMap::new(),
             c_handles: HashMap::new(),
             c_next_handle: 1,
             audio_handles: HashMap::new(),
@@ -311,14 +325,14 @@ impl Vm {
     /// invocation). Binds the arguments into a fresh scope and pushes a
     /// single call frame for user functions and closures; runs native
     /// functions inline.
-    fn invoke_callable(
-        &mut self,
-        callee: &VmValue,
-        args: &[VmValue],
-    ) -> Result<VmValue, VmError> {
+    fn invoke_callable(&mut self, callee: &VmValue, args: &[VmValue]) -> Result<VmValue, VmError> {
         match callee {
             VmValue::Native(native) => {
-                (native.func)(self, args.to_vec()).map_err(|e| self.annotate(e))
+                let result = match native {
+                    crate::values::VmNative::Std(h) => (h.thunk)(self, args.to_vec(), ()),
+                    crate::values::VmNative::Legacy(f) => (f.func)(self, args.to_vec()),
+                };
+                result.map_err(|e| self.annotate(e))
             }
             VmValue::Function(func) => {
                 if args.len() != func.arity {
@@ -661,8 +675,11 @@ impl Vm {
                             call_args.reverse();
                             self.pop()?; // discard the callee itself
 
-                            let result =
-                                (native.func)(self, call_args).map_err(|e| self.annotate(e))?;
+                            let result = match native {
+                                crate::values::VmNative::Std(h) => (h.thunk)(self, call_args, ()),
+                                crate::values::VmNative::Legacy(f) => (f.func)(self, call_args),
+                            }
+                            .map_err(|e| self.annotate(e))?;
                             self.stack.push(result);
                         }
 
@@ -951,6 +968,38 @@ impl Vm {
                     self.impl_methods.insert(key.to_string(), func);
                 }
 
+                OpCode::RegisterStdlibMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let value_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Native(native) = chunk!().constants[value_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: stdlib fallback is not a native"));
+                    };
+                    self.stdlib_methods.insert(key.to_string(), native);
+                }
+
+                OpCode::RegisterUserMethod => {
+                    let key_idx = read_u16!() as usize;
+                    ip += 2;
+                    let func_idx = read_u16!() as usize;
+                    ip += 2;
+
+                    let VmValue::Str(key) = chunk!().constants[key_idx].clone() else {
+                        return Err(self.err("corrupt bytecode: method key is not a string"));
+                    };
+                    let VmValue::Function(func) = chunk!().constants[func_idx].clone() else {
+                        return Err(
+                            self.err("corrupt bytecode: user method body is not a function")
+                        );
+                    };
+                    self.user_methods.insert(key.to_string(), func);
+                }
+
                 OpCode::LookupAssoc => {
                     let key_idx = read_u16!() as usize;
                     ip += 2;
@@ -976,19 +1025,51 @@ impl Vm {
                     let caller = self
                         .stack
                         .last()
-                        .ok_or_else(|| self.err("stack underflow on method call"))?;
-                    let VmValue::Record { name, .. } = caller else {
-                        return Err(self.err(format!(
-                            "cannot call method `{method}` on {}",
-                            caller.type_name()
-                        )));
-                    };
-                    let key = format!("{name}::{method}");
-                    let func = self.impl_methods.get(&key).cloned().ok_or_else(|| {
-                        self.err(format!("record `{name}` has no method `{method}`"))
-                    })?;
+                        .ok_or_else(|| self.err("stack underflow on method call"))?
+                        .clone();
                     let insert_pos = self.stack.len() - 1;
-                    self.stack.insert(insert_pos, VmValue::Function(func));
+
+                    // Dispatch order mirrors the interpreter's `MethodCall`
+                    // handler (`evaluator.rs`): a record's `impl` method wins,
+                    // then the method name is resolved as a free function with
+                    // the receiver as its first argument - imported stdlib
+                    // functions first, then named user functions.
+                    let resolved: Option<VmValue> = match &caller {
+                        VmValue::Record { name, .. } => self
+                            .impl_methods
+                            .get(&format!("{name}::{method}"))
+                            .map(|func| VmValue::Function(func.clone())),
+                        _ => None,
+                    }
+                    .or_else(|| {
+                        self.stdlib_methods
+                            .get(&*method)
+                            .map(|n| VmValue::Native(n.clone()))
+                            .or_else(|| {
+                                self.user_methods
+                                    .get(&*method)
+                                    .map(|f| VmValue::Function(f.clone()))
+                            })
+                    });
+
+                    match resolved {
+                        Some(callee) => {
+                            self.stack.insert(insert_pos, callee);
+                        }
+                        None => match &caller {
+                            VmValue::Record { name, .. } => {
+                                return Err(
+                                    self.err(format!("record `{name}` has no method `{method}`"))
+                                );
+                            }
+                            other => {
+                                return Err(self.err(format!(
+                                    "cannot call method `{method}` on {}",
+                                    other.type_name()
+                                )));
+                            }
+                        },
+                    }
                 }
 
                 OpCode::Cast => {
@@ -1150,9 +1231,11 @@ impl Vm {
                 .ok_or_else(bad_cast)
                 .and_then(|n| u16::try_from(n).map(VmValue::BByte).map_err(|_| bad_cast())),
             // BSByte
-            7 => as_i128(&value)
-                .ok_or_else(bad_cast)
-                .and_then(|n| i16::try_from(n).map(VmValue::BSByte).map_err(|_| bad_cast())),
+            7 => as_i128(&value).ok_or_else(bad_cast).and_then(|n| {
+                i16::try_from(n)
+                    .map(VmValue::BSByte)
+                    .map_err(|_| bad_cast())
+            }),
             // Byte
             8 => as_i128(&value)
                 .ok_or_else(bad_cast)
@@ -1161,9 +1244,7 @@ impl Vm {
             9 => as_i128(&value)
                 .ok_or_else(bad_cast)
                 .and_then(|n| i8::try_from(n).map(VmValue::SByte).map_err(|_| bad_cast())),
-            other => Err(self.err(format!(
-                "corrupt bytecode: unknown cast target {other}"
-            ))),
+            other => Err(self.err(format!("corrupt bytecode: unknown cast target {other}"))),
         }
     }
 

@@ -201,8 +201,16 @@ pub const BASE_PROGRAMS: &[(&str, &str)] = &[
 /// workloads. Each fixture ends in a bare expression whose value is known,
 /// so these are strictly verified (asserted, not just smoke-run).
 pub const WORKLOAD_PROGRAMS: &[(&str, &str, rl_vm::VmValue)] = &[
-    ("recursion", SRC_PROGRAM_RECURSION, rl_vm::VmValue::Int(121393)),
-    ("string_build", SRC_PROGRAM_STRING_BUILD, rl_vm::VmValue::Int(300)),
+    (
+        "recursion",
+        SRC_PROGRAM_RECURSION,
+        rl_vm::VmValue::Int(121393),
+    ),
+    (
+        "string_build",
+        SRC_PROGRAM_STRING_BUILD,
+        rl_vm::VmValue::Int(300),
+    ),
     (
         "array_pipeline",
         SRC_PROGRAM_ARRAY_PIPELINE,
@@ -268,7 +276,9 @@ pub fn compile_resolved(program: &ResolvedProgram) -> Chunk {
 /// `stack`/`locals`, so each run needs its own VM).
 pub fn run_chunk(chunk: &Chunk) {
     let mut vm = Vm::new();
-    let _ = vm.run_and_return(chunk).expect("bench fixture failed to run");
+    let _ = vm
+        .run_and_return(chunk)
+        .expect("bench fixture failed to run");
 }
 
 /// Full resolve stage only (lex + parse + resolve).
@@ -283,7 +293,8 @@ pub fn interp_evaluate_only(text: &str) {
     let (ast, stmts) = Parser::parse(tokens, sf.clone()).expect("bench fixture failed to parse");
     let mut ev = Evaluator::default().with_stdlib().with_source_file(sf);
     let stmts = ev.resolver.resolve_program(ast, stmts);
-    ev.evaluate_program(&stmts).expect("bench fixture failed to evaluate");
+    ev.evaluate_program(&stmts)
+        .expect("bench fixture failed to evaluate");
 }
 
 // ===== self-validation =====
