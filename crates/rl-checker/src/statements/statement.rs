@@ -619,8 +619,42 @@ impl TypeChecker {
             StatementKind::ImportFileNamed { path, names } => {
                 self.import_module(path, Some(names), statement.span);
             }
-            StatementKind::Import { .. } => {}
+            StatementKind::Import { names, path } => {
+                let module_path = path.join("::");
+                let mut module = &self.root_module;
+                for seg in path {
+                    if seg == &module.name {
+                        continue;
+                    }
+                    let Some(next) = module.submodules.get(seg) else {
+                        self.error(
+                            format!("unknown module '{seg}' in 'std::{module_path}'"),
+                            statement.span,
+                        );
+                        return;
+                    };
+                    module = next;
+                }
 
+                let mut imported = Vec::new();
+                let mut missing = Vec::new();
+                for name in names {
+                    match module.functions.get(name) {
+                        Some(f) => imported.push((name, f.clone())),
+                        None => missing.push(name),
+                    }
+                }
+
+                for (name, f) in imported {
+                    self.imported_std_fns.insert(name.to_string(), f);
+                }
+                for name in missing {
+                    self.error(
+                        format!("'{name}' is not defined in 'std::{module_path}'"),
+                        statement.span,
+                    );
+                }
+            }
             StatementKind::DestructureDeclaration { bindings, value } => {
                 let value_type = self.check_expression(*value);
                 let tuple_types = match &value_type {
