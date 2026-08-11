@@ -695,6 +695,11 @@ impl<'a> Compiler<'a> {
                 operator,
                 right,
             } => {
+                match operator {
+                    TokenType::And => return self.compile_logical(*left, *right, span, true),
+                    TokenType::Or => return self.compile_logical(*left, *right, span, false),
+                    _ => {}
+                }
                 self.compile_expr(*left)?;
                 self.compile_expr(*right)?;
                 let op = match operator {
@@ -708,8 +713,6 @@ impl<'a> Compiler<'a> {
                     TokenType::LessEqual => OpCode::LessEq,
                     TokenType::Greater => OpCode::Greater,
                     TokenType::GreaterEqual => OpCode::GreaterEq,
-                    TokenType::And => return self.compile_logical(*left, *right, span, true),
-                    TokenType::Or => return self.compile_logical(*left, *right, span, false),
                     other => {
                         return Err(self.err(
                             format!("unsupported binary operator in vm compiler: {other:?}"),
