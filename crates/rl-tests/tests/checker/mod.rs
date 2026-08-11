@@ -5,3 +5,5 @@ mod declarations;
 mod functions;
 mod imports;
 mod ops;
+mod records;
+mod tags;
