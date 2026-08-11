@@ -1,46 +1,41 @@
-use crate::common::checker_messages;
+use crate::checker::common::{assert_checker_clean, assert_checker_msg};
 
 #[test]
 fn unimported_bare_call_errors() {
-    let msgs = checker_messages(r#"println("hello")"#);
-    assert!(
-        msgs.iter().any(|m| m.contains("import")),
-        "expected an 'import it before use' error, got: {msgs:?}"
-    );
+    assert_checker_msg(r#"println("hello")"#, "import it before use");
 }
 
 #[test]
 fn imported_bare_call_passes() {
-    let msgs = checker_messages("get println from std::io\nprintln(\"hello\")");
-    assert!(msgs.is_empty(), "expected no errors, got: {msgs:?}");
+    assert_checker_clean("get println from std::io\nprintln(\"hello\")");
 }
 
 #[test]
 fn fully_qualified_path_passes_without_import() {
-    let msgs = checker_messages(r#"std::io::println("hello")"#);
-    assert!(msgs.is_empty(), "expected no errors, got: {msgs:?}");
+    assert_checker_clean(r#"std::io::println("hello")"#);
 }
 
 #[test]
 fn import_unknown_module_errors() {
-    let msgs = checker_messages("get x from std::nope");
-    assert!(
-        msgs.iter().any(|m| m.contains("unknown module")),
-        "expected an 'unknown module' error, got: {msgs:?}"
-    );
+    assert_checker_msg("get x from std::nope", "unknown module");
 }
 
 #[test]
 fn import_unknown_name_errors() {
-    let msgs = checker_messages("get nope from std::io");
-    assert!(
-        msgs.iter().any(|m| m.contains("not defined")),
-        "expected a 'not defined' error, got: {msgs:?}"
-    );
+    assert_checker_msg("get nope from std::io", "not defined");
 }
 
 #[test]
 fn user_function_shadows_unimported_stdlib_bare_call() {
-    let msgs = checker_messages("fn println(string s) {\n}\nprintln(\"hello\")");
-    assert!(msgs.is_empty(), "expected no errors, got: {msgs:?}");
+    assert_checker_clean("fn println(string s) {\n}\nprintln(\"hello\")");
+}
+
+#[test]
+fn nested_module_import_passes() {
+    assert_checker_clean("get is_inf from std::math::consts");
+}
+
+#[test]
+fn fully_qualified_nested_path_passes() {
+    assert_checker_clean("std::math::consts::is_inf(1.0)");
 }
