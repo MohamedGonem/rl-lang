@@ -107,3 +107,16 @@ fn calling_unknown_method_on_a_record_is_a_runtime_error() {
         err.message()
     );
 }
+
+#[test]
+fn namespaced_stdlib_method_call() {
+    // `x.std::module::fn()` resolves the stdlib path without an `import`
+    let result = common::compile_and_run(
+        r#"
+        dec string s = "Hello"
+        s.std::str::to_lower()
+        "#,
+    )
+    .expect("vm run failed");
+    assert_eq!(result, VmValue::Str(std::rc::Rc::from("hello")));
+}
