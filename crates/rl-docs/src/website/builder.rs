@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use crate::{entry::{ConceptEntry, StdEntry}, website::helpers::{html_escape, page, render_description_entry, render_fn_entry, render_related, slugify}};
 
 const STYLE_CSS: &str = include_str!("../../assets/style.css");
-const RL_HIGHLIGHT_JS: &str = include_str!("../../../rl-tooling/assets/rl-highlight.js");
+const RL_HIGHLIGHT_JS: &str = include_str!("../../assets/rl-highlight.js");
 
 pub struct SiteBuilder<'a> {
     out_dir: PathBuf,
