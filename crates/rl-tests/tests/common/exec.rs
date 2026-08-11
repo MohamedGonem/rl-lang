@@ -1,5 +1,6 @@
 use rl_ast::Ast;
 use rl_ast::statements::Statement;
+use rl_checker::TypeChecker;
 use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokentypes::Token;
 use rl_utils::{errors::Error, source::SourceFile};
@@ -35,4 +36,14 @@ pub fn compile_and_run(source: &str) -> Result<rl_vm::VmValue, rl_vm::VmError> {
         .compile(&stmts)
         .expect("compile failed");
     rl_vm::Vm::new().run_and_return(&chunk)
+}
+
+pub fn checker_messages(source: &str) -> Vec<String> {
+    let (ast, stmts) = parse(source);
+    let mut checker = TypeChecker::new().with_ast_arena(ast);
+    checker
+        .check(&stmts)
+        .iter()
+        .map(|e| e.message().to_string())
+        .collect()
 }
