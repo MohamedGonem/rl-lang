@@ -787,12 +787,18 @@ impl<'a> Compiler<'a> {
                 method,
                 args,
             } => {
-                if method.len() != 1 {
-                    return Err(self.err(
-                        "namespaced method calls (`value.module::method(...)`) are not yet \
-                         supported by the vm compiler",
-                        span,
-                    ));
+                if method.len() > 1 {
+                    let native = self.stdlib.resolve(method).ok_or_else(|| {
+                        self.err(format!("undefined function {}", method.join("::")), span)
+                    })?;
+                    self.emit_const(VmValue::Native(native), span); // callee
+                    self.compile_expr(*caller)?; // receiver = arg 1
+                    for arg in args {
+                        self.compile_expr(*arg)?;
+                    }
+                    self.chunk.write_op(OpCode::Call, span);
+                    self.chunk.write_u16((args.len() + 1) as u16, span);
+                    return Ok(());
                 }
                 // Instance method dispatch, e.g. `point.magnitude()`. The
                 // record type is only known at runtime, so the caller is
