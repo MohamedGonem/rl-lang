@@ -29,3 +29,13 @@ fn import_unknown_name_errors() {
 fn user_function_shadows_unimported_stdlib_bare_call() {
     assert_checker_clean("fn println(string s) {\n}\nprintln(\"hello\")");
 }
+
+#[test]
+fn nested_module_import_passes() {
+    assert_checker_clean("get is_inf from std::math::consts");
+}
+
+#[test]
+fn fully_qualified_nested_path_passes() {
+    assert_checker_clean("std::math::consts::is_inf(1.0)");
+}
