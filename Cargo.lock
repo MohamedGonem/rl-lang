@@ -3912,6 +3912,7 @@ name = "rl-tests"
 version = "1.0.0"
 dependencies = [
  "rl-ast",
+ "rl-checker",
  "rl-commons",
  "rl-interpreter",
  "rl-lexer",
