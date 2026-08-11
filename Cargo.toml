@@ -24,29 +24,29 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rl-lang/rl-lang"
 
 [workspace.dependencies]
-rl-commons = { path = "crates/rl-commons", version = "1.0.0" }
-rl-std-core = { path = "crates/rl-std-core", version = "1.0.0" }
-rl-std-macros = { path = "crates/rl-std-macros", version = "1.0.0" }
-rl-std = { path = "crates/rl-std", version = "1.0.0" }
-rl-utils = { path = "crates/rl-utils", version = "1.0.0" }
-rl-lexer = { path = "crates/rl-lexer", version = "1.0.0" }
-rl-ast = { path = "crates/rl-ast", version = "1.0.0" }
-rl-parser = { path = "crates/rl-parser", version = "1.0.0" }
-rl-resolver = { path = "crates/rl-resolver", version = "1.0.0" }
-rl-vm = { path = "crates/rl-vm", version = "1.0.0" }
-rl-cranelift = { path = "crates/rl-cranelift", version = "1.0.0" }
-rl-interpreter = { path = "crates/rl-interpreter", version = "1.0.0" }
-rl-checker = { path = "crates/rl-checker", version = "1.0.0" }
-rl-docs = { path = "crates/rl-docs", version = "1.0.0" }
-rl-tooling = { path = "crates/rl-tooling", version = "1.0.0" }
-rl-repl = { path = "crates/rl-repl", version = "1.0.0", default-features = false }
-rl-lsp = { path = "crates/rl-lsp", version = "1.0.0" }
+rl-commons = { path = "crates/rl-commons" }
+rl-std-core = { path = "crates/rl-std-core" }
+rl-std-macros = { path = "crates/rl-std-macros" }
+rl-std = { path = "crates/rl-std" }
+rl-utils = { path = "crates/rl-utils" }
+rl-lexer = { path = "crates/rl-lexer" }
+rl-ast = { path = "crates/rl-ast" }
+rl-parser = { path = "crates/rl-parser" }
+rl-resolver = { path = "crates/rl-resolver" }
+rl-vm = { path = "crates/rl-vm" }
+rl-cranelift = { path = "crates/rl-cranelift" }
+rl-interpreter = { path = "crates/rl-interpreter" }
+rl-checker = { path = "crates/rl-checker" }
+rl-docs = { path = "crates/rl-docs" }
+rl-tooling = { path = "crates/rl-tooling" }
+rl-repl = { path = "crates/rl-repl", default-features = false }
+rl-lsp = { path = "crates/rl-lsp" }
 
 criterion = { version = "0.5", features = ["html_reports"] }
 syn = { version = "2", features = ["full"] }
