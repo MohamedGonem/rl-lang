@@ -2,15 +2,30 @@ name: Release
 
 on:
   push:
-    branches: ["main"]
     tags: ["v*"]
 
 permissions:
   contents: read
 
 jobs:
+  verify:
+    name: Verify tag is on main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refuse release for tags not on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not point to a commit on main - refusing to release"
+            exit 1
+          fi
+
   release:
     name: Release
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
