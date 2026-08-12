@@ -409,9 +409,9 @@ impl TypeChecker {
             ExpressionKind::Propagate(inner) => {
                 let inner_type = self.check_expression(inner);
                 match inner_type {
-                    CheckType::Known(TypeAnnotation::Result(inner_ty)) => {
-                        CheckType::Known(*inner_ty)
-                    }
+                    CheckType::Known(
+                        TypeAnnotation::Result(inner_ty) | TypeAnnotation::CResult(inner_ty),
+                    ) => CheckType::Known(*inner_ty),
                     CheckType::Unknown => CheckType::Unknown,
                     other => {
                         self.error(
