@@ -3708,7 +3708,7 @@ dependencies = [
 
 [[package]]
 name = "rl-ast"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-lexer",
  "rl-utils",
@@ -3716,7 +3716,7 @@ dependencies = [
 
 [[package]]
 name = "rl-benches"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "criterion",
  "rl-ast",
@@ -3730,7 +3730,7 @@ dependencies = [
 
 [[package]]
 name = "rl-checker"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-commons",
@@ -3742,7 +3742,7 @@ dependencies = [
 
 [[package]]
 name = "rl-cli"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -3767,7 +3767,7 @@ dependencies = [
 
 [[package]]
 name = "rl-commons"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-std",
@@ -3776,7 +3776,7 @@ dependencies = [
 
 [[package]]
 name = "rl-cranelift"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "cranelift-codegen",
  "cranelift-frontend",
@@ -3788,7 +3788,7 @@ dependencies = [
 
 [[package]]
 name = "rl-docs"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "crossterm",
  "ratatui",
@@ -3800,7 +3800,7 @@ dependencies = [
 
 [[package]]
 name = "rl-interpreter"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "log",
  "rl-ast",
@@ -3816,7 +3816,7 @@ dependencies = [
 
 [[package]]
 name = "rl-lexer"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "log",
  "rl-utils",
@@ -3824,7 +3824,7 @@ dependencies = [
 
 [[package]]
 name = "rl-lsp"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-checker",
  "rl-lexer",
@@ -3836,7 +3836,7 @@ dependencies = [
 
 [[package]]
 name = "rl-parser"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "log",
  "rl-ast",
@@ -3846,7 +3846,7 @@ dependencies = [
 
 [[package]]
 name = "rl-repl"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "crossterm",
  "ratatui",
@@ -3862,7 +3862,7 @@ dependencies = [
 
 [[package]]
 name = "rl-resolver"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-lexer",
@@ -3872,7 +3872,7 @@ dependencies = [
 
 [[package]]
 name = "rl-std"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "cpal",
  "crossterm",
@@ -3892,7 +3892,7 @@ dependencies = [
 
 [[package]]
 name = "rl-std-core"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-utils",
@@ -3900,7 +3900,7 @@ dependencies = [
 
 [[package]]
 name = "rl-std-macros"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3909,7 +3909,7 @@ dependencies = [
 
 [[package]]
 name = "rl-tests"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-checker",
@@ -3925,7 +3925,7 @@ dependencies = [
 
 [[package]]
 name = "rl-tooling"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-lexer",
  "serde",
@@ -3936,7 +3936,7 @@ dependencies = [
 
 [[package]]
 name = "rl-utils"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "ariadne",
  "log",
@@ -3944,7 +3944,7 @@ dependencies = [
 
 [[package]]
 name = "rl-vm"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "rl-ast",
  "rl-checker",
