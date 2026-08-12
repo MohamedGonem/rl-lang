@@ -16,7 +16,7 @@ on:
           - vm
           - compare
   push:
-    branches: [main]
+    tags: ["v*"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -29,17 +29,37 @@ jobs:
     name: Run benchmarks
     runs-on: ubuntu-latest
     steps:
+      - name: Check release type
+        id: release_type
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            TAG="${GITHUB_REF_NAME#v}"
+            CORE="${TAG%%-*}"
+            PATCH="${CORE##*.}"
+            if [ "$PATCH" = "0" ]; then
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "run=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.release_type.outputs.run == 'true'
 
       - name: Install ALSA dev headers
+        if: steps.release_type.outputs.run == 'true'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.release_type.outputs.run == 'true'
       - uses: Swatinem/rust-cache@v2
+        if: steps.release_type.outputs.run == 'true'
 
-      # `workflow_dispatch` selects a target; a push to main always runs all.
       - name: Select benchmark targets
         id: select
+        if: steps.release_type.outputs.run == 'true'
         run: |
           target="${{ github.event.inputs.bench || 'all' }}"
           if [ "$target" = "all" ]; then
@@ -49,10 +69,12 @@ jobs:
           fi
 
       - name: Run benchmarks
+        if: steps.release_type.outputs.run == 'true'
         run: |
           cargo bench -p rl-benches ${{ steps.select.outputs.args }}
 
       - name: Upload criterion report
+        if: steps.release_type.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: criterion-report
