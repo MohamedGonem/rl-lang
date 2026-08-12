@@ -374,7 +374,7 @@ impl TypeChecker {
                         expr_span,
                     );
                 }
-                CheckType::Unknown
+                CheckType::Known(target_type.clone())
             }
 
             ExpressionKind::TupleLiteral(items) => {
