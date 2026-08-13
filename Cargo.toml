@@ -8,7 +8,6 @@ members = [
     "crates/rl-resolver",
     "crates/rl-vm",
     "crates/rl-cranelift",
-    "crates/rl-interpreter",
     "crates/rl-checker",
     "crates/rl-docs",
     "crates/rl-tooling",
@@ -41,7 +40,6 @@ rl-parser = { path = "crates/rl-parser", version = "1.2.1" }
 rl-resolver = { path = "crates/rl-resolver", version = "1.2.1" }
 rl-vm = { path = "crates/rl-vm", version = "1.2.1" }
 rl-cranelift = { path = "crates/rl-cranelift", version = "1.2.1" }
-rl-interpreter = { path = "crates/rl-interpreter", version = "1.2.1" }
 rl-checker = { path = "crates/rl-checker", version = "1.2.1" }
 rl-docs = { path = "crates/rl-docs", version = "1.2.1" }
 rl-tooling = { path = "crates/rl-tooling", version = "1.2.1" }

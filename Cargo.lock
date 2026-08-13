@@ -3720,7 +3720,6 @@ version = "1.2.1"
 dependencies = [
  "criterion",
  "rl-ast",
- "rl-interpreter",
  "rl-lexer",
  "rl-parser",
  "rl-resolver",
@@ -3751,7 +3750,6 @@ dependencies = [
  "rl-checker",
  "rl-cranelift",
  "rl-docs",
- "rl-interpreter",
  "rl-lexer",
  "rl-lsp",
  "rl-parser",
@@ -3799,22 +3797,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rl-interpreter"
-version = "1.2.1"
-dependencies = [
- "log",
- "rl-ast",
- "rl-checker",
- "rl-commons",
- "rl-lexer",
- "rl-parser",
- "rl-resolver",
- "rl-std",
- "rl-std-core",
- "rl-utils",
-]
-
-[[package]]
 name = "rl-lexer"
 version = "1.2.1"
 dependencies = [
@@ -3852,7 +3834,6 @@ dependencies = [
  "ratatui",
  "rl-ast",
  "rl-docs",
- "rl-interpreter",
  "rl-lexer",
  "rl-parser",
  "rl-resolver",
@@ -3914,9 +3895,9 @@ dependencies = [
  "rl-ast",
  "rl-checker",
  "rl-commons",
- "rl-interpreter",
  "rl-lexer",
  "rl-parser",
+ "rl-resolver",
  "rl-tooling",
  "rl-utils",
  "rl-vm",
