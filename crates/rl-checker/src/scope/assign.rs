@@ -36,7 +36,8 @@ impl TypeChecker {
                         ));
                     }
 
-                    if let Some(msg) = unit_mismatch(name, &value.unit, &item.unit) {
+                    if let Some(msg) = unit_mismatch(name, &value.unit, &item.unit, &self.conversions)
+                    {
                         unit_error = Some(msg);
                     }
                 }
@@ -70,10 +71,12 @@ impl TypeChecker {
 ///   a value carrying a non-dimensionless unit is an error.
 /// - A binding with a declared unit accepts the same unit or a dimensionless
 ///   value (plain literals adopt the unit, F#-style).
+/// - Symbols registered as convertible via `#![convert(...)]` are acceptable.
 fn unit_mismatch(
     name: &str,
     value: &Option<Unit>,
     declared: &Option<Unit>,
+    conversions: &crate::units::ConversionTable,
 ) -> Option<String> {
     let value_unit = value.as_ref();
     let declared_unit = declared.as_ref();
@@ -86,11 +89,11 @@ fn unit_mismatch(
             v, name
         )),
         // both units present but incompatible
-        (Some(v), Some(d)) if !v.is_compatible_with(d) => {
+        (Some(v), Some(d)) if !v.is_compatible_with(d) && !v.is_convertible_to(d, conversions) => {
             Some(format!("unit mismatch: expected {}, got {}", d, v))
         }
-        // everything else is fine (value dimensionless, units equal, or the
-        // value carries no unit)
+        // everything else is fine (value dimensionless, units equal or
+        // convertible, or the value carries no unit)
         _ => None,
     }
 }

@@ -91,7 +91,7 @@ impl TypeChecker {
                     );
                 }
 
-                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit) {
+                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions) {
                     self.error(
                         format!("unit mismatch on declaration: {}", msg),
                         statement.span,
@@ -130,7 +130,7 @@ impl TypeChecker {
                     );
                 }
 
-                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit) {
+                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions) {
                     self.error(
                         format!("unit mismatch on declaration: {}", msg),
                         statement.span,
@@ -1042,10 +1042,11 @@ impl TypeChecker {
 fn declaration_unit_mismatch(
     declared: &Option<Unit>,
     value: &Option<Unit>,
+    conversions: &crate::units::ConversionTable,
 ) -> Option<String> {
     match (value.as_ref(), declared.as_ref()) {
         // declared unit present, value carries a non-dimensionless unit
-        (Some(v), Some(d)) if !v.is_compatible_with(d) => {
+        (Some(v), Some(d)) if !v.is_compatible_with(d) && !v.is_convertible_to(d, conversions) => {
             Some(format!("expected {}, got {}", d, v))
         }
         // no declared unit, value carries a non-dimensionless unit

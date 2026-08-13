@@ -8,6 +8,10 @@
 //! - `+` / `-` require compatible (or dimensionless) units
 //! - `*` / `/` combine units by adding / subtracting exponents
 //!
+//! Program-level `#![convert(symbol=factor(base))]` attributes register pairs
+//! of symbols as equivalent (see [`ConversionTable`]), so values carrying
+//! either unit can be mixed freely.
+//!
 //! Units are a compile-time-only concept and are discarded after the checker
 //! pass - they never reach the resolver, VM, or interpreter.
 
@@ -66,6 +70,31 @@ impl Unit {
         self == other || self.is_dimensionless() || other.is_dimensionless()
     }
 
+    /// Returns `true` if `self` and `other` describe the same dimensions once
+    /// `#![convert(...)]` declarations are taken into account.
+    ///
+    /// A `convert` declaration registers two symbols as equivalent, so `kg`
+    /// and `g` are convertible even though they are not equal. Symbol
+    /// equivalence is applied before the exponents are compared, so
+    /// `kg/m²` is convertible with `g/m²` but not with `g`.
+    pub fn is_convertible_to(&self, other: &Self, table: &ConversionTable) -> bool {
+        self == other || self.canonicalize(table) == other.canonicalize(table)
+    }
+
+    /// Rewrites every symbol through the conversion table, mapping each one
+    /// to its canonical representative.
+    ///
+    /// Symbols with no registered conversion map to themselves.
+    pub fn canonicalize(&self, table: &ConversionTable) -> Self {
+        let mut result = Self::dimensionless();
+
+        for (symbol, exponent) in &self.powers {
+            result.add_exponent(&table.canonical(symbol), *exponent);
+        }
+
+        result
+    }
+
     /// Multiplies two units by adding their exponents.
     ///
     /// `(m / s) * s = m`
@@ -116,6 +145,56 @@ impl Unit {
             self.powers.remove(symbol);
         } else {
             self.powers.insert(symbol.to_owned(), new_exponent);
+        }
+    }
+}
+
+/// Conversion registry built from `#![convert(symbol=factor(base))]` program
+/// attributes.
+///
+/// Each `convert` declaration registers the two symbols as equivalent, so
+/// values carrying either unit can be mixed freely.
+#[derive(Debug, Clone, Default)]
+pub struct ConversionTable {
+    /// `symbol -> (factor, base)` for each direct `convert(symbol=factor(base))`
+    /// declaration, e.g. `kg -> (1000.0, g)`.
+    factors: BTreeMap<String, (f64, String)>,
+    /// Union-find parents mapping each symbol to its canonical representative.
+    parents: BTreeMap<String, String>,
+}
+
+impl ConversionTable {
+    /// Registers `symbol` as equivalent to `base`: `1 symbol = factor * base`.
+    ///
+    /// Repeated declarations for the same symbol keep the first factor.
+    pub fn insert(&mut self, symbol: &str, factor: f64, base: &str) {
+        self.factors
+            .entry(symbol.to_owned())
+            .or_insert((factor, base.to_owned()));
+        self.union(symbol, base);
+    }
+
+    /// Returns the canonical representative of `symbol`, following the
+    /// registered `convert` chains. Unregistered symbols map to themselves.
+    pub fn canonical(&self, symbol: &str) -> String {
+        let mut root = symbol.to_owned();
+
+        while let Some(parent) = self.parents.get(&root) {
+            if parent == &root {
+                break;
+            }
+            root = parent.clone();
+        }
+
+        root
+    }
+
+    fn union(&mut self, left: &str, right: &str) {
+        let left_root = self.canonical(left);
+        let right_root = self.canonical(right);
+
+        if left_root != right_root {
+            self.parents.insert(right_root, left_root);
         }
     }
 }
@@ -266,5 +345,48 @@ mod tests {
                 .to_string(),
             "kg*m/s^2"
         );
+    }
+
+    #[test]
+    fn converts_units_through_registered_symbols() {
+        let mut table = ConversionTable::default();
+        table.insert("kg", 1000.0, "g");
+
+        assert!(Unit::symbol("kg").is_convertible_to(&Unit::symbol("g"), &table));
+        assert!(Unit::symbol("g").is_convertible_to(&Unit::symbol("kg"), &table));
+        assert!(!Unit::symbol("kg").is_convertible_to(&Unit::symbol("s"), &table));
+    }
+
+    #[test]
+    fn conversion_is_dimension_aware() {
+        let mut table = ConversionTable::default();
+        table.insert("km", 1000.0, "m");
+
+        let per_km = Unit::symbol("km").divide(&Unit::symbol("s"));
+        let per_m = Unit::symbol("m").divide(&Unit::symbol("s"));
+
+        assert!(per_km.is_convertible_to(&per_m, &table));
+        assert!(!per_km.is_convertible_to(&Unit::symbol("m"), &table));
+    }
+
+    #[test]
+    fn unknown_symbols_map_to_themselves() {
+        let table = ConversionTable::default();
+
+        assert_eq!(table.canonical("m"), "m");
+        assert_eq!(Unit::symbol("m").canonicalize(&table), Unit::symbol("m"));
+    }
+
+    #[test]
+    fn chains_of_conversions_resolve_to_a_single_root() {
+        let mut table = ConversionTable::default();
+        table.insert("kg", 1000.0, "g");
+        table.insert("t", 1000.0, "kg");
+
+        assert_eq!(table.canonical("g"), "t");
+        assert_eq!(table.canonical("kg"), "t");
+        assert_eq!(table.canonical("t"), "t");
+        assert!(Unit::symbol("g").is_convertible_to(&Unit::symbol("t"), &table));
+        assert!(Unit::symbol("kg").is_convertible_to(&Unit::symbol("g"), &table));
     }
 }

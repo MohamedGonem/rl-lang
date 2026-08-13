@@ -1,6 +1,6 @@
 //! Core data structures for the type checker.
 //!
-use crate::units::Unit;
+use crate::units::{ConversionTable, Unit};
 use rl_ast::{Ast, statements::TypeAnnotation};
 use rl_commons::ModuleNames;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
@@ -50,6 +50,9 @@ pub struct TypeChecker {
     /// record type as their first param, matching how `MethodCall` prepends
     /// the caller as arg 0.
     pub methods: HashMap<(String, String), CheckType>,
+    /// Conversion registry built from `#![convert(symbol=factor(base))]`
+    /// program attributes, used to treat convertible unit symbols as equal.
+    pub conversions: ConversionTable,
 }
 
 /// A single entry in a type checker scope.

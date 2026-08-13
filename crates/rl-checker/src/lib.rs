@@ -28,7 +28,7 @@ pub mod units;
 use crate::structs::CheckType;
 use rl_ast::{
     Ast,
-    statements::{Statement, StatementKind},
+    statements::{ProgramAttribute, Statement, StatementKind},
 };
 use rl_docs::find_fn_doc;
 use rl_utils::{
@@ -72,6 +72,7 @@ impl TypeChecker {
             records: HashMap::new(),
             tags: HashMap::new(),
             methods: HashMap::new(),
+            conversions: crate::units::ConversionTable::default(),
         }
     }
 
@@ -95,6 +96,14 @@ impl TypeChecker {
 
     // runs check on every ast statement in the list and returns errors as list
     pub fn check(&mut self, statements: &[Statement]) -> &[Error] {
+        for ProgramAttribute::Convert {
+            symbol,
+            factor,
+            base_symbol,
+        } in &self.ast_arena.program_attributes
+        {
+            self.conversions.insert(symbol, *factor, base_symbol);
+        }
         for statement in statements {
             if let StatementKind::FunctionDeclaration {
                 name,

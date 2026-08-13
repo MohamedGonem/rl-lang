@@ -97,7 +97,9 @@ impl TypeChecker {
                 // `+` and `-` need compatible units; `*` and `/` combine them.
                 let result_unit = match op {
                     TokenType::Plus | TokenType::Minus => {
-                        if let Some(msg) = add_unit_mismatch(&left.unit, &right.unit) {
+                        if let Some(msg) =
+                            add_unit_mismatch(&left.unit, &right.unit, &self.conversions)
+                        {
                             self.error(
                                 format!("unit mismatch on {}: {}", op_str(op), msg),
                                 span,
@@ -239,7 +241,7 @@ impl TypeChecker {
     }
 
     /// Emits a unit mismatch error for comparisons/equality when the two
-    /// operands carry incompatible (non-dimensionless, unequal) units.
+    /// operands carry incompatible (non-dimensionless, non-convertible) units.
     fn check_comparable_units(
         &mut self,
         left: &Option<Unit>,
@@ -247,17 +249,22 @@ impl TypeChecker {
         op: &TokenType,
         span: Span,
     ) {
-        if let Some(msg) = add_unit_mismatch(left, right) {
+        if let Some(msg) = add_unit_mismatch(left, right, &self.conversions) {
             self.error(format!("unit mismatch on {}: {}", op_str(op), msg), span);
         }
     }
 }
 
 /// Returns an error message when `left` and `right` carry incompatible units
-/// for an adding/comparing operation. A dimensionless side never conflicts.
-fn add_unit_mismatch(left: &Option<Unit>, right: &Option<Unit>) -> Option<String> {
+/// for an adding/comparing operation. A dimensionless side never conflicts,
+/// and symbols registered via `#![convert(...)]` are interchangeable.
+fn add_unit_mismatch(
+    left: &Option<Unit>,
+    right: &Option<Unit>,
+    conversions: &crate::units::ConversionTable,
+) -> Option<String> {
     match (left.as_ref(), right.as_ref()) {
-        (Some(l), Some(r)) if !l.is_compatible_with(r) => {
+        (Some(l), Some(r)) if !l.is_compatible_with(r) && !l.is_convertible_to(r, conversions) => {
             Some(format!("got {} and {}", l, r))
         }
         _ => None,
