@@ -4,7 +4,7 @@ use crate::chunk::{Chunk, OpCode};
 use crate::native::Module;
 use crate::stdlib;
 use crate::values::{VmFunction, VmValue};
-use rl_ast::statements::{MatchPattern, TypeAnnotation};
+use rl_ast::statements::{FunctionAttribute, MatchPattern, TypeAnnotation};
 use rl_ast::{
     Ast, ExprId, nodes::ExpressionKind, statements::Statement, statements::StatementKind,
 };
@@ -25,6 +25,51 @@ enum ContinueTarget {
     Backward(usize),
     #[allow(unused)]
     Forward,
+}
+
+/// Entry-point functions discovered by [`Compiler::scan_entry_points`], with
+/// the resolver-assigned global slots that the compiled chunk stores them at.
+struct EntryPoint {
+    span: Span,
+    slot: u16,
+    tests: Vec<(u16, Span)>,
+    inits: Vec<(u16, Span, Option<u32>)>,
+    finals: Vec<(u16, Span, Option<u32>)>,
+}
+
+/// Whether a top-level statement runs in entry mode. Mirrors the filter in the
+/// interpreter's `evaluate_program`: only declarations and imports execute;
+/// control flow and expression statements are skipped.
+fn is_program_setup_statement(kind: &StatementKind) -> bool {
+    matches!(
+        kind,
+        StatementKind::ResolvedImportFile { .. }
+            | StatementKind::ResolvedFunctionDeclaration { .. }
+            | StatementKind::FunctionDeclaration { .. }
+            | StatementKind::Import { .. }
+            | StatementKind::ImportFile { .. }
+            | StatementKind::ImportFileNamed { .. }
+            | StatementKind::ResolvedVariableDeclaration { .. }
+            | StatementKind::ResolvedConstantDeclaration { .. }
+            | StatementKind::ResolvedArray { .. }
+            | StatementKind::ResolvedConstantArray { .. }
+            | StatementKind::ResolvedMap { .. }
+            | StatementKind::ResolvedConstantMap { .. }
+            | StatementKind::ResolvedSet { .. }
+            | StatementKind::ResolvedConstantSet { .. }
+            | StatementKind::TagDeclaration { .. }
+            | StatementKind::RecordDeclaration { .. }
+            | StatementKind::ResolvedImplBlock { .. }
+    )
+}
+
+/// Orders `init`/`final` calls for emission: numbered priorities run first in
+/// ascending order, unnumbered ones run last in declaration order.
+fn sort_entry_calls_by_priority(
+    mut functions: Vec<(u16, Span, Option<u32>)>,
+) -> Vec<(u16, Span, Option<u32>)> {
+    functions.sort_by_key(|(_, _, priority)| (priority.is_none(), priority.unwrap_or(0)));
+    functions
 }
 
 /// Numeric type codes for `OpCode::Cast`, matching the operand written by
@@ -126,11 +171,131 @@ impl<'a> Compiler<'a> {
     /// Entry function
     /// returns compiled Chunk
     /// stops on first error
+    ///
+    /// Programs without an entry point compile in bare script mode: every
+    /// top-level statement runs top to bottom. Programs with an entry point
+    /// (`!#[entry]`, or plain `main` as a fallback) compile only their
+    /// declarations and imports, then orchestrate calls in the same order the
+    /// interpreter uses: tests -> inits -> entry -> finals.
     pub fn compile(&mut self, statements: &[Statement]) -> Result<Chunk, CompileError> {
-        self.compile_body(statements)?;
+        match self.scan_entry_points(statements)? {
+            Some(entry) => {
+                for stmt in statements {
+                    if is_program_setup_statement(&stmt.kind) {
+                        self.compile_statement(stmt)?;
+                    }
+                }
+                self.emit_entry_point_calls(entry)?;
+            }
+            None => {
+                self.compile_body(statements)?;
+            }
+        }
+
         let end_span = statements.last().map(|s| s.span).unwrap_or_default();
         self.chunk.write_op(OpCode::Return, end_span);
         Ok(std::mem::take(&mut self.chunk))
+    }
+
+    /// Scans the program for an explicit `!#[entry]` (falling back to a bare
+    /// `main`) and collects the tests/inits/finals that entry mode must run
+    /// around it. Returns `None` for script-mode programs.
+    ///
+    /// # Errors
+    /// Returns `Err` when more than one `!#[entry]` function is declared,
+    /// mirroring the interpreter's `evaluate_program`.
+    fn scan_entry_points(
+        &self,
+        statements: &[Statement],
+    ) -> Result<Option<EntryPoint>, CompileError> {
+        let mut explicit_entry: Option<(Span, u16)> = None;
+        let mut main_entry: Option<(Span, u16)> = None;
+        let mut inits: Vec<(u16, Span, Option<u32>)> = vec![];
+        let mut finals: Vec<(u16, Span, Option<u32>)> = vec![];
+        let mut tests: Vec<(u16, Span)> = vec![];
+
+        for statement in statements {
+            let StatementKind::ResolvedFunctionDeclaration {
+                name, attribute, slot, ..
+            } = &statement.kind
+            else {
+                continue;
+            };
+            let slot = *slot as u16;
+
+            match attribute {
+                Some(FunctionAttribute::Entry) => {
+                    if explicit_entry.is_some() {
+                        return Err(self.err("multiple !#[entry] functions found", statement.span));
+                    }
+                    explicit_entry = Some((statement.span, slot));
+                }
+                Some(FunctionAttribute::Test) => tests.push((slot, statement.span)),
+                Some(FunctionAttribute::Init(priority)) => {
+                    inits.push((slot, statement.span, *priority))
+                }
+                Some(FunctionAttribute::Final(priority)) => {
+                    finals.push((slot, statement.span, *priority))
+                }
+                None if name == "main" => main_entry = Some((statement.span, slot)),
+                _ => {}
+            }
+        }
+
+        let Some((span, slot)) = explicit_entry.or(main_entry) else {
+            return Ok(None);
+        };
+
+        Ok(Some(EntryPoint {
+            span,
+            slot,
+            tests,
+            inits,
+            finals,
+        }))
+    }
+
+    /// Emits the entry-mode orchestration calls: every test and init/final is
+    /// called and its result discarded, the entry function's result is left
+    /// on the stack so `run_and_return` surfaces it as the program's value.
+    fn emit_entry_point_calls(&mut self, entry: EntryPoint) -> Result<(), CompileError> {
+        let EntryPoint {
+            span,
+            slot,
+            tests,
+            inits,
+            finals,
+        } = entry;
+
+        for (test_slot, test_span) in tests {
+            self.emit_entry_call(test_slot, test_span, true)?;
+        }
+        for (init_slot, init_span, _) in sort_entry_calls_by_priority(inits) {
+            self.emit_entry_call(init_slot, init_span, true)?;
+        }
+        self.emit_entry_call(slot, span, false)?;
+        for (final_slot, final_span, _) in sort_entry_calls_by_priority(finals) {
+            self.emit_entry_call(final_slot, final_span, true)?;
+        }
+        Ok(())
+    }
+
+    /// Emits a zero-argument call to the function stored at global `slot`,
+    /// optionally popping its (discarded) result off the stack.
+    fn emit_entry_call(
+        &mut self,
+        slot: u16,
+        span: Span,
+        discard: bool,
+    ) -> Result<(), CompileError> {
+        self.chunk.write_op(OpCode::GetGlobal, span);
+        self.chunk.write_u16(slot, span);
+        self.chunk.write_op(OpCode::Call, span);
+        self.chunk.write_u16(0, span);
+        if discard {
+            self.chunk.write_op(OpCode::Pop, span);
+        }
+        Ok(())
     }
 
     /// Statement entry function
