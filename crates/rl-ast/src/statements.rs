@@ -59,6 +59,21 @@ pub enum UnitAnnotation {
     Divide(Box<UnitAnnotation>, Box<UnitAnnotation>),
 }
 
+/// A program-level attribute declared with `#![name(...)]`, e.g.
+/// `#![convert(kg=1000(g))]`. Program attributes are compile-time-only: the
+/// checker consumes them and they never reach the resolver, VM, or interpreter.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProgramAttribute {
+    /// Declares a unit conversion factor between two symbols:
+    /// `#![convert(kg=1000(g))]` reads "1 `symbol` = `factor` × `base_symbol`",
+    /// so a value of `symbol` multiplied by `factor` yields `base_symbol`.
+    Convert {
+        symbol: String,
+        factor: f64,
+        base_symbol: String,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
     /// A mutable variable declaration: `dec T name = value`.
