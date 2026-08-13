@@ -47,3 +47,14 @@ pub fn checker_messages(source: &str) -> Vec<String> {
         .map(|e| e.message().to_string())
         .collect()
 }
+
+/// Runs the type checker over `source` and returns the populated
+/// [`TypeChecker`] so tests can inspect scopes, units, and errors.
+pub fn check(source: &str) -> TypeChecker {
+    let file = SourceFile::new("test", source.to_string());
+    let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone()).expect("lex failed");
+    let (ast, stmts) = rl_parser::parser_logic::Parser::parse(tokens, file).expect("parse failed");
+    let mut checker = TypeChecker::new().with_ast_arena(ast);
+    checker.check(&stmts);
+    checker
+}

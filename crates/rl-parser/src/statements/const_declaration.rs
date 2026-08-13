@@ -83,6 +83,7 @@ impl Parser {
                         name,
                         type_annotation: TypeAnnotation::CTuple(Rc::new(types)),
                         value,
+                        unit_annotation: None,
                     },
                     span,
                 ));
@@ -253,6 +254,7 @@ impl Parser {
                         name,
                         type_annotation: annoation_type,
                         value,
+                        unit_annotation: None,
                     },
                     span,
                 ));
@@ -321,6 +323,7 @@ impl Parser {
                         name,
                         type_annotation: TypeAnnotation::CSet(Box::new(annoation_type)),
                         value,
+                        unit_annotation: None,
                     },
                     span,
                 ));
@@ -390,6 +393,7 @@ impl Parser {
                         name,
                         type_annotation: TypeAnnotation::CArray(Box::new(annoation_type)),
                         value,
+                        unit_annotation: None,
                     },
                     span,
                 ));
@@ -411,6 +415,21 @@ impl Parser {
         };
 
         while self.match_type(&[TokenType::Newline]) {}
+
+        let unit_annotation = if self.match_type(&[TokenType::Colon]) {
+            if !Parser::is_numeric_type(&const_type) {
+                return Err(self.err(
+                    "units are only supported for numeric types",
+                    self.previous_span(),
+                ));
+            }
+
+            Some(self.parse_unit_annotation()?)
+        } else {
+            None
+        };
+
+        while self.match_type(&[TokenType::Newline]) {}
         if !self.match_type(&[TokenType::Assign]) {
             return Err(self.err("expected `=` after name", self.peek_span()));
         }
@@ -424,6 +443,7 @@ impl Parser {
             StatementKind::ConstantDeclaration {
                 name,
                 type_annotation: const_type,
+                unit_annotation,
                 value,
             },
             span,

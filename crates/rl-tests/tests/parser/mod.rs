@@ -1,3 +1,4 @@
+mod attributes;
 mod declarations;
 mod flow_for;
 mod flow_if;

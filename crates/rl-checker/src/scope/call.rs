@@ -64,7 +64,7 @@ impl TypeChecker {
                 return CheckType::Unknown;
             }
             let item_type = self.lookup(name, span);
-            return self.check_call_value(item_type, arg_types, span);
+            return self.check_call_value(item_type.ty, arg_types, span);
         }
 
         let suggestion = if let Some(last) = path.last() {

@@ -16,6 +16,7 @@ mod impl_block;
 mod import_statement;
 mod infer_declaration;
 mod match_statement;
+mod program_attribute;
 mod record_declaration;
 mod tag_declaration;
 mod variable_declaration;

@@ -16,7 +16,7 @@ use rl_utils::span::Span;
 use crate::{
     arena::{Arena, Id},
     nodes::{Expression, ExpressionKind},
-    statements::{Statement, StatementKind},
+    statements::{ProgramAttribute, Statement, StatementKind},
 };
 
 pub mod arena;
@@ -30,6 +30,10 @@ pub type ScopeMap = Vec<Vec<String>>;
 /// leaf/expression side first, on its own, before statements follow.
 pub struct Ast {
     pub exprs: Arena<Expression>,
+    /// `#![...]` attributes attached to the whole program, e.g.
+    /// `#![convert(kg=1000(g))]`. Compile-time only; discarded by the
+    /// resolver before execution.
+    pub program_attributes: Vec<ProgramAttribute>,
 }
 
 /// Handle to an `Expression` living in `Ast::exprs`.
@@ -45,6 +49,7 @@ impl Ast {
     pub fn new() -> Self {
         Self {
             exprs: Arena::new(),
+            program_attributes: Vec::new(),
         }
     }
 
