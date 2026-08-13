@@ -63,6 +63,7 @@ pub fn concept_entries() -> Vec<&'static ConceptEntry> {
         &concepts::tags::TAGS,
         &concepts::maps::MAPS,
         &concepts::sets::SETS,
+        &concepts::units::UNITS,
     ]
 }
 
