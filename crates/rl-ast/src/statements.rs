@@ -43,6 +43,22 @@ impl Statement {
     }
 }
 
+/// A unit-of-measure annotation attached to an `int`/`float` declaration,
+/// e.g. the `m/s` in `dec float speed: m/s = 12.5`.
+///
+/// Units are a compile-time-only concept: they are parsed into this syntax
+/// tree, normalized by the checker's unit module and then discarded - they
+/// never reach the resolver, VM, or interpreter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnitAnnotation {
+    /// A single unit symbol, e.g. `m`, `s`, or `kg`.
+    Symbol(String),
+    /// Multiplication of two units, e.g. `kg*m`.
+    Multiply(Box<UnitAnnotation>, Box<UnitAnnotation>),
+    /// Division of two units, e.g. `m/s`.
+    Divide(Box<UnitAnnotation>, Box<UnitAnnotation>),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
     /// A mutable variable declaration: `dec T name = value`.
@@ -50,6 +66,9 @@ pub enum StatementKind {
         name: String,
         type_annotation: TypeAnnotation,
         value: ExprId,
+        /// Compile-time-only unit annotation (`dec float speed: m/s = ...`).
+        /// Discarded by the resolver before execution.
+        unit_annotation: Option<UnitAnnotation>,
     },
     /// Resolver-annotated mutable variable declaration. `slot` is the index
     /// in the current environment frame.
@@ -64,6 +83,9 @@ pub enum StatementKind {
         name: String,
         type_annotation: TypeAnnotation,
         value: ExprId,
+        /// Compile-time-only unit annotation (`const float SPEED: m/s = 12.5`).
+        /// Discarded by the resolver before execution.
+        unit_annotation: Option<UnitAnnotation>,
     },
     /// Resolver-annotated constant declaration.
     ResolvedConstantDeclaration {
