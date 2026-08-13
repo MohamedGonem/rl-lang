@@ -15,6 +15,20 @@ pub fn parse(source: &str) -> (Ast, Vec<Statement>) {
     rl_parser::parser_logic::Parser::parse(lex(source), text).expect("parse failed")
 }
 
+/// Parses `source`, asserting that lexing or parsing fails, and returns the
+/// first error message so tests can assert on its contents.
+pub fn parse_assert_err(source: &str) -> String {
+    let text = SourceFile::new("test", source.to_string());
+    let result = rl_lexer::tokenizer::Tokenizer::lex(text.clone())
+        .and_then(|tokens| {
+            rl_parser::parser_logic::Parser::parse(tokens, text).map(|_| {
+                panic!("expected `{source}` to fail to parse, but it succeeded")
+            })
+        })
+        .unwrap_err();
+    result.message().to_string()
+}
+
 pub fn eval_program(source: &str) -> Result<Evaluator, Error> {
     let file = SourceFile::new("test", source.to_string());
     let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone())?;
@@ -36,6 +50,25 @@ pub fn compile_and_run(source: &str) -> Result<rl_vm::VmValue, rl_vm::VmError> {
         .compile(&stmts)
         .expect("compile failed");
     rl_vm::Vm::new().run_and_return(&chunk)
+}
+
+/// Compiles `source`, asserting that the VM compile step fails, and returns
+/// the first error message so tests can assert on its contents.
+pub fn compile_error(source: &str) -> String {
+    let file = SourceFile::new("test", source.to_string());
+    let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone()).expect("lex failed");
+    let (ast, stmts) =
+        rl_parser::parser_logic::Parser::parse(tokens, file.clone()).expect("parse failed");
+    let mut evaluator = Evaluator::default().with_stdlib().with_source_file(file);
+    let stmts = evaluator.resolver.resolve_program(ast, stmts);
+    rl_vm::Compiler::new(&evaluator.resolver.ast_arena)
+        .compile(&stmts)
+        .map(|_| {
+            panic!("expected `{source}` to fail compilation, but it succeeded");
+        })
+        .unwrap_err()
+        .message()
+        .to_string()
 }
 
 pub fn checker_messages(source: &str) -> Vec<String> {
