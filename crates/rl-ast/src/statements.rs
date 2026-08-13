@@ -355,8 +355,11 @@ pub enum MatchPattern {
 #[derive(Debug, Clone, PartialEq)]
 pub enum FunctionAttribute {
     Entry,
-    Init,
-    Final,
+    /// `!#[init]` (no priority) or `!#[init=n]` (numbered priorities run
+    /// first, ascending; unnumbered runs last in declaration order).
+    Init(Option<u32>),
+    /// `!#[final]` (no priority) or `!#[final=n]` (same ordering as `init`).
+    Final(Option<u32>),
     Test,
 }
 
