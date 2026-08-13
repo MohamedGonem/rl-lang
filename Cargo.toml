@@ -30,23 +30,23 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/rl-lang/rl-lang"
 
 [workspace.dependencies]
-rl-commons = { path = "crates/rl-commons" }
-rl-std-core = { path = "crates/rl-std-core" }
-rl-std-macros = { path = "crates/rl-std-macros" }
-rl-std = { path = "crates/rl-std" }
-rl-utils = { path = "crates/rl-utils" }
-rl-lexer = { path = "crates/rl-lexer" }
-rl-ast = { path = "crates/rl-ast" }
-rl-parser = { path = "crates/rl-parser" }
-rl-resolver = { path = "crates/rl-resolver" }
-rl-vm = { path = "crates/rl-vm" }
-rl-cranelift = { path = "crates/rl-cranelift" }
-rl-interpreter = { path = "crates/rl-interpreter" }
-rl-checker = { path = "crates/rl-checker" }
-rl-docs = { path = "crates/rl-docs" }
-rl-tooling = { path = "crates/rl-tooling" }
-rl-repl = { path = "crates/rl-repl", default-features = false }
-rl-lsp = { path = "crates/rl-lsp" }
+rl-commons = { path = "crates/rl-commons", version = "1.1.1" }
+rl-std-core = { path = "crates/rl-std-core", version = "1.1.1" }
+rl-std-macros = { path = "crates/rl-std-macros", version = "1.1.1" }
+rl-std = { path = "crates/rl-std", version = "1.1.1" }
+rl-utils = { path = "crates/rl-utils", version = "1.1.1" }
+rl-lexer = { path = "crates/rl-lexer", version = "1.1.1" }
+rl-ast = { path = "crates/rl-ast", version = "1.1.1" }
+rl-parser = { path = "crates/rl-parser", version = "1.1.1" }
+rl-resolver = { path = "crates/rl-resolver", version = "1.1.1" }
+rl-vm = { path = "crates/rl-vm", version = "1.1.1" }
+rl-cranelift = { path = "crates/rl-cranelift", version = "1.1.1" }
+rl-interpreter = { path = "crates/rl-interpreter", version = "1.1.1" }
+rl-checker = { path = "crates/rl-checker", version = "1.1.1" }
+rl-docs = { path = "crates/rl-docs", version = "1.1.1" }
+rl-tooling = { path = "crates/rl-tooling", version = "1.1.1" }
+rl-repl = { path = "crates/rl-repl", default-features = false, version = "1.1.1" }
+rl-lsp = { path = "crates/rl-lsp", version = "1.1.1" }
 
 criterion = { version = "0.5", features = ["html_reports"] }
 syn = { version = "2", features = ["full"] }
