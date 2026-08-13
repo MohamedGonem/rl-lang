@@ -57,7 +57,11 @@ use std::time::Duration;
 fn extract_int<R: Runtime>(v: R::Value, name: &str) -> Result<i64, String> {
     match R::as_i64(&v) {
         Some(i) => Ok(i),
-        None => Err(format!("{}: expected int type, got {}", name, R::type_name(&v))),
+        None => Err(format!(
+            "{}: expected int type, got {}",
+            name,
+            R::type_name(&v)
+        )),
     }
 }
 

@@ -43,6 +43,37 @@ impl Statement {
     }
 }
 
+/// A unit-of-measure annotation attached to an `int`/`float` declaration,
+/// e.g. the `m/s` in `dec float speed: m/s = 12.5`.
+///
+/// Units are a compile-time-only concept: they are parsed into this syntax
+/// tree, normalized by the checker's unit module and then discarded - they
+/// never reach the resolver, VM, or interpreter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnitAnnotation {
+    /// A single unit symbol, e.g. `m`, `s`, or `kg`.
+    Symbol(String),
+    /// Multiplication of two units, e.g. `kg*m`.
+    Multiply(Box<UnitAnnotation>, Box<UnitAnnotation>),
+    /// Division of two units, e.g. `m/s`.
+    Divide(Box<UnitAnnotation>, Box<UnitAnnotation>),
+}
+
+/// A program-level attribute declared with `#![name(...)]`, e.g.
+/// `#![convert(kg=1000(g))]`. Program attributes are compile-time-only: the
+/// checker consumes them and they never reach the resolver, VM, or interpreter.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProgramAttribute {
+    /// Declares a unit conversion factor between two symbols:
+    /// `#![convert(kg=1000(g))]` reads "1 `symbol` = `factor` × `base_symbol`",
+    /// so a value of `symbol` multiplied by `factor` yields `base_symbol`.
+    Convert {
+        symbol: String,
+        factor: f64,
+        base_symbol: String,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
     /// A mutable variable declaration: `dec T name = value`.
@@ -50,6 +81,9 @@ pub enum StatementKind {
         name: String,
         type_annotation: TypeAnnotation,
         value: ExprId,
+        /// Compile-time-only unit annotation (`dec float speed: m/s = ...`).
+        /// Discarded by the resolver before execution.
+        unit_annotation: Option<UnitAnnotation>,
     },
     /// Resolver-annotated mutable variable declaration. `slot` is the index
     /// in the current environment frame.
@@ -64,6 +98,9 @@ pub enum StatementKind {
         name: String,
         type_annotation: TypeAnnotation,
         value: ExprId,
+        /// Compile-time-only unit annotation (`const float SPEED: m/s = 12.5`).
+        /// Discarded by the resolver before execution.
+        unit_annotation: Option<UnitAnnotation>,
     },
     /// Resolver-annotated constant declaration.
     ResolvedConstantDeclaration {
@@ -318,8 +355,11 @@ pub enum MatchPattern {
 #[derive(Debug, Clone, PartialEq)]
 pub enum FunctionAttribute {
     Entry,
-    Init,
-    Final,
+    /// `!#[init]` (no priority) or `!#[init=n]` (numbered priorities run
+    /// first, ascending; unnumbered runs last in declaration order).
+    Init(Option<u32>),
+    /// `!#[final]` (no priority) or `!#[final=n]` (same ordering as `init`).
+    Final(Option<u32>),
     Test,
 }
 

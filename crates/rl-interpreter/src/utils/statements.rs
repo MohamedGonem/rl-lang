@@ -925,8 +925,8 @@ impl Evaluator {
     pub fn evaluate_program(&mut self, statements: &[Statement]) -> Result<(), Error> {
         let mut explicit_entry: Option<(Span, usize)> = None;
         let mut main_entry: Option<(Span, usize)> = None;
-        let mut inits: Vec<(Span, usize)> = vec![];
-        let mut finals: Vec<(Span, usize)> = vec![];
+        let mut inits: Vec<(Span, usize, Option<u32>)> = vec![];
+        let mut finals: Vec<(Span, usize, Option<u32>)> = vec![];
         let mut tests: Vec<(Span, usize)> = vec![];
 
         for statement in statements {
@@ -954,14 +954,14 @@ impl Evaluator {
                         }
                     }
 
-                    Some(FunctionAttribute::Init) => {
+                    Some(FunctionAttribute::Init(priority)) => {
                         if let Some(s) = slot {
-                            inits.push((statement.span, s))
+                            inits.push((statement.span, s, *priority))
                         }
                     }
-                    Some(FunctionAttribute::Final) => {
+                    Some(FunctionAttribute::Final(priority)) => {
                         if let Some(s) = slot {
-                            finals.push((statement.span, s))
+                            finals.push((statement.span, s, *priority))
                         }
                     }
                     Some(FunctionAttribute::Test) => {
@@ -1024,8 +1024,7 @@ impl Evaluator {
         }
 
         if has_inits {
-            for init_func in inits {
-                let (func_span, func_slot) = init_func;
+            for (func_span, func_slot, _) in sort_by_priority(inits) {
                 let func = self.get_value(0, func_slot, func_span)?;
                 self.call_value(func, vec![], func_span)?;
             }
@@ -1035,8 +1034,7 @@ impl Evaluator {
         self.call_value(func, vec![], entry_span)?;
 
         if has_finals {
-            for final_func in finals {
-                let (func_span, func_slot) = final_func;
+            for (func_span, func_slot, _) in sort_by_priority(finals) {
                 let func = self.get_value(0, func_slot, func_span)?;
                 self.call_value(func, vec![], func_span)?;
             }
@@ -1057,4 +1055,13 @@ impl Evaluator {
         self.pop_scope();
         Ok(())
     }
+}
+
+/// Orders `init`/`final` functions for execution: numbered priorities run
+/// first in ascending order, unnumbered ones run last in declaration order.
+fn sort_by_priority(
+    mut functions: Vec<(Span, usize, Option<u32>)>,
+) -> Vec<(Span, usize, Option<u32>)> {
+    functions.sort_by_key(|(_, _, priority)| (priority.is_none(), priority.unwrap_or(0)));
+    functions
 }

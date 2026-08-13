@@ -61,7 +61,12 @@ fn assert_cmp<R: Runtime>(
     };
 
     if !op(fa, fb) {
-        let default_msg = format!("{} failed: `{}` vs `{}`", name, R::display(a), R::display(b));
+        let default_msg = format!(
+            "{} failed: `{}` vs `{}`",
+            name,
+            R::display(a),
+            R::display(b)
+        );
         let message = match args.get(2) {
             Some(v) if R::as_str(v).is_some() => {
                 format!("{}: {}", R::as_str(v).unwrap(), default_msg)
@@ -339,7 +344,10 @@ pub fn panic<R: Runtime>(
         Some(other) => {
             return Err(R::error(
                 cx,
-                format!("panic: expects a string message, got {}", R::type_name(&other)),
+                format!(
+                    "panic: expects a string message, got {}",
+                    R::type_name(&other)
+                ),
                 span,
             ));
         }
@@ -364,7 +372,10 @@ pub fn unreachable<R: Runtime>(
 
     let message = match args.into_iter().next() {
         Some(v) if R::as_str(&v).is_some() => {
-            format!("internal error: entered unreachable code: {}", R::as_str(&v).unwrap())
+            format!(
+                "internal error: entered unreachable code: {}",
+                R::as_str(&v).unwrap()
+            )
         }
         Some(other) => {
             return Err(R::error(
@@ -402,7 +413,10 @@ pub fn todo<R: Runtime>(
         Some(other) => {
             return Err(R::error(
                 cx,
-                format!("todo: expects a string message, got {}", R::type_name(&other)),
+                format!(
+                    "todo: expects a string message, got {}",
+                    R::type_name(&other)
+                ),
                 span,
             ));
         }
@@ -456,7 +470,10 @@ pub fn bench<R: Runtime>(
     let start = std::time::Instant::now();
     for _ in 0..iterations {
         if let Err(e) = R::call_value(cx, &function, &[], span) {
-            return Err(format!("bench: error executing the function: {}", e.message()));
+            return Err(format!(
+                "bench: error executing the function: {}",
+                e.message()
+            ));
         }
     }
     let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;

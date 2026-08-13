@@ -98,10 +98,7 @@ pub enum DescriptionKind {
 }
 
 impl std::fmt::Display for DescriptionKind {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
             DescriptionKind::Explanation => "Explanation",
             DescriptionKind::Syntax => "Syntax",

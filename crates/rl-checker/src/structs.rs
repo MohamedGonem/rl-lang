@@ -1,5 +1,6 @@
 //! Core data structures for the type checker.
 //!
+use crate::units::{ConversionTable, Unit};
 use rl_ast::{Ast, statements::TypeAnnotation};
 use rl_commons::ModuleNames;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
@@ -49,12 +50,18 @@ pub struct TypeChecker {
     /// record type as their first param, matching how `MethodCall` prepends
     /// the caller as arg 0.
     pub methods: HashMap<(String, String), CheckType>,
+    /// Conversion registry built from `#![convert(symbol=factor(base))]`
+    /// program attributes, used to treat convertible unit symbols as equal.
+    pub conversions: ConversionTable,
 }
 
 /// A single entry in a type checker scope.
 pub struct ScopeItem {
     /// The static type of this variable or function.
     pub type_annotation: CheckType,
+    /// The compile-time unit of measure attached to this binding, if any
+    /// (`dec float speed: m/s = 12.5`). Only numeric bindings may carry one.
+    pub unit: Option<Unit>,
     /// Whether this binding is immutable (`CONST`).
     pub is_const: bool,
     pub decl_span: Span,
@@ -73,4 +80,24 @@ pub enum CheckType {
     /// Type could not be determined statically (stdlib calls, unresolved names).
     /// Propagates silently to avoid cascading false errors.
     Unknown,
+}
+
+/// The static type and optional unit of a checked expression.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CheckedExpr {
+    /// The static type of the expression.
+    pub ty: CheckType,
+    /// The compile-time unit of measure of the expression, if any.
+    pub unit: Option<Unit>,
+}
+
+impl CheckedExpr {
+    pub fn new(ty: CheckType, unit: Option<Unit>) -> Self {
+        Self { ty, unit }
+    }
+
+    /// Converts the type to its constant variant, keeping the unit intact.
+    pub fn into_const(self) -> Self {
+        CheckedExpr::new(self.ty.into_const(), self.unit)
+    }
 }

@@ -30,43 +30,95 @@ impl Runtime for VmRuntime {
     }
 
     fn as_i64(v: &Self::Value) -> Option<i64> {
-        if let VmValue::Int(x) = v { Some(*x) } else { None }
+        if let VmValue::Int(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u64(v: &Self::Value) -> Option<u64> {
-        if let VmValue::UInt(x) = v { Some(*x) } else { None }
+        if let VmValue::UInt(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i32(v: &Self::Value) -> Option<i32> {
-        if let VmValue::SInt(x) = v { Some(*x) } else { None }
+        if let VmValue::SInt(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u32(v: &Self::Value) -> Option<u32> {
-        if let VmValue::SUInt(x) = v { Some(*x) } else { None }
+        if let VmValue::SUInt(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i16(v: &Self::Value) -> Option<i16> {
-        if let VmValue::BSByte(x) = v { Some(*x) } else { None }
+        if let VmValue::BSByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u16(v: &Self::Value) -> Option<u16> {
-        if let VmValue::BByte(x) = v { Some(*x) } else { None }
+        if let VmValue::BByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i8(v: &Self::Value) -> Option<i8> {
-        if let VmValue::SByte(x) = v { Some(*x) } else { None }
+        if let VmValue::SByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u8(v: &Self::Value) -> Option<u8> {
-        if let VmValue::Byte(x) = v { Some(*x) } else { None }
+        if let VmValue::Byte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_f64(v: &Self::Value) -> Option<f64> {
-        if let VmValue::Float(x) = v { Some(*x) } else { None }
+        if let VmValue::Float(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_f32(v: &Self::Value) -> Option<f32> {
-        if let VmValue::SFloat(x) = v { Some(*x) } else { None }
+        if let VmValue::SFloat(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_bool(v: &Self::Value) -> Option<bool> {
-        if let VmValue::Bool(x) = v { Some(*x) } else { None }
+        if let VmValue::Bool(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_char(v: &Self::Value) -> Option<char> {
-        if let VmValue::Char(x) = v { Some(*x) } else { None }
+        if let VmValue::Char(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_str(v: &Self::Value) -> Option<&str> {
-        if let VmValue::Str(s) = v { Some(s) } else { None }
+        if let VmValue::Str(s) = v {
+            Some(s)
+        } else {
+            None
+        }
     }
 
     fn type_name(v: &Self::Value) -> &'static str {
@@ -176,13 +228,25 @@ impl Runtime for VmRuntime {
         }
     }
     fn as_ok_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let VmValue::Ok(b) = v { Some((**b).clone()) } else { None }
+        if let VmValue::Ok(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_err_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let VmValue::Err(b) = v { Some((**b).clone()) } else { None }
+        if let VmValue::Err(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_error_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let VmValue::Error(b) = v { Some((**b).clone()) } else { None }
+        if let VmValue::Error(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_set(v: &Self::Value) -> Option<(Vec<Self::Value>, TypeAnnotation)> {
         match v {
@@ -195,7 +259,11 @@ impl Runtime for VmRuntime {
     }
     fn as_map(
         v: &Self::Value,
-    ) -> Option<(Vec<(Self::Value, Self::Value)>, TypeAnnotation, TypeAnnotation)> {
+    ) -> Option<(
+        Vec<(Self::Value, Self::Value)>,
+        TypeAnnotation,
+        TypeAnnotation,
+    )> {
         match v {
             VmValue::Map(rc) => Some((
                 rc.borrow()
@@ -460,10 +528,14 @@ impl rl_std::audio::AudioStore for VmRuntime {
 }
 
 impl rl_std::gui::GuiStore for VmRuntime {
-    fn gui_handles(cx: &mut Vm) -> &mut std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
+    fn gui_handles(
+        cx: &mut Vm,
+    ) -> &mut std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
         &mut cx.gui_handles
     }
-    fn gui_handles_ref(cx: &Vm) -> &std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
+    fn gui_handles_ref(
+        cx: &Vm,
+    ) -> &std::collections::HashMap<u64, rl_std::gui::GuiHandle<VmValue>> {
         &cx.gui_handles
     }
     fn gui_next_handle(cx: &mut Vm) -> &mut u64 {

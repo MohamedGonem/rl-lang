@@ -1,28 +1,53 @@
 //! Expression type checking - walks every [`ExpressionKind`] variant and
-//! returns the static [`CheckType`] of the expression.
+//! returns the static [`CheckType`] (and unit of measure, when known) of the
+//! expression.
 
 use std::rc::Rc;
 
-use crate::{TypeChecker, structs::CheckType};
+use crate::{
+    TypeChecker,
+    structs::{CheckType, CheckedExpr},
+};
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
 use rl_utils::span::Span;
 
 impl TypeChecker {
+    /// Checks `expression` and returns only its static [`CheckType`].
     pub fn check_expression(&mut self, expression: ExprId) -> CheckType {
+        self.check_expression_typed(expression).ty
+    }
+
+    /// Checks `expression` and returns its static type together with the
+    /// compile-time unit of measure it resolves to (if any).
+    pub fn check_expression_typed(&mut self, expression: ExprId) -> CheckedExpr {
         let expr_span = self.ast_arena.exprs.get(expression).span;
         let expr_kind = self.ast_arena.exprs.get(expression).kind.clone();
         match expr_kind {
             // returns as type
-            ExpressionKind::Null => CheckType::Known(TypeAnnotation::Null),
-            ExpressionKind::Integer(_) => CheckType::Known(TypeAnnotation::Int),
-            ExpressionKind::UInt(_) => CheckType::Known(TypeAnnotation::UInt),
-            ExpressionKind::Byte(_) => CheckType::Known(TypeAnnotation::Byte),
-            ExpressionKind::String(_) => CheckType::Known(TypeAnnotation::String),
-            ExpressionKind::Bool(_) => CheckType::Known(TypeAnnotation::Bool),
-            ExpressionKind::Float(_) => CheckType::Known(TypeAnnotation::Float),
-            ExpressionKind::Character(_) => CheckType::Known(TypeAnnotation::Char),
-            // returns the inner type
-            ExpressionKind::Grouping(inner) => self.check_expression(inner),
+            ExpressionKind::Null => CheckedExpr::new(CheckType::Known(TypeAnnotation::Null), None),
+            ExpressionKind::Integer(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Int), None)
+            }
+            ExpressionKind::UInt(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::UInt), None)
+            }
+            ExpressionKind::Byte(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Byte), None)
+            }
+            ExpressionKind::String(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::String), None)
+            }
+            ExpressionKind::Bool(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Bool), None)
+            }
+            ExpressionKind::Float(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Float), None)
+            }
+            ExpressionKind::Character(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Char), None)
+            }
+            // returns the inner type and unit
+            ExpressionKind::Grouping(inner) => self.check_expression_typed(inner),
             // does this identifier exist?
             ExpressionKind::Identifier(name) => self.lookup(&name, expr_span),
             ExpressionKind::MapLiteral(entries) => {
@@ -31,27 +56,30 @@ impl TypeChecker {
                 for (key, value) in entries {
                     let key_span = self.ast_arena.exprs.get(key).span;
                     let value_span = self.ast_arena.exprs.get(value).span;
-                    key_types.push((self.check_expression(key), key_span));
-                    value_types.push((self.check_expression(value), value_span));
+                    key_types.push((self.check_expression_typed(key), key_span));
+                    value_types.push((self.check_expression_typed(value), value_span));
                 }
 
                 let key_type = key_types
                     .first()
-                    .map(|(t, _)| Self::to_type_annotation(t))
+                    .map(|(t, _)| Self::to_type_annotation(&t.ty))
                     .unwrap_or(TypeAnnotation::Null);
                 let value_type = value_types
                     .first()
-                    .map(|(t, _)| Self::to_type_annotation(t))
+                    .map(|(t, _)| Self::to_type_annotation(&t.ty))
                     .unwrap_or(TypeAnnotation::Null);
 
                 if let Some((first_key, _)) = key_types.first().cloned() {
                     for (kt, span) in key_types.iter().skip(1) {
-                        if !kt.is_null() && !first_key.is_null() && !kt.matches(&first_key) {
+                        if !kt.ty.is_null()
+                            && !first_key.ty.is_null()
+                            && !kt.ty.matches(&first_key.ty)
+                        {
                             self.error(
                                 format!(
                                     "map key type mismatch: expected {}, got {}",
-                                    first_key.info(),
-                                    kt.info()
+                                    first_key.ty.info(),
+                                    kt.ty.info()
                                 ),
                                 *span,
                             );
@@ -60,12 +88,15 @@ impl TypeChecker {
                 }
                 if let Some((first_value, _)) = value_types.first().cloned() {
                     for (vt, span) in value_types.iter().skip(1) {
-                        if !vt.is_null() && !first_value.is_null() && !vt.matches(&first_value) {
+                        if !vt.ty.is_null()
+                            && !first_value.ty.is_null()
+                            && !vt.ty.matches(&first_value.ty)
+                        {
                             self.error(
                                 format!(
                                     "map value type mismatch: expected {}, got {}",
-                                    first_value.info(),
-                                    vt.info()
+                                    first_value.ty.info(),
+                                    vt.ty.info()
                                 ),
                                 *span,
                             );
@@ -74,18 +105,23 @@ impl TypeChecker {
                 }
 
                 for (kt, span) in &key_types {
-                    if !kt.is_null() && !Self::is_hashable_key_type(&Self::to_type_annotation(kt)) {
+                    if !kt.ty.is_null()
+                        && !Self::is_hashable_key_type(&Self::to_type_annotation(&kt.ty))
+                    {
                         self.error(
-                            format!("type {} cannot be used as a map key", kt.info()),
+                            format!("type {} cannot be used as a map key", kt.ty.info()),
                             *span,
                         );
                     }
                 }
 
-                CheckType::Known(TypeAnnotation::Map(
-                    Box::new(key_type),
-                    Box::new(value_type),
-                ))
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Map(
+                        Box::new(key_type),
+                        Box::new(value_type),
+                    )),
+                    None,
+                )
             }
             // checks array items
             ExpressionKind::ArrayLiteral(items) => {
@@ -94,26 +130,26 @@ impl TypeChecker {
                 let mut item_types = Vec::with_capacity(items.len());
                 for item in items {
                     let item_span = self.ast_arena.exprs.get(item).span;
-                    item_types.push((self.check_expression(item), item_span));
+                    item_types.push((self.check_expression_typed(item), item_span));
                 }
                 // sets the items types to same first item type otherwise null
                 let items_type = item_types
                     .first()
-                    .map(|(t, _)| Self::to_type_annotation(t))
+                    .map(|(t, _)| Self::to_type_annotation(&t.ty))
                     .unwrap_or(TypeAnnotation::Null);
 
                 // same items type or not?
                 if let Some((first_type, _)) = item_types.first().cloned() {
                     for (item_type, span) in item_types.iter().skip(1) {
-                        if !item_type.is_null()
-                            && !first_type.is_null()
-                            && !item_type.matches(&first_type)
+                        if !item_type.ty.is_null()
+                            && !first_type.ty.is_null()
+                            && !item_type.ty.matches(&first_type.ty)
                         {
                             self.error(
                                 format!(
                                     "array element type mismatch: expected {}, got {}",
-                                    first_type.info(),
-                                    item_type.info()
+                                    first_type.ty.info(),
+                                    item_type.ty.info()
                                 ),
                                 *span,
                             );
@@ -121,17 +157,22 @@ impl TypeChecker {
                     }
                 }
                 // returns the array type
-                CheckType::Known(TypeAnnotation::Array(Box::new(items_type)))
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Array(Box::new(items_type))),
+                    None,
+                )
             }
 
             ExpressionKind::Index { target, index } => {
                 // is the target (array) null?
                 let target_span = self.ast_arena.exprs.get(target).span;
                 let index_span = self.ast_arena.exprs.get(index).span;
-                let target_type = self.check_expression(target);
+                let target_typed = self.check_expression_typed(target);
+                let target_type = target_typed.ty;
                 self.check_is_null(&target_type, target_span);
                 // is the index null??
-                let index_type = self.check_expression(index);
+                let index_typed = self.check_expression_typed(index);
+                let index_type = index_typed.ty;
                 self.check_is_null(&index_type, index_span);
 
                 // is it integer? (only enforced for array/tuple targets -
@@ -162,7 +203,7 @@ impl TypeChecker {
 
                 // is the target actually an array?
                 // if it is array return its items type
-                match &target_type {
+                let result = match &target_type {
                     CheckType::Known(TypeAnnotation::Array(inner))
                     | CheckType::Known(TypeAnnotation::CArray(inner)) => {
                         CheckType::Known((**inner).clone())
@@ -199,7 +240,8 @@ impl TypeChecker {
                         );
                         CheckType::Unknown
                     }
-                }
+                };
+                CheckedExpr::new(result, None)
             }
 
             // offloads to index_assign
@@ -207,7 +249,10 @@ impl TypeChecker {
                 target,
                 index,
                 value,
-            } => self.check_index_assign(target, index, value, expr_span),
+            } => CheckedExpr::new(
+                self.check_index_assign(target, index, value, expr_span),
+                None,
+            ),
 
             // offloads to binary
             ExpressionKind::Binary {
@@ -216,32 +261,32 @@ impl TypeChecker {
                 right,
             } => {
                 // is the left operand null?
-                let left_type = self.check_expression(left);
+                let left_typed = self.check_expression_typed(left);
                 let left_id = self.ast_arena.exprs.get(left);
-                self.check_is_null(&left_type, left_id.span);
+                self.check_is_null(&left_typed.ty, left_id.span);
                 // is the right operand null?
-                let right_type = self.check_expression(right);
+                let right_typed = self.check_expression_typed(right);
                 let right_id = self.ast_arena.exprs.get(right);
-                self.check_is_null(&right_type, right_id.span);
+                self.check_is_null(&right_typed.ty, right_id.span);
                 // is the binary correct?
-                self.check_binary_operator(left_type, right_type, &operator, expr_span)
+                self.check_binary_operator(&left_typed, &right_typed, &operator, expr_span)
             }
 
             // offloads to unary
             ExpressionKind::Unary { operator, operand } => {
                 // is the operand null?
                 let operand_span = self.ast_arena.exprs.get(operand).span;
-                let operand_type = self.check_expression(operand);
-                self.check_is_null(&operand_type, operand_span);
+                let operand_typed = self.check_expression_typed(operand);
+                self.check_is_null(&operand_typed.ty, operand_span);
                 // is the unary correct?
-                self.check_unary_operator(operand_type, operand_span, &operator, expr_span)
+                self.check_unary_operator(operand_typed, operand_span, &operator, expr_span)
             }
 
             // assigns the value to the variable then returns it
             ExpressionKind::Assign { name, value } => {
-                let value_type = self.check_expression(value);
-                self.assign(&name, value_type.clone(), expr_span);
-                value_type
+                let value_typed = self.check_expression_typed(value);
+                self.assign(&name, value_typed.clone(), expr_span);
+                value_typed
             }
 
             // checks the call path of the function
@@ -251,24 +296,29 @@ impl TypeChecker {
                     .map(|a| {
                         let a = *a;
                         let a_span = self.ast_arena.exprs.get(a).span;
-                        (self.check_expression(a), a_span)
+                        let t = self.check_expression_typed(a).ty;
+                        (t, a_span)
                     })
                     .collect();
-                self.check_call_path(&path, &arg_types, expr_span)
+                CheckedExpr::new(self.check_call_path(&path, &arg_types, expr_span), None)
             }
 
             // checks the call of the function
             ExpressionKind::CallExpr { callee, args } => {
-                let callee_type = self.check_expression(callee);
+                let callee_type = self.check_expression_typed(callee).ty;
                 let arg_types: Vec<(CheckType, Span)> = args
                     .iter()
                     .map(|a| {
                         let a = *a;
                         let a_span = self.ast_arena.exprs.get(a).span;
-                        (self.check_expression(a), a_span)
+                        let t = self.check_expression_typed(a).ty;
+                        (t, a_span)
                     })
                     .collect();
-                self.check_call_value(callee_type, &arg_types, expr_span)
+                CheckedExpr::new(
+                    self.check_call_value(callee_type, &arg_types, expr_span),
+                    None,
+                )
             }
 
             // checks the method call
@@ -277,13 +327,14 @@ impl TypeChecker {
                 method,
                 args,
             } => {
-                let caller_type = self.check_expression(caller);
+                let caller_typed = self.check_expression_typed(caller);
+                let caller_type = caller_typed.ty;
                 let caller_id = self.ast_arena.exprs.get(caller);
                 let mut arg_types: Vec<(CheckType, Span)> =
                     vec![(caller_type.clone(), caller_id.span)];
                 for arg in args {
                     let arg_span = self.ast_arena.exprs.get(arg).span;
-                    arg_types.push((self.check_expression(arg), arg_span));
+                    arg_types.push((self.check_expression_typed(arg).ty, arg_span));
                 }
 
                 if method.len() == 1
@@ -295,10 +346,13 @@ impl TypeChecker {
                         .get(&(rname.clone(), method[0].clone()))
                         .cloned()
                 {
-                    return self.check_call_value(sig, &arg_types, expr_span);
+                    return CheckedExpr::new(
+                        self.check_call_value(sig, &arg_types, expr_span),
+                        None,
+                    );
                 }
 
-                self.check_call_path(&method, &arg_types, expr_span)
+                CheckedExpr::new(self.check_call_path(&method, &arg_types, expr_span), None)
             }
 
             // checks the lambda and transforms it to function type
@@ -331,19 +385,22 @@ impl TypeChecker {
                 // remove scope level
                 self.pop_scope();
 
-                CheckType::Function {
-                    params: params.iter().map(|p| p.param_type.clone()).collect(),
-                    return_type: resolved_return,
-                }
+                CheckedExpr::new(
+                    CheckType::Function {
+                        params: params.iter().map(|p| p.param_type.clone()).collect(),
+                        return_type: resolved_return,
+                    },
+                    None,
+                )
             }
 
             ExpressionKind::Cast { value, target_type } => {
-                let value_type = self.check_expression(value);
+                let value_typed = self.check_expression_typed(value);
                 let value_id = self.ast_arena.exprs.get(value);
-                self.check_is_null(&value_type, value_id.span);
+                self.check_is_null(&value_typed.ty, value_id.span);
 
                 let castable = matches!(
-                    &value_type,
+                    &value_typed.ty,
                     CheckType::Known(
                         TypeAnnotation::CInt
                             | TypeAnnotation::CUInt
@@ -368,47 +425,57 @@ impl TypeChecker {
                     self.error(
                         format!(
                             "invalid cast: cannot cast {} to {:?}",
-                            value_type.info(),
+                            value_typed.ty.info(),
                             target_type
                         ),
                         expr_span,
                     );
                 }
-                CheckType::Known(target_type.clone())
+                // casts intentionally drop the unit of the value
+                CheckedExpr::new(CheckType::Known(target_type.clone()), None)
             }
 
             ExpressionKind::TupleLiteral(items) => {
                 let types: Vec<TypeAnnotation> = items
                     .iter()
                     .map(|item| {
-                        let t = self.check_expression(*item);
+                        let t = self.check_expression_typed(*item).ty;
                         Self::to_type_annotation(&t)
                     })
                     .collect();
-                CheckType::Known(TypeAnnotation::Tuple(Rc::new(types)))
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Tuple(Rc::new(types))),
+                    None,
+                )
             }
             ExpressionKind::ErrorLiteral(inner) => {
-                let inner_type = self.check_expression(inner);
+                let inner_typed = self.check_expression_typed(inner);
                 if matches!(
-                    inner_type,
+                    inner_typed.ty,
                     CheckType::Known(TypeAnnotation::Error | TypeAnnotation::CError)
                 ) {
                     self.error("error cannot wrap another error", expr_span);
                 }
-                CheckType::Known(TypeAnnotation::Error)
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Error), None)
             }
             ExpressionKind::OkLiteral(inner) => {
-                let inner_ann = Self::to_type_annotation(&self.check_expression(inner));
-                CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann)))
+                let inner_ann = Self::to_type_annotation(&self.check_expression_typed(inner).ty);
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))),
+                    None,
+                )
             }
             ExpressionKind::ErrLiteral(inner) => {
-                let inner_ann = Self::to_type_annotation(&self.check_expression(inner));
-                CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann)))
+                let inner_ann = Self::to_type_annotation(&self.check_expression_typed(inner).ty);
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))),
+                    None,
+                )
             }
 
             ExpressionKind::Propagate(inner) => {
-                let inner_type = self.check_expression(inner);
-                match inner_type {
+                let inner_typed = self.check_expression_typed(inner);
+                let result = match inner_typed.ty {
                     CheckType::Known(
                         TypeAnnotation::Result(inner_ty) | TypeAnnotation::CResult(inner_ty),
                     ) => CheckType::Known(*inner_ty),
@@ -420,7 +487,8 @@ impl TypeChecker {
                         );
                         CheckType::Unknown
                     }
-                }
+                };
+                CheckedExpr::new(result, None)
             }
 
             ExpressionKind::StructLiteral { name, fields } => {
@@ -430,18 +498,18 @@ impl TypeChecker {
                     }
                     for (field_name, value) in &fields {
                         let value_span = self.ast_arena.exprs.get(*value).span;
-                        let value_type = self.check_expression(*value);
+                        let value_typed = self.check_expression_typed(*value);
                         match declared_fields.iter().find(|(n, _)| n == field_name) {
                             Some((_, field_type)) => {
                                 let expected = CheckType::Known(field_type.clone());
-                                if !value_type.matches(&expected) {
+                                if !value_typed.ty.matches(&expected) {
                                     self.error(
                                         format!(
                                             "field `{}` of record `{}` expects {}, got {}",
                                             field_name,
                                             name,
                                             expected.info(),
-                                            value_type.info()
+                                            value_typed.ty.info()
                                         ),
                                         value_span,
                                     );
@@ -469,15 +537,15 @@ impl TypeChecker {
                 } else {
                     self.error(format!("unknown record type `{}`", name), expr_span);
                     for (_, value) in &fields {
-                        self.check_expression(*value);
+                        self.check_expression_typed(*value);
                     }
                 }
-                CheckType::Known(TypeAnnotation::Record(name))
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Record(name)), None)
             }
 
             ExpressionKind::FieldAccess { target, field } => {
-                let target_type = self.check_expression(target);
-                match &target_type {
+                let target_typed = self.check_expression_typed(target);
+                let result = match &target_typed.ty {
                     CheckType::Known(
                         TypeAnnotation::Record(name) | TypeAnnotation::CRecord(name),
                     ) => {
@@ -502,7 +570,8 @@ impl TypeChecker {
                         );
                         CheckType::Unknown
                     }
-                }
+                };
+                CheckedExpr::new(result, None)
             }
 
             ExpressionKind::FieldAssign {
@@ -510,9 +579,9 @@ impl TypeChecker {
                 field,
                 value,
             } => {
-                let target_type = self.check_expression(target);
-                let value_type = self.check_expression(value);
-                match &target_type {
+                let target_typed = self.check_expression_typed(target);
+                let value_typed = self.check_expression_typed(value);
+                match &target_typed.ty {
                     CheckType::Known(
                         TypeAnnotation::Record(name) | TypeAnnotation::CRecord(name),
                     ) => {
@@ -521,14 +590,14 @@ impl TypeChecker {
                         }) {
                             Some(field_type) => {
                                 let expected = CheckType::Known(field_type);
-                                if !value_type.matches(&expected) {
+                                if !value_typed.ty.matches(&expected) {
                                     self.error(
                                         format!(
                                             "field `{}` of record `{}` expects {}, got {}",
                                             field,
                                             name,
                                             expected.info(),
-                                            value_type.info()
+                                            value_typed.ty.info()
                                         ),
                                         expr_span,
                                     );
@@ -550,7 +619,7 @@ impl TypeChecker {
                         );
                     }
                 }
-                value_type
+                value_typed
             }
 
             ExpressionKind::EnumVariant { enum_name, variant } => {
@@ -570,32 +639,32 @@ impl TypeChecker {
                         self.error(format!("unknown tag type `{}`", enum_name), expr_span);
                     }
                 }
-                CheckType::Known(TypeAnnotation::Enum(enum_name))
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Enum(enum_name)), None)
             }
 
             ExpressionKind::SetLiteral(items) => {
                 let mut item_types = Vec::with_capacity(items.len());
                 for item in items {
                     let item_span = self.ast_arena.exprs.get(item).span;
-                    item_types.push((self.check_expression(item), item_span));
+                    item_types.push((self.check_expression_typed(item), item_span));
                 }
 
                 let items_type = item_types
                     .first()
-                    .map(|(t, _)| Self::to_type_annotation(t))
+                    .map(|(t, _)| Self::to_type_annotation(&t.ty))
                     .unwrap_or(TypeAnnotation::Null);
 
                 if let Some((first_type, _)) = item_types.first().cloned() {
                     for (item_type, span) in item_types.iter().skip(1) {
-                        if !item_type.is_null()
-                            && !first_type.is_null()
-                            && !item_type.matches(&first_type)
+                        if !item_type.ty.is_null()
+                            && !first_type.ty.is_null()
+                            && !item_type.ty.matches(&first_type.ty)
                         {
                             self.error(
                                 format!(
                                     "set element type mismatch: expected {}, got {}",
-                                    first_type.info(),
-                                    item_type.info()
+                                    first_type.ty.info(),
+                                    item_type.ty.info()
                                 ),
                                 *span,
                             );
@@ -603,10 +672,13 @@ impl TypeChecker {
                     }
                 }
 
-                CheckType::Known(TypeAnnotation::Set(Box::new(items_type)))
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Set(Box::new(items_type))),
+                    None,
+                )
             }
 
-            _ => CheckType::Unknown,
+            _ => CheckedExpr::new(CheckType::Unknown, None),
         }
     }
 }

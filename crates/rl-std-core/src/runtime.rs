@@ -120,7 +120,11 @@ pub trait Runtime: Sized + 'static {
     #[allow(clippy::type_complexity)]
     fn as_map(
         v: &Self::Value,
-    ) -> Option<(Vec<(Self::Value, Self::Value)>, TypeAnnotation, TypeAnnotation)>;
+    ) -> Option<(
+        Vec<(Self::Value, Self::Value)>,
+        TypeAnnotation,
+        TypeAnnotation,
+    )>;
     /// Whether `v` can be used as a set element / map key (a hashable scalar).
     fn is_valid_key(v: &Self::Value) -> bool;
     /// Whether two values are equal as set elements / map keys.

@@ -77,6 +77,7 @@ impl Parser {
                     StatementKind::VariableDeclaration {
                         name,
                         type_annotation: TypeAnnotation::Tuple(Rc::new(types)),
+                        unit_annotation: None,
                         value,
                     },
                     span,
@@ -249,6 +250,7 @@ impl Parser {
                     StatementKind::VariableDeclaration {
                         name,
                         type_annotation: annoation_type,
+                        unit_annotation: None,
                         value,
                     },
                     span,
@@ -317,6 +319,7 @@ impl Parser {
                     StatementKind::VariableDeclaration {
                         name,
                         type_annotation: TypeAnnotation::Set(Box::new(annoation_type)),
+                        unit_annotation: None,
                         value,
                     },
                     span,
@@ -386,6 +389,7 @@ impl Parser {
                     StatementKind::VariableDeclaration {
                         name,
                         type_annotation: TypeAnnotation::Array(Box::new(annoation_type)),
+                        unit_annotation: None,
                         value,
                     },
                     span,
@@ -408,6 +412,21 @@ impl Parser {
         };
 
         while self.match_type(&[TokenType::Newline]) {}
+
+        let unit_annotation = if self.match_type(&[TokenType::Colon]) {
+            if !Parser::is_numeric_type(&var_type) {
+                return Err(self.err(
+                    "units are only supported for numeric types",
+                    self.previous_span(),
+                ));
+            }
+
+            Some(self.parse_unit_annotation()?)
+        } else {
+            None
+        };
+
+        while self.match_type(&[TokenType::Newline]) {}
         if !self.match_type(&[TokenType::Assign]) {
             return Err(self.err("expected `=` after name", self.peek_span()));
         }
@@ -421,6 +440,7 @@ impl Parser {
             StatementKind::VariableDeclaration {
                 name,
                 type_annotation: var_type,
+                unit_annotation,
                 value,
             },
             span,

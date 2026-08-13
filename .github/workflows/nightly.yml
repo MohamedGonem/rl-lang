@@ -57,7 +57,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_GHA_CACHE_TAG: rl-v1-${{ matrix.target }}
+      SCCACHE_GHA_CACHE_TAG: rl-v1-${{ matrix.target }}-${{ matrix.group }}
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -120,7 +121,7 @@ jobs:
         run: choco install zip -y
 
       - name: Start sccache
-        uses: mozilla/sccache-action@v0.0.10
+        uses: mozilla/sccache-action@v0.0.11
 
       - name: Build variants (${{ matrix.group }})
         shell: bash

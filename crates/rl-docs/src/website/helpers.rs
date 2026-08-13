@@ -112,18 +112,12 @@ pub fn slugify(text: &str) -> String {
 }
 
 pub fn render_fn_entry(func: &FnEntry, fn_link_map: &HashMap<String, String>) -> String {
-    let mut out = format!(
-        "<h3><code>{}</code></h3>\n",
-        html_escape(func.signature)
-    );
+    let mut out = format!("<h3><code>{}</code></h3>\n", html_escape(func.signature));
 
     if let Some(since) = func.since {
-        out.push_str(&format!(
-            "<p><em>since {}</em></p>\n",
-            html_escape(since)
-        ));
+        out.push_str(&format!("<p><em>since {}</em></p>\n", html_escape(since)));
     }
-    
+
     out.push_str(&format!(
         "<p>{}</p>\n<p><strong>Returns:</strong> {}</p>\n",
         html_escape(func.description),
@@ -140,21 +134,26 @@ pub fn render_fn_entry(func: &FnEntry, fn_link_map: &HashMap<String, String>) ->
     out.push_str(&render_example_block(func.example, func.expected_output));
 
     out.push_str(&render_related(
-        "See also", 
-        func.see_also.to_vec(), 
-        fn_link_map, 
-        ""
+        "See also",
+        func.see_also.to_vec(),
+        fn_link_map,
+        "",
     ));
 
-    out 
+    out
 }
 
 /// Render a labeled list of related names.
 /// link_map is {name: filename} so related items become links
 /// to their own page instead of plain text.
-pub fn render_related(label: &str, names: Vec<&str>, link_map: &HashMap<String, String>, prefix: &str) -> String {
+pub fn render_related(
+    label: &str,
+    names: Vec<&str>,
+    link_map: &HashMap<String, String>,
+    prefix: &str,
+) -> String {
     if names.is_empty() {
-        return "".into()
+        return "".into();
     }
 
     let mut items = Vec::new();
@@ -162,28 +161,31 @@ pub fn render_related(label: &str, names: Vec<&str>, link_map: &HashMap<String, 
     for n in names {
         let display = html_escape(&format!("{prefix}{n}"));
         if let Some(link) = link_map.get(n) {
-            items.push(format!("<a href=\"{}\"><code>{display}</code></a>", html_escape(link)));
+            items.push(format!(
+                "<a href=\"{}\"><code>{display}</code></a>",
+                html_escape(link)
+            ));
         } else {
             items.push(format!("<code>{display}</code>"));
         }
     }
 
-    format!("<p><strong>{}:</strong> {}</p>\n", html_escape(label), items.join(", "))
+    format!(
+        "<p><strong>{}:</strong> {}</p>\n",
+        html_escape(label),
+        items.join(", ")
+    )
 }
 pub fn render_description_entry(desc: &DescriptionEntry) -> String {
     let mut out = String::new();
 
     if let Some(title) = desc.title {
-        out.push_str(&format!(
-            "<h4>{}</h4>\n",
-            html_escape(title)
-        ));
+        out.push_str(&format!("<h4>{}</h4>\n", html_escape(title)));
     }
 
     out.push_str(&format!(
         "<p><strong>{}:</strong> {}</p>\n",
-        desc.kind,
-        desc.description
+        desc.kind, desc.description
     ));
 
     for (i, example) in desc.examples.iter().enumerate() {
@@ -195,10 +197,7 @@ pub fn render_description_entry(desc: &DescriptionEntry) -> String {
 }
 
 fn render_example_block(example: &str, expected_output: Option<&str>) -> String {
-    let mut out = format!(
-        "<pre class=\"rl-code\">{}</pre>\n", 
-        html_escape(example),
-    );
+    let mut out = format!("<pre class=\"rl-code\">{}</pre>\n", html_escape(example),);
 
     if let Some(expected) = expected_output {
         out.push_str(&format!(

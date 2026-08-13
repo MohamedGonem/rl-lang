@@ -112,6 +112,7 @@ fn dec_fn_lambda() {
             name,
             type_annotation,
             value,
+            ..
         } => {
             assert_eq!(name, "x");
             assert_eq!(*type_annotation, TypeAnnotation::Fn);
@@ -163,4 +164,73 @@ fn entry_attribute_marks_function() {
         }
         other => panic!("expected function declaration, got {:?}", other),
     }
+}
+
+#[test]
+fn init_attribute_without_priority() {
+    let (_ast, statements) = common::parse("!#[init]\nfn setup () {return 1}");
+    match &statements[0].kind {
+        StatementKind::FunctionDeclaration {
+            name, attribute, ..
+        } => {
+            assert_eq!(name, "setup");
+            assert_eq!(*attribute, Some(FunctionAttribute::Init(None)));
+        }
+        other => panic!("expected function declaration, got {:?}", other),
+    }
+}
+
+#[test]
+fn init_attribute_with_priority() {
+    let (_ast, statements) = common::parse("!#[init=2]\nfn setup () {return 1}");
+    match &statements[0].kind {
+        StatementKind::FunctionDeclaration {
+            name, attribute, ..
+        } => {
+            assert_eq!(name, "setup");
+            assert_eq!(*attribute, Some(FunctionAttribute::Init(Some(2))));
+        }
+        other => panic!("expected function declaration, got {:?}", other),
+    }
+}
+
+#[test]
+fn final_attribute_with_priority() {
+    let (_ast, statements) = common::parse("!#[final=0]\nfn teardown () {return 1}");
+    match &statements[0].kind {
+        StatementKind::FunctionDeclaration {
+            name, attribute, ..
+        } => {
+            assert_eq!(name, "teardown");
+            assert_eq!(*attribute, Some(FunctionAttribute::Final(Some(0))));
+        }
+        other => panic!("expected function declaration, got {:?}", other),
+    }
+}
+
+#[test]
+fn init_attribute_priority_must_be_a_number() {
+    let err = common::parse_assert_err("!#[init=hi]\nfn setup () {return 1}");
+    assert!(
+        err.contains("expected a number after `=`"),
+        "unexpected error message: {err}"
+    );
+}
+
+#[test]
+fn entry_attribute_rejects_priority() {
+    let err = common::parse_assert_err("!#[entry=1]\nfn start () {return 1}");
+    assert!(
+        err.contains("`!#[entry]` does not take a priority"),
+        "unexpected error message: {err}"
+    );
+}
+
+#[test]
+fn test_attribute_rejects_priority() {
+    let err = common::parse_assert_err("!#[test=1]\nfn check () {return 1}");
+    assert!(
+        err.contains("`!#[test]` does not take a priority"),
+        "unexpected error message: {err}"
+    );
 }
