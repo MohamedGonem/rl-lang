@@ -2,10 +2,8 @@
 //!
 //! The REPL UI code (`logic_loop`, `command_handler`, `completion`) only ever
 //! touches [`ReplBackend`], so rl can drive the same interactive loop from
-//! either execution engine:
+//! the VM execution engine:
 //!
-//! - [`TreewalkerBackend`] wraps the interpreter's `Evaluator` (enabled with
-//!   the `treewalker` feature).
 //! - [`VmBackend`] wraps a persistent `rl_vm::Vm` + `rl_resolver::Resolver`
 //!   (enabled with the `vm` feature). Global state survives across inputs
 //!   because the resolver keeps its global scope and the VM keeps its global
@@ -14,7 +12,6 @@
 
 use std::path::Path;
 
-#[cfg(feature = "vm")]
 use std::collections::HashSet;
 
 use rl_ast::{Ast, statements::Statement};
@@ -54,116 +51,6 @@ pub trait ReplBackend {
     fn candidate_names(&self) -> Vec<String>;
 }
 
-/// The interpreter-backed REPL backend.
-#[cfg(feature = "treewalker")]
-pub struct TreewalkerBackend {
-    evaluator: rl_interpreter::evaluator::Evaluator,
-}
-
-#[cfg(feature = "treewalker")]
-impl TreewalkerBackend {
-    pub fn new() -> Self {
-        Self {
-            evaluator: rl_interpreter::evaluator::Evaluator::default().with_stdlib(),
-        }
-    }
-}
-
-#[cfg(feature = "treewalker")]
-impl ReplBackend for TreewalkerBackend {
-    fn eval_parsed(
-        &mut self,
-        source: SourceFile,
-        ast: Ast,
-        statements: Vec<Statement>,
-        output: &mut Vec<OutputLine>,
-    ) -> bool {
-        use rl_ast::statements::StatementKind;
-        use rl_interpreter::values::Value;
-
-        self.evaluator.set_source_file(source);
-        self.evaluator.output_buffer = Some(String::new());
-
-        let statements = self.evaluator.resolver.resolve_program(ast, statements);
-
-        let mut success = true;
-        for statement in &statements {
-            if let StatementKind::Expression(expr) = &statement.kind {
-                match self.evaluator.evaluate(*expr) {
-                    Ok(val) => {
-                        if !matches!(val, Value::Null) {
-                            let val_str = format!("{}", val);
-                            let spans = crate::syntax_highlighting::highlight(&val_str);
-                            output.push(OutputLine::Styled(
-                                spans
-                                    .into_iter()
-                                    .map(|sp| (sp.content.into_owned(), sp.style))
-                                    .collect(),
-                            ));
-                        }
-                    }
-                    Err(e) => {
-                        output.push(OutputLine::Error(format!("error: {}", e.message())));
-                        success = false;
-                        break;
-                    }
-                }
-            } else if let Err(e) = self.evaluator.evaluate_statement(statement) {
-                output.push(OutputLine::Error(format!("error: {}", e.message())));
-                success = false;
-                break;
-            }
-        }
-
-        if let Some(captured) = self.evaluator.output_buffer.take() {
-            for line in captured.split('\n') {
-                if !line.is_empty() {
-                    output.push(OutputLine::Result(line.to_string()));
-                }
-            }
-        }
-
-        success
-    }
-
-    fn attach_parsed(
-        &mut self,
-        source: SourceFile,
-        ast: Ast,
-        statements: Vec<Statement>,
-        output: &mut Vec<OutputLine>,
-    ) -> bool {
-        let dir = Path::new(source.name.as_ref())
-            .parent()
-            .unwrap_or(Path::new(""))
-            .to_path_buf();
-        self.evaluator.set_source_file(source);
-        self.evaluator.resolver.current_dir = dir;
-        let statements = self.evaluator.resolver.resolve_program(ast, statements);
-        let mut ok = true;
-        for stmt in &statements {
-            if let Err(e) = self.evaluator.evaluate_statement(stmt) {
-                push_error(output, &e);
-                ok = false;
-                break;
-            }
-        }
-        ok
-    }
-
-    fn reset(&mut self) {
-        self.evaluator = rl_interpreter::evaluator::Evaluator::default().with_stdlib();
-    }
-
-    fn candidate_names(&self) -> Vec<String> {
-        let mut names: Vec<String> = Vec::new();
-        names.extend(self.evaluator.fn_names.keys().cloned());
-        names.extend(self.evaluator.records.keys().cloned());
-        names.extend(self.evaluator.tags.keys().cloned());
-        names
-    }
-}
-
 /// The bytecode VM-backed REPL backend.
 ///
 /// A single persistent `Vm` + `Resolver` lives for the whole session. Each
@@ -173,7 +60,6 @@ impl ReplBackend for TreewalkerBackend {
 /// stdlib module (so `get x from std::io` imports survive across inputs),
 /// and executed with `run_and_return` so a trailing expression's value is
 /// rendered.
-#[cfg(feature = "vm")]
 pub struct VmBackend {
     vm: rl_vm::Vm,
     resolver: rl_resolver::Resolver,
@@ -183,7 +69,6 @@ pub struct VmBackend {
     types: HashSet<String>,
 }
 
-#[cfg(feature = "vm")]
 impl VmBackend {
     pub fn new() -> Self {
         Self {
@@ -285,7 +170,6 @@ impl VmBackend {
     }
 }
 
-#[cfg(feature = "vm")]
 impl ReplBackend for VmBackend {
     fn eval_parsed(
         &mut self,
