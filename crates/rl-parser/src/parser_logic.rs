@@ -73,6 +73,16 @@ impl Parser {
                 parser.advance();
                 continue;
             }
+            // `#![..]` is a program-level attribute, e.g. `#![convert(kg=1000(g))]`.
+            if matches!(parser.peek(), TokenType::Hash)
+                && matches!(parser.peek_next(), TokenType::Bang)
+            {
+                parser.advance();
+                parser.advance();
+                let attribute = parser.parse_program_attribute()?;
+                parser.ast_arena.program_attributes.push(attribute);
+                continue;
+            }
             statements.push(parser.parse_statement_to_ast()?);
         }
 
