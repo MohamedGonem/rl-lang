@@ -8,7 +8,7 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. This is the
 
 | Subcommand | Action |
 |---|---|
-| `rl run <file>` | Lex, parse, and evaluate a single `.rl` file (`--vm` / `--cranelift` to pick an alternate backend) |
+| `rl run <file>` | Lex, parse, and evaluate a single `.rl` file (`--treewalker` / `--vm` / `--cranelift` to pick a backend) |
 | `rl dev` | Read `rl.toml`, lex, parse, and evaluate the project entry point |
 | `rl check <file>` | Lex, parse, and type-check a file, reporting errors without running it |
 | `rl new <name>` | Scaffold a new project directory |

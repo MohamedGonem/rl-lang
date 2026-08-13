@@ -64,6 +64,10 @@ enum Commands {
         #[arg(long)]
         vm: bool,
 
+        /// Run through the tree-walking evaluator instead of the bytecode VM
+        #[arg(long)]
+        treewalker: bool,
+
         /// JIT compile via cranelift instead
         /// (this is very very highly experimental)
         #[arg(long)]
@@ -304,6 +308,7 @@ fn main() {
         Commands::Run {
             file,
             vm,
+            treewalker,
             cranelift,
             ..
         } => {
@@ -373,6 +378,14 @@ fn main() {
                     eprintln!(
                         "error: --cranelift requires the `cranelift` feature (which implies `vm`)"
                     );
+                    std::process::exit(1)
+                }
+            } else if treewalker {
+                #[cfg(feature = "treewalker")]
+                eval_loop(source, ast, statements, 3);
+                #[cfg(not(feature = "treewalker"))]
+                {
+                    eprintln!("error: --treewalker requires the `treewalker` feature");
                     std::process::exit(1)
                 }
             } else {
