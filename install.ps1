@@ -5,15 +5,14 @@ $ErrorActionPreference = "Stop"
 $Repo = "rl-lang/rl-lang"
 $InstallDir = if ($env:RL_INSTALL_DIR) { $env:RL_INSTALL_DIR } else { "$env:LOCALAPPDATA\rl-lang\bin" }
 
-$Bases = @("rl", "rl_vm", "rl_treewalker", "rl_debug", "rl_vm_debug", "rl_treewalker_debug")
+$Bases = @("rl", "rl_vm", "rl_debug", "rl_vm_debug")
 $Suffixes = @("", "_no_docs", "_no_repl", "_no_docs_repl")
 
 $Sections = @{
-    1  = "Standard (treewalker + vm)"
+    1  = "Standard (vm)"
     5  = "VM-only"
-    9  = "Treewalker-only"
-    13 = "Debug builds"
-    25 = "Language server"
+    9  = "Debug builds"
+    17 = "Language server"
 }
 
 $ActualName = @{
@@ -33,14 +32,6 @@ $ActualName = @{
     "rl_vm_debug_no_docs" = "rlcd_nd"
     "rl_vm_debug_no_repl" = "rlcd_nr"
     "rl_vm_debug_no_docs_repl" = "rlcd_ndr"
-    "rl_treewalker" = "rlp"
-    "rl_treewalker_no_docs" = "rlp_nd"
-    "rl_treewalker_no_repl" = "rlp_nr"
-    "rl_treewalker_no_docs_repl" = "rlp_ndr"
-    "rl_treewalker_debug" = "rlpd"
-    "rl_treewalker_debug_no_docs" = "rlpd_nd"
-    "rl_treewalker_debug_no_repl" = "rlpd_nr"
-    "rl_treewalker_debug_no_docs_repl" = "rlpd_ndr"
     "rl_lsp" = "rlsp"
 }
 

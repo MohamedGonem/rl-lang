@@ -64,10 +64,10 @@ jobs:
             variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
 
           - group: g3
-            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl,rl_treewalker,rl_treewalker_no_docs"
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
 
           - group: g4
-            variants: "rl_treewalker_no_repl,rl_treewalker_no_docs_repl,rl_treewalker_debug,rl_treewalker_debug_no_docs,rl_treewalker_debug_no_repl,rl_treewalker_debug_no_docs_repl,rl_lsp"
+            variants: "rl_lsp"
 
     runs-on: ${{ matrix.os }}
     env:
