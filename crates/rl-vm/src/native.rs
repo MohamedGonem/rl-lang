@@ -1,9 +1,9 @@
 //! The VM's native function binding system - [`Module`], [`NativeFn`], and the
 //! [`IntoNativeFn`] / [`FromValue`] / [`IntoValue`] trait machinery.
 //!
-//! This mirrors `rl-interpreter`'s `native.rs`, scoped down to what `VmValue`
-//! currently supports: no array/tuple/map/error/ok variants yet (so no
-//! `Vec<T>` impls). Errors built in here (arity mismatches, `FromValue`
+//! This is scoped down to what `VmValue` currently supports: no
+//! array/tuple/map/error/ok variants yet (so no `Vec<T>` impls). Errors built
+//! in here (arity mismatches, `FromValue`
 //! conversions) have no access to a `Span` - this generic machinery runs
 //! before the call site is known - so they're built with a dummy span via
 //! [`rt_err`], then re-anchored at the actual call site by `Vm::annotate`
