@@ -85,7 +85,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/rl-lang/rl-lang/main/install
 .\install.ps1
 ```
 
-Available builds include `rl` (treewalker + VM), `rlc` (VM-only), `rlp` (treewalker-only), and `rlsp` (language server). Debug variants are suffixed with `d` (e.g. `rld`).
+Available builds include `rl` (VM), `rlc` (VM-only), and `rlsp` (language server). Debug variants are suffixed with `d` (e.g. `rld`).
 
 ### From source
 
@@ -169,8 +169,6 @@ Feature flags:
 | Flag        | State              | Description  |
 | :---------: | :----------------: | :----------: |
 | `run`       | `Off` by default   | -            |
-| `eval`      | `Off` by default   | Deprecated alias for `treewalker`            |
-| `treewalker`| `Off` by default   | This flag for the `treewalker` backend (enabled in release builds)             |
 | `vm`        | `On` by default    | This flag for `vm` backend         |
 | `cranelift` | `Off` experimental | This flag for `cranelift` backend used for native compilations             |
 | `repl`      | `On` by default    | This flag for the interactive TUI shell `REPL`             |

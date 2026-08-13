@@ -2,13 +2,13 @@
 
 > Benchmark suite for the rl-lang pipeline
 
-Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. Not published (`publish = false`) - measures the performance of the lexer, parser, interpreter, and VM using [Criterion](https://github.com/bheisler/criterion.rs).
+Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace. Not published (`publish = false`) - measures the performance of the lexer, parser, and VM using [Criterion](https://github.com/bheisler/criterion.rs).
 
 ## Overview
 
 Each file under `benches/` compiles as its own binary, so shared source snippets and pipeline-stage helpers live once in `src/lib.rs` and are imported with `use rl_benches::*;` instead of being duplicated per benchmark file.
 
-All program fixtures are **self-validated before timing**: each one is run through the full pipeline (lex -> parse -> resolve -> compile -> execute) and asserted to produce its expected value. A broken fixture fails the bench loudly instead of being silently benchmarked as empty work. The realistic workloads end in a bare expression with a known value and are strictly asserted; the original small programs are smoke-verified through both engines.
+All program fixtures are **self-validated before timing**: each one is run through the full pipeline (lex -> parse -> resolve -> compile -> execute) and asserted to produce its expected value. A broken fixture fails the bench loudly instead of being silently benchmarked as empty work. The realistic workloads end in a bare expression with a known value and are strictly asserted.
 
 ## Benchmarks
 
@@ -16,9 +16,8 @@ All program fixtures are **self-validated before timing**: each one is run throu
 |---|---|
 | `lexer` | Tokenizing throughput across declaration, control-flow, function, and import snippets |
 | `parser` | Lexing + parsing throughput on the same snippet set |
-| `pipeline` | Discrete pipeline stages in isolation: `resolve`, `vm_compile`, `vm_run`, `interp_evaluate` |
+| `pipeline` | Discrete pipeline stages in isolation: `resolve`, `vm_compile`, `vm_run` |
 | `vm` | VM bytecode `compile` and pure `run` (pre-compiled chunk, fresh VM per iteration) |
-| `compare` | Interpreter vs VM execution on identical source |
 
 ### Realistic workloads (`WORKLOAD_PROGRAMS`)
 
@@ -35,11 +34,11 @@ Each has a known final value that is asserted before benchmarking:
 
 | Module | Contents |
 |---|---|
-| `lib` | Shared source-code fixtures (`SRC_*` constants, `BASE_PROGRAMS`, `WORKLOAD_PROGRAMS`) and pipeline-stage helpers (`lex_only`, `lex_and_parse`, `parse_and_resolve`, `compile_resolved`, `run_chunk`, `resolve_only`, `interp_evaluate_only`, `verify_*`) |
+| `lib` | Shared source-code fixtures (`SRC_*` constants, `BASE_PROGRAMS`, `WORKLOAD_PROGRAMS`) and pipeline-stage helpers (`lex_only`, `lex_and_parse`, `parse_and_resolve`, `compile_resolved`, `run_chunk`, `resolve_only`, `verify_*`) |
 
 ## Dependencies
 
-Builds on `rl-ast`, `rl-lexer`, `rl-parser`, `rl-resolver`, `rl-interpreter`, `rl-vm`, `rl-utils`, and `criterion`.
+Builds on `rl-ast`, `rl-lexer`, `rl-parser`, `rl-resolver`, `rl-vm`, `rl-utils`, and `criterion`.
 
 ## Usage
 
@@ -49,7 +48,6 @@ cargo bench -p rl-benches
 
 # a single target
 cargo bench -p rl-benches --bench vm
-cargo bench -p rl-benches --bench compare
 ```
 
 HTML reports are written under `target/criterion/` (via the `html_reports` Criterion feature).
