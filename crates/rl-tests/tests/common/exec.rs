@@ -1,9 +1,9 @@
 use rl_ast::Ast;
 use rl_ast::statements::Statement;
 use rl_checker::TypeChecker;
-use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokentypes::Token;
-use rl_utils::{errors::Error, source::SourceFile};
+use rl_resolver::Resolver;
+use rl_utils::source::SourceFile;
 
 pub fn lex(source: &str) -> Vec<Token> {
     let text = SourceFile::new("test", source.to_string());
@@ -28,24 +28,14 @@ pub fn parse_assert_err(source: &str) -> String {
     result.message().to_string()
 }
 
-pub fn eval_program(source: &str) -> Result<Evaluator, Error> {
-    let file = SourceFile::new("test", source.to_string());
-    let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone())?;
-    let (ast, stmts) = rl_parser::parser_logic::Parser::parse(tokens, file.clone())?;
-    let mut evaluator = Evaluator::default().with_stdlib().with_source_file(file);
-    let stmts = evaluator.resolver.resolve_program(ast, stmts);
-    evaluator.evaluate_program(&stmts)?;
-    Ok(evaluator)
-}
-
 pub fn compile_and_run(source: &str) -> Result<rl_vm::VmValue, rl_vm::VmError> {
     let file = SourceFile::new("test", source.to_string());
     let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone()).expect("lex failed");
     let (ast, stmts) =
         rl_parser::parser_logic::Parser::parse(tokens, file.clone()).expect("parse failed");
-    let mut evaluator = Evaluator::default().with_stdlib().with_source_file(file);
-    let stmts = evaluator.resolver.resolve_program(ast, stmts);
-    let chunk = rl_vm::Compiler::new(&evaluator.resolver.ast_arena)
+    let mut resolver = Resolver::new();
+    let stmts = resolver.resolve_program(ast, stmts);
+    let chunk = rl_vm::Compiler::new(&resolver.ast_arena)
         .compile(&stmts)
         .expect("compile failed");
     rl_vm::Vm::new().run_and_return(&chunk)
@@ -58,9 +48,9 @@ pub fn compile_error(source: &str) -> String {
     let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone()).expect("lex failed");
     let (ast, stmts) =
         rl_parser::parser_logic::Parser::parse(tokens, file.clone()).expect("parse failed");
-    let mut evaluator = Evaluator::default().with_stdlib().with_source_file(file);
-    let stmts = evaluator.resolver.resolve_program(ast, stmts);
-    rl_vm::Compiler::new(&evaluator.resolver.ast_arena)
+    let mut resolver = Resolver::new();
+    let stmts = resolver.resolve_program(ast, stmts);
+    rl_vm::Compiler::new(&resolver.ast_arena)
         .compile(&stmts)
         .map(|_| {
             panic!("expected `{source}` to fail compilation, but it succeeded");
