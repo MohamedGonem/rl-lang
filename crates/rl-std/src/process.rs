@@ -173,7 +173,12 @@ pub fn exec_lines(cmd: String) -> Result<Vec<String>, String> {
 pub fn with_exec_lines(e: String, cmd: String) -> Result<Vec<String>, String> {
     let mut command = match with_command(&e, &cmd) {
         Ok(c) => c,
-        Err(err) => return Err(format!("with_exec_lines: invalid args \"{}\": {}", cmd, err)),
+        Err(err) => {
+            return Err(format!(
+                "with_exec_lines: invalid args \"{}\": {}",
+                cmd, err
+            ));
+        }
     };
     let output = match command.output() {
         Ok(o) => o,

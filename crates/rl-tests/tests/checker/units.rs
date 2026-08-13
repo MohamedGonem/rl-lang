@@ -1,12 +1,9 @@
 use {
     super::common::{assert_checker_clean, assert_checker_msg},
     crate::common::check,
-    rl_ast::statements::UnitAnnotation,
-    rl_checker::{
-        structs::CheckType,
-        units::Unit,
-    },
     rl_ast::statements::TypeAnnotation,
+    rl_ast::statements::UnitAnnotation,
+    rl_checker::{structs::CheckType, units::Unit},
 };
 
 // ---- `Unit` algebra ----
@@ -121,7 +118,10 @@ fn stores_unit_for_variable_declaration() {
         .get("speed")
         .expect("speed should be declared");
 
-    assert_eq!(item.type_annotation, CheckType::Known(TypeAnnotation::Float));
+    assert_eq!(
+        item.type_annotation,
+        CheckType::Known(TypeAnnotation::Float)
+    );
     assert!(!item.is_const);
 
     let unit = item.unit.as_ref().expect("speed should have a unit");
@@ -143,7 +143,10 @@ fn stores_unit_for_constant_declaration() {
         .get("SPEED")
         .expect("SPEED should be declared");
 
-    assert_eq!(item.type_annotation, CheckType::Known(TypeAnnotation::CFloat));
+    assert_eq!(
+        item.type_annotation,
+        CheckType::Known(TypeAnnotation::CFloat)
+    );
     assert!(item.is_const);
 
     let unit = item.unit.as_ref().expect("SPEED should have a unit");
@@ -199,10 +202,7 @@ fn units_rejected_on_non_numeric_types() {
         let file = rl_utils::source::SourceFile::new("test", source.to_string());
         let tokens = rl_lexer::tokenizer::Tokenizer::lex(file.clone()).unwrap();
         let result = rl_parser::parser_logic::Parser::parse(tokens, file);
-        assert!(
-            result.is_err(),
-            "expected a parse error for {source:?}"
-        );
+        assert!(result.is_err(), "expected a parse error for {source:?}");
     }
 }
 

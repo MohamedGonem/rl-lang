@@ -172,7 +172,11 @@ pub fn concat<R: Runtime>(args: Vec<R::Value>) -> String {
 }
 
 #[native_fn(module = "str", untyped)]
-pub fn format<R: Runtime>(cx: &mut R::Cx, args: Vec<R::Value>, span: R::Span) -> Result<String, Error> {
+pub fn format<R: Runtime>(
+    cx: &mut R::Cx,
+    args: Vec<R::Value>,
+    span: R::Span,
+) -> Result<String, Error> {
     if args.is_empty() {
         return Err(R::error(cx, "expected arguments", span));
     }

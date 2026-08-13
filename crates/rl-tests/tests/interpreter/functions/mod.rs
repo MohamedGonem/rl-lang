@@ -220,3 +220,71 @@ dec int x = double(3) + double(4)
     .unwrap();
     assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(14)));
 }
+
+#[test]
+fn inits_run_in_priority_order_before_entry() {
+    let ev = eval_program(
+        r#"
+dec int x = 0
+!#[init=2]
+fn init_two() { x = x * 10 + 2 }
+!#[init=1]
+fn init_one() { x = x * 10 + 1 }
+!#[init]
+fn init_default() { x = x * 10 + 3 }
+!#[entry]
+fn start() { x = x * 100 }
+"#,
+    )
+    .unwrap();
+    assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(12300)));
+}
+
+#[test]
+fn finals_run_in_priority_order_after_entry() {
+    let ev = eval_program(
+        r#"
+dec int x = 0
+!#[entry]
+fn start() { x = x + 10 }
+!#[final=1]
+fn final_one() { x = x + 1 }
+!#[final]
+fn final_default() { x = x + 2 }
+!#[final=0]
+fn final_zero() { x = x + 0 }
+"#,
+    )
+    .unwrap();
+    assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(13)));
+}
+
+#[test]
+fn tests_run_before_inits_and_entry() {
+    let ev = eval_program(
+        r#"
+dec int x = 0
+!#[test]
+fn check() { x = x * 10 + 1 }
+!#[init]
+fn setup() { x = x * 10 + 2 }
+!#[entry]
+fn start() { x = x * 10 + 3 }
+"#,
+    )
+    .unwrap();
+    assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(123)));
+}
+
+#[test]
+fn entry_mode_skips_top_level_expressions() {
+    let ev = eval_program(
+        r#"
+dec int x = 0
+x = 99
+fn main() { x = 7 }
+"#,
+    )
+    .unwrap();
+    assert_eq!(ev.get_value_raw("x"), Some(Value::Integer(7)));
+}

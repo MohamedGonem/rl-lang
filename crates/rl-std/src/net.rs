@@ -220,7 +220,12 @@ pub fn tcp_peer_addr<R: NetStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value 
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("tcp_peer_addr: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "tcp_peer_addr: unknown handle {}",
+                id
+            )));
+        }
     };
     match stream.peer_addr() {
         Ok(addr) => R::ok(R::from_string(addr.to_string())),
@@ -243,7 +248,12 @@ pub fn tcp_local_addr<R: NetStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("tcp_local_addr: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "tcp_local_addr: unknown handle {}",
+                id
+            )));
+        }
     };
     match stream.local_addr() {
         Ok(addr) => R::ok(R::from_string(addr.to_string())),
@@ -252,7 +262,11 @@ pub fn tcp_local_addr<R: NetStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value
 }
 
 #[native_fn(module = "net", bound = "NetStore", sig(handle(Net), handle(Net) -> result[null]))]
-pub fn tcp_set_timeout<R: NetStore>(cx: &mut R::Cx, handle: R::Value, millis: R::Value) -> R::Value {
+pub fn tcp_set_timeout<R: NetStore>(
+    cx: &mut R::Cx,
+    handle: R::Value,
+    millis: R::Value,
+) -> R::Value {
     use std::time::Duration;
 
     let id = match extract_handle::<R>(&handle, "tcp_set_timeout") {
@@ -273,7 +287,12 @@ pub fn tcp_set_timeout<R: NetStore>(cx: &mut R::Cx, handle: R::Value, millis: R:
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("tcp_set_timeout: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "tcp_set_timeout: unknown handle {}",
+                id
+            )));
+        }
     };
     let duration = if millis == 0 {
         None
@@ -351,7 +370,12 @@ pub fn tcp_shutdown<R: NetStore>(cx: &mut R::Cx, handle: R::Value, mode: R::Valu
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("tcp_shutdown: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "tcp_shutdown: unknown handle {}",
+                id
+            )));
+        }
     };
     match stream.shutdown(mode) {
         Ok(()) => R::ok(R::null()),
@@ -375,7 +399,10 @@ pub fn tcp_close<R: NetStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value {
             "tcp_close(): handle {} is not a TCP handle",
             id
         ))),
-        None => R::err(R::from_string(format!("tcp_close(): unknown handle {}", id))),
+        None => R::err(R::from_string(format!(
+            "tcp_close(): unknown handle {}",
+            id
+        ))),
     }
 }
 
@@ -413,7 +440,12 @@ pub fn udp_connect<R: NetStore>(cx: &mut R::Cx, handle: R::Value, address: R::Va
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("udp_connect: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "udp_connect: unknown handle {}",
+                id
+            )));
+        }
     };
     match socket.connect(&addr) {
         Ok(()) => R::ok(R::null()),
@@ -476,7 +508,12 @@ pub fn udp_send_to<R: NetStore>(
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("udp_send_to: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "udp_send_to: unknown handle {}",
+                id
+            )));
+        }
     };
     match socket.send_to(data.as_bytes(), &addr) {
         Ok(n) => R::ok(R::from_i64(n as i64)),
@@ -538,7 +575,12 @@ pub fn udp_recv_from<R: NetStore>(
                 id
             )));
         }
-        None => return R::err(R::from_string(format!("udp_recv_from: unknown handle {}", id))),
+        None => {
+            return R::err(R::from_string(format!(
+                "udp_recv_from: unknown handle {}",
+                id
+            )));
+        }
     };
     let mut buf = vec![0u8; max_bytes];
     match socket.recv_from(&mut buf) {
@@ -586,9 +628,7 @@ pub fn resolve<R: NetStore>(_cx: &mut R::Cx, host_port: String) -> R::Value {
 
     match host_port.to_socket_addrs() {
         Ok(addrs) => {
-            let items: Vec<R::Value> = addrs
-                .map(|a| R::from_string(a.ip().to_string()))
-                .collect();
+            let items: Vec<R::Value> = addrs.map(|a| R::from_string(a.ip().to_string())).collect();
             R::ok(R::array(items, TypeAnnotation::String))
         }
         Err(e) => R::err(R::from_string(format!("resolve(\"{}\"): {}", host_port, e))),

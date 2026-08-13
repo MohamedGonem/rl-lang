@@ -37,16 +37,20 @@ pub static ENTRY_POINTS: ConceptEntry = ConceptEntry {
         DescriptionEntry {
             kind: DescriptionKind::Syntax,
             title: Some("!#[init]"),
-            description: "`!#[init]` marks a zero-argument function to run once before the entry point",
-            examples: &["!#[init]\nfn setup() {\n    std::io::println(\"starting up\")\n}"],
-            expected_output: &["starting up"],
+            description: "`!#[init]` marks a zero-argument function to run once before the entry point. A priority can be attached with `!#[init=n]`: numbered inits run first, in ascending order of `n`, and unnumbered `!#[init]` functions run last, in file order",
+            examples: &[
+                "!#[init=1]\nfn defaults() {\n    std::io::println(\"defaults\")\n}\n!#[init]\nfn late() {\n    std::io::println(\"late\")\n}\nfn main() {}",
+            ],
+            expected_output: &["defaults", "late"],
         },
         DescriptionEntry {
             kind: DescriptionKind::Syntax,
             title: Some("!#[final]"),
-            description: "`!#[final]` marks a zero-argument function to run once after the entry point finishes",
-            examples: &["!#[final]\nfn cleanup() {\n    std::io::println(\"shutting down\")\n}"],
-            expected_output: &["shutting down"],
+            description: "`!#[final]` marks a zero-argument function to run once after the entry point finishes. A priority can be attached with `!#[final=n]`, with the same ordering as inits: numbered finals first in ascending order of `n`, then unnumbered ones in file order",
+            examples: &[
+                "!#[final]\nfn early() {\n    std::io::println(\"early\")\n}\n!#[final=0]\nfn low() {\n    std::io::println(\"low\")\n}\nfn main() {}",
+            ],
+            expected_output: &["low", "early"],
         },
         DescriptionEntry {
             kind: DescriptionKind::Syntax,
@@ -67,7 +71,7 @@ pub static ENTRY_POINTS: ConceptEntry = ConceptEntry {
         DescriptionEntry {
             kind: DescriptionKind::Pitfall,
             title: Some("execution order, and what skips the rest"),
-            description: "when an entry point exists, everything runs in a fixed order: every `!#[test]` function, then every `!#[init]` function, then the entry function, then every `!#[final]` function - each stage's functions run in file order, and if any function in an earlier stage errors, every later stage (including `!#[final]`) is skipped entirely, since there's no finally-style guarantee",
+            description: "when an entry point exists, everything runs in a fixed order: every `!#[test]` function, then every `!#[init]` function, then the entry function, then every `!#[final]` function - within the init and final stages, `!#[init=n]`/`!#[final=n]` priorities run first in ascending order of `n`, then unnumbered functions run in file order; if any function in an earlier stage errors, every later stage (including `!#[final]`) is skipped entirely, since there's no finally-style guarantee",
             examples: &[],
             expected_output: &[],
         },
@@ -83,6 +87,7 @@ pub static ENTRY_POINTS: ConceptEntry = ConceptEntry {
         "declaring more than one `!#[entry]` function is only caught at runtime ('multiple !#[entry] functions found'), not by the checker",
         "`!#[init]`, `!#[final]`, and `!#[test]` only run automatically when the file also has an entry point (`!#[entry]` or `fn main()`) - otherwise they're just ordinary, never-called functions",
         "execution order is tests -> inits -> entry -> finals, and an error in any earlier stage skips every later one, including `!#[final]` - there's no finally-style guarantee",
+        "`!#[init=n]`/`!#[final=n]` priorities control ordering within their stage: lower `n` runs first, and unnumbered functions run after all numbered ones, in file order",
         "the checker doesn't validate these attributes at all - a parameterized entry/init/final/test function type-checks fine and only fails when it's actually called with zero arguments at runtime",
     ],
     related: &["functions", "result"],

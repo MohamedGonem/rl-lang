@@ -59,7 +59,8 @@ pub trait AudioStore: Runtime {
 
     /// Iterates every currently-live handle. Used by `set_master_volume` to
     /// rescale all playing sounds at once.
-    fn audio_handles_values<'a>(cx: &'a Self::Cx) -> Box<dyn Iterator<Item = &'a AudioHandle> + 'a>;
+    fn audio_handles_values<'a>(cx: &'a Self::Cx)
+    -> Box<dyn Iterator<Item = &'a AudioHandle> + 'a>;
 }
 
 #[cfg(feature = "impls")]
@@ -184,7 +185,9 @@ fn find_device(name: &str) -> Result<cpal::Device, String> {
 /// Builds a [`rodio::Player`] connected to a freshly opened output stream,
 /// with volume/handle bookkeeping applied consistently across every
 /// function that starts new playback (`play_file`, `play_file_async`, `beep`).
-fn new_sink<R: AudioStore>(cx: &mut R::Cx) -> Result<(rodio::Player, rodio::MixerDeviceSink), String> {
+fn new_sink<R: AudioStore>(
+    cx: &mut R::Cx,
+) -> Result<(rodio::Player, rodio::MixerDeviceSink), String> {
     let stream = open_stream::<R>(cx)?;
     let sink = rodio::Player::connect_new(stream.mixer());
     sink.set_volume(*R::audio_master_volume(cx));
@@ -365,7 +368,10 @@ pub fn sound_pause<R: AudioStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value 
             h.sink.pause();
             R::ok(R::null())
         }
-        None => R::err(R::from_string(format!("sound_pause: unknown handle {}", id))),
+        None => R::err(R::from_string(format!(
+            "sound_pause: unknown handle {}",
+            id
+        ))),
     }
 }
 

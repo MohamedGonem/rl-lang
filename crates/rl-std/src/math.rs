@@ -77,8 +77,14 @@ pub fn round<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     sig(int, int, int -> result[int]),
     sig(float, float, float -> result[float])
 )]
-pub fn clamp<R: Runtime>(_cx: &mut R::Cx, value: R::Value, min: R::Value, max: R::Value) -> R::Value {
-    if let (Some(value), Some(low), Some(high)) = (R::as_i64(&value), R::as_i64(&min), R::as_i64(&max))
+pub fn clamp<R: Runtime>(
+    _cx: &mut R::Cx,
+    value: R::Value,
+    min: R::Value,
+    max: R::Value,
+) -> R::Value {
+    if let (Some(value), Some(low), Some(high)) =
+        (R::as_i64(&value), R::as_i64(&min), R::as_i64(&max))
     {
         R::ok(R::from_i64(value.clamp(low, high)))
     } else if let (Some(value), Some(low), Some(high)) =

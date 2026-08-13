@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::{
     TypeChecker,
-    structs::{CheckedExpr, CheckType},
+    structs::{CheckType, CheckedExpr},
 };
 use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
 use rl_utils::span::Span;
@@ -28,7 +28,9 @@ impl TypeChecker {
             ExpressionKind::Integer(_) => {
                 CheckedExpr::new(CheckType::Known(TypeAnnotation::Int), None)
             }
-            ExpressionKind::UInt(_) => CheckedExpr::new(CheckType::Known(TypeAnnotation::UInt), None),
+            ExpressionKind::UInt(_) => {
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::UInt), None)
+            }
             ExpressionKind::Byte(_) => {
                 CheckedExpr::new(CheckType::Known(TypeAnnotation::Byte), None)
             }
@@ -69,7 +71,9 @@ impl TypeChecker {
 
                 if let Some((first_key, _)) = key_types.first().cloned() {
                     for (kt, span) in key_types.iter().skip(1) {
-                        if !kt.ty.is_null() && !first_key.ty.is_null() && !kt.ty.matches(&first_key.ty)
+                        if !kt.ty.is_null()
+                            && !first_key.ty.is_null()
+                            && !kt.ty.matches(&first_key.ty)
                         {
                             self.error(
                                 format!(
@@ -311,7 +315,10 @@ impl TypeChecker {
                         (t, a_span)
                     })
                     .collect();
-                CheckedExpr::new(self.check_call_value(callee_type, &arg_types, expr_span), None)
+                CheckedExpr::new(
+                    self.check_call_value(callee_type, &arg_types, expr_span),
+                    None,
+                )
             }
 
             // checks the method call
@@ -436,7 +443,10 @@ impl TypeChecker {
                         Self::to_type_annotation(&t)
                     })
                     .collect();
-                CheckedExpr::new(CheckType::Known(TypeAnnotation::Tuple(Rc::new(types))), None)
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Tuple(Rc::new(types))),
+                    None,
+                )
             }
             ExpressionKind::ErrorLiteral(inner) => {
                 let inner_typed = self.check_expression_typed(inner);
@@ -450,11 +460,17 @@ impl TypeChecker {
             }
             ExpressionKind::OkLiteral(inner) => {
                 let inner_ann = Self::to_type_annotation(&self.check_expression_typed(inner).ty);
-                CheckedExpr::new(CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))), None)
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))),
+                    None,
+                )
             }
             ExpressionKind::ErrLiteral(inner) => {
                 let inner_ann = Self::to_type_annotation(&self.check_expression_typed(inner).ty);
-                CheckedExpr::new(CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))), None)
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Result(Box::new(inner_ann))),
+                    None,
+                )
             }
 
             ExpressionKind::Propagate(inner) => {
@@ -656,7 +672,10 @@ impl TypeChecker {
                     }
                 }
 
-                CheckedExpr::new(CheckType::Known(TypeAnnotation::Set(Box::new(items_type))), None)
+                CheckedExpr::new(
+                    CheckType::Known(TypeAnnotation::Set(Box::new(items_type))),
+                    None,
+                )
             }
 
             _ => CheckedExpr::new(CheckType::Unknown, None),

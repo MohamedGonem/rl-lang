@@ -145,7 +145,9 @@ pub fn arr_first<R: Runtime>(_cx: &mut R::Cx, array: R::Value) -> R::Value {
     };
     match slice.first() {
         Some(v) => R::ok(v.clone()),
-        None => R::err(R::from_string("arr_first: called on empty array".to_string())),
+        None => R::err(R::from_string(
+            "arr_first: called on empty array".to_string(),
+        )),
     }
 }
 
@@ -159,7 +161,9 @@ pub fn arr_last<R: Runtime>(_cx: &mut R::Cx, array: R::Value) -> R::Value {
     };
     match slice.last() {
         Some(v) => R::ok(v.clone()),
-        None => R::err(R::from_string("arr_last: called on empty array".to_string())),
+        None => R::err(R::from_string(
+            "arr_last: called on empty array".to_string(),
+        )),
     }
 }
 
@@ -235,7 +239,9 @@ pub fn arr_contains<R: Runtime>(_cx: &mut R::Cx, array: R::Value, value: R::Valu
             R::type_name(&array)
         )));
     };
-    R::ok(R::from_bool(slice.iter().any(|v| values_equal::<R>(v, &value))))
+    R::ok(R::from_bool(
+        slice.iter().any(|v| values_equal::<R>(v, &value)),
+    ))
 }
 
 #[native_fn(module = "array", sig(array[T], T -> result[int]))]
@@ -246,7 +252,10 @@ pub fn arr_index_of<R: Runtime>(_cx: &mut R::Cx, array: R::Value, value: R::Valu
             R::type_name(&array)
         )));
     };
-    match slice.iter().position(|item| values_equal::<R>(item, &value)) {
+    match slice
+        .iter()
+        .position(|item| values_equal::<R>(item, &value))
+    {
         Some(pos) => R::ok(R::from_i64(pos as i64)),
         None => R::ok(R::from_i64(-1)),
     }
@@ -428,7 +437,10 @@ pub fn arr_sort<R: Runtime>(_cx: &mut R::Cx, array: R::Value) -> R::Value {
         )));
     };
     // All ints (or nulls) -> integer sort.
-    if slice.iter().all(|v| R::as_i64(v).is_some() || is_null::<R>(v)) {
+    if slice
+        .iter()
+        .all(|v| R::as_i64(v).is_some() || is_null::<R>(v))
+    {
         let mut items = slice.to_vec();
         items.sort_by(|a, b| match (R::as_i64(a), R::as_i64(b)) {
             (Some(x), Some(y)) => x.cmp(&y),

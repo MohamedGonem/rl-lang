@@ -29,43 +29,95 @@ impl Runtime for EvalRuntime {
     }
 
     fn as_i64(v: &Self::Value) -> Option<i64> {
-        if let Value::Integer(x) = v { Some(*x) } else { None }
+        if let Value::Integer(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u64(v: &Self::Value) -> Option<u64> {
-        if let Value::UInteger(x) = v { Some(*x) } else { None }
+        if let Value::UInteger(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i32(v: &Self::Value) -> Option<i32> {
-        if let Value::SInteger(x) = v { Some(*x) } else { None }
+        if let Value::SInteger(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u32(v: &Self::Value) -> Option<u32> {
-        if let Value::SUInteger(x) = v { Some(*x) } else { None }
+        if let Value::SUInteger(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i16(v: &Self::Value) -> Option<i16> {
-        if let Value::BSByte(x) = v { Some(*x) } else { None }
+        if let Value::BSByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u16(v: &Self::Value) -> Option<u16> {
-        if let Value::BByte(x) = v { Some(*x) } else { None }
+        if let Value::BByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_i8(v: &Self::Value) -> Option<i8> {
-        if let Value::SByte(x) = v { Some(*x) } else { None }
+        if let Value::SByte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_u8(v: &Self::Value) -> Option<u8> {
-        if let Value::Byte(x) = v { Some(*x) } else { None }
+        if let Value::Byte(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_f64(v: &Self::Value) -> Option<f64> {
-        if let Value::Float(x) = v { Some(*x) } else { None }
+        if let Value::Float(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_f32(v: &Self::Value) -> Option<f32> {
-        if let Value::SFloat(x) = v { Some(*x) } else { None }
+        if let Value::SFloat(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_bool(v: &Self::Value) -> Option<bool> {
-        if let Value::Bool(x) = v { Some(*x) } else { None }
+        if let Value::Bool(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_char(v: &Self::Value) -> Option<char> {
-        if let Value::Char(x) = v { Some(*x) } else { None }
+        if let Value::Char(x) = v {
+            Some(*x)
+        } else {
+            None
+        }
     }
     fn as_str(v: &Self::Value) -> Option<&str> {
-        if let Value::String(s) = v { Some(s) } else { None }
+        if let Value::String(s) = v {
+            Some(s)
+        } else {
+            None
+        }
     }
 
     fn type_name(v: &Self::Value) -> &'static str {
@@ -191,18 +243,34 @@ impl Runtime for EvalRuntime {
         }
     }
     fn as_ok_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let Value::Ok(b) = v { Some((**b).clone()) } else { None }
+        if let Value::Ok(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_err_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let Value::Err(b) = v { Some((**b).clone()) } else { None }
+        if let Value::Err(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_error_inner(v: &Self::Value) -> Option<Self::Value> {
-        if let Value::Error(b) = v { Some((**b).clone()) } else { None }
+        if let Value::Error(b) = v {
+            Some((**b).clone())
+        } else {
+            None
+        }
     }
     fn as_set(v: &Self::Value) -> Option<(Vec<Self::Value>, TypeAnnotation)> {
         match v {
             Value::Set { items, items_type } => Some((
-                items.borrow().iter().map(|k| k.clone().into_value()).collect(),
+                items
+                    .borrow()
+                    .iter()
+                    .map(|k| k.clone().into_value())
+                    .collect(),
                 items_type.clone(),
             )),
             _ => None,
@@ -210,7 +278,11 @@ impl Runtime for EvalRuntime {
     }
     fn as_map(
         v: &Self::Value,
-    ) -> Option<(Vec<(Self::Value, Self::Value)>, TypeAnnotation, TypeAnnotation)> {
+    ) -> Option<(
+        Vec<(Self::Value, Self::Value)>,
+        TypeAnnotation,
+        TypeAnnotation,
+    )> {
         match v {
             Value::Map {
                 entries,
