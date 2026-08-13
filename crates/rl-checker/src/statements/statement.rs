@@ -3,7 +3,11 @@
 
 use std::{collections::HashSet, path::PathBuf};
 
-use crate::{TypeChecker, structs::CheckType};
+use crate::{
+    TypeChecker,
+    structs::CheckType,
+    units::Unit,
+};
 use rl_ast::statements::{MatchPattern, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
@@ -18,20 +22,22 @@ impl TypeChecker {
             StatementKind::VariableDeclaration {
                 name,
                 type_annotation,
+                unit_annotation,
                 value,
             } => {
-                let value_type = self.check_expression(*value);
+                let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
+                let value_typed = self.check_expression_typed(*value);
 
                 // `dec name = value` - the type wasn't stated, so whatever
                 // the initialiser resolved to *is* the declared type. There
                 // is nothing to mismatch against.
                 if *type_annotation == TypeAnnotation::Infer {
-                    self.declare(name.clone(), value_type, false, statement.span);
+                    self.declare(name.clone(), value_typed.ty, false, statement.span);
                     return;
                 }
 
                 if type_annotation.contains_handle_infer() {
-                    match &value_type {
+                    match &value_typed.ty {
                         CheckType::Unknown => {
                             self.declare(name.clone(), CheckType::Unknown, false, statement.span);
                         }
@@ -49,7 +55,7 @@ impl TypeChecker {
                                     self.error(
                                         format!(
                                             "`dec handle` requires a std module call returning a handle, got {}",
-                                            value_type.info()),
+                                            value_typed.ty.info()),
                                         statement.span);
                                     self.declare(
                                         name.clone(),
@@ -64,7 +70,7 @@ impl TypeChecker {
                             self.error(
                                 format!(
                                     "`dec handle` requires a std module call returning a handle, got {}",
-                                    value_type.info()),
+                                    value_typed.ty.info()),
                                 statement.span);
                             self.declare(name.clone(), CheckType::Unknown, false, statement.span);
                         }
@@ -74,18 +80,31 @@ impl TypeChecker {
 
                 let declared = CheckType::Known(type_annotation.clone());
 
-                if !value_type.matches(&declared) {
+                if !value_typed.ty.matches(&declared) {
                     self.error(
                         format!(
                             "type mismatch: expected {}, got {}",
                             declared.info(),
-                            value_type.info()
+                            value_typed.ty.info()
                         ),
                         statement.span,
                     );
                 }
 
-                self.declare(name.clone(), declared, false, statement.span);
+                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit) {
+                    self.error(
+                        format!("unit mismatch on declaration: {}", msg),
+                        statement.span,
+                    );
+                }
+
+                self.declare_with_unit(
+                    name.clone(),
+                    declared,
+                    declared_unit,
+                    false,
+                    statement.span,
+                );
             }
 
             // checks if the type is null or same type and declares it as
@@ -93,23 +112,32 @@ impl TypeChecker {
             StatementKind::ConstantDeclaration {
                 name,
                 type_annotation,
+                unit_annotation,
                 value,
             } => {
-                let value_type = self.check_expression(*value).into_const();
+                let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
+                let value_typed = self.check_expression_typed(*value).into_const();
                 let declared = CheckType::Known(type_annotation.clone());
 
-                if !value_type.matches(&declared) {
+                if !value_typed.ty.matches(&declared) {
                     self.error(
                         format!(
                             "type mismatch: expected {}, got {}",
                             declared.info(),
-                            value_type.info()
+                            value_typed.ty.info()
                         ),
                         statement.span,
                     );
                 }
 
-                self.declare(name.clone(), declared, true, statement.span);
+                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit) {
+                    self.error(
+                        format!("unit mismatch on declaration: {}", msg),
+                        statement.span,
+                    );
+                }
+
+                self.declare_with_unit(name.clone(), declared, declared_unit, true, statement.span);
             }
 
             // checks the array if valid or not and declares it with correct
@@ -844,23 +872,34 @@ impl TypeChecker {
                 StatementKind::VariableDeclaration {
                     name,
                     type_annotation,
+                    unit_annotation,
                     value,
                 } if wanted(name) => {
+                    let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                     let declared = if *type_annotation == TypeAnnotation::Infer {
                         self.check_expression(*value)
                     } else {
                         CheckType::Known(type_annotation.clone())
                     };
-                    self.declare(name.clone(), declared, false, stmt.span);
+                    self.declare_with_unit(
+                        name.clone(),
+                        declared,
+                        declared_unit,
+                        false,
+                        stmt.span,
+                    );
                 }
                 StatementKind::ConstantDeclaration {
                     name,
                     type_annotation,
+                    unit_annotation,
                     ..
                 } if wanted(name) => {
-                    self.declare(
+                    let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
+                    self.declare_with_unit(
                         name.clone(),
                         CheckType::Known(type_annotation.clone()),
+                        declared_unit,
                         true,
                         stmt.span,
                     );
@@ -989,5 +1028,31 @@ impl TypeChecker {
         self.ast_arena = prev_ast;
         self.importing.pop();
         self.imported.insert(canonical, new_cache_entry);
+    }
+}
+
+/// Returns an error message when a declaration's declared unit and its
+/// initialiser's unit are incompatible.
+///
+/// Rules:
+/// - A declaration with a unit accepts the same unit or a dimensionless value
+///   (plain literals adopt the unit, F#-style).
+/// - A declaration without a unit expects dimensionless values; a
+///   non-dimensionless initialiser is an error.
+fn declaration_unit_mismatch(
+    declared: &Option<Unit>,
+    value: &Option<Unit>,
+) -> Option<String> {
+    match (value.as_ref(), declared.as_ref()) {
+        // declared unit present, value carries a non-dimensionless unit
+        (Some(v), Some(d)) if !v.is_compatible_with(d) => {
+            Some(format!("expected {}, got {}", d, v))
+        }
+        // no declared unit, value carries a non-dimensionless unit
+        (Some(v), None) if !v.is_dimensionless() => {
+            Some(format!("expected dimensionless, got {}", v))
+        }
+        // dimensionless value, matching units, or no units at all
+        _ => None,
     }
 }

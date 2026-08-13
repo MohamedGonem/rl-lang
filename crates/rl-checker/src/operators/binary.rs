@@ -1,4 +1,4 @@
-//! Binary operator type checking.
+//! Binary operator type and unit checking.
 //!
 //! # Rules
 //!
@@ -19,33 +19,46 @@
 //! mixing with `int`, despite the table above's aspirational `byte + int`
 //! row which isn't actually implemented below either).
 //!
+//! # Units
+//!
+//! When the operands carry units of measure:
+//!
+//! - `+` / `-` require compatible units (a dimensionless operand adopts the
+//!   other side's unit); the result keeps that unit.
+//! - `*` / `/` combine units by adding / subtracting exponents, e.g.
+//!   `(m / s) * s = m`.
+//! - comparisons and equality require compatible units and produce `bool`.
+//!
 //! Any side being `Unknown` short-circuits to `Unknown` to suppress cascading errors.
 
 use crate::{
     operators::op_str,
-    structs::{CheckType, TypeChecker},
+    structs::{CheckedExpr, CheckType, TypeChecker},
+    units::Unit,
 };
 use rl_ast::statements::TypeAnnotation;
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::span::Span;
 
 impl TypeChecker {
+    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::needless_borrow)]
     pub fn check_binary_operator(
         &mut self,
-        left: CheckType,
-        right: CheckType,
+        left: &CheckedExpr,
+        right: &CheckedExpr,
         op: &TokenType,
         span: Span,
-    ) -> CheckType {
+    ) -> CheckedExpr {
         // if any of sides is unknown then it is unknown
-        if left.is_unknown() || right.is_unknown() {
-            return CheckType::Unknown;
+        if left.ty.is_unknown() || right.ty.is_unknown() {
+            return CheckedExpr::new(CheckType::Unknown, None);
         }
 
         match op {
             // arithmetic check if both same type or not
             TokenType::Plus | TokenType::Minus | TokenType::Star | TokenType::Slash => {
-                match (&left, &right) {
+                let result_type = match (&left.ty, &right.ty) {
                     (
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
@@ -68,21 +81,49 @@ impl TypeChecker {
                             format!(
                                 "type mismatch on {}: got {} and {}",
                                 op_str(op),
-                                left.info(),
-                                right.info()
+                                left.ty.info(),
+                                right.ty.info()
                             ),
                             span,
                         );
                         CheckType::Unknown
                     }
+                };
+
+                if let CheckType::Unknown = result_type {
+                    return CheckedExpr::new(result_type, None);
                 }
+
+                // `+` and `-` need compatible units; `*` and `/` combine them.
+                let result_unit = match op {
+                    TokenType::Plus | TokenType::Minus => {
+                        if let Some(msg) = add_unit_mismatch(&left.unit, &right.unit) {
+                            self.error(
+                                format!("unit mismatch on {}: {}", op_str(op), msg),
+                                span,
+                            );
+                            None
+                        } else {
+                            // a dimensionless operand adopts the other side's unit
+                            left.unit
+                                .clone()
+                                .filter(|u| !u.is_dimensionless())
+                                .or_else(|| right.unit.clone().filter(|u| !u.is_dimensionless()))
+                        }
+                    }
+                    TokenType::Star => combine_units(&left.unit, &right.unit, Unit::multiply),
+                    TokenType::Slash => combine_units(&left.unit, &right.unit, Unit::divide),
+                    _ => unreachable!("arithmetic operators are handled above"),
+                };
+
+                CheckedExpr::new(result_type, result_unit)
             }
 
             // comparisons should be same type
             TokenType::Less
             | TokenType::Greater
             | TokenType::LessEqual
-            | TokenType::GreaterEqual => match (&left, &right) {
+            | TokenType::GreaterEqual => match (&left.ty, &right.ty) {
                 (
                     CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                     CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
@@ -90,34 +131,37 @@ impl TypeChecker {
                 | (
                     CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat),
                     CheckType::Known(TypeAnnotation::Float | TypeAnnotation::CFloat),
-                ) => CheckType::Known(TypeAnnotation::Bool),
+                ) => {
+                    self.check_comparable_units(&left.unit, &right.unit, op, span);
+                    CheckedExpr::new(CheckType::Known(TypeAnnotation::Bool), None)
+                }
                 (
                     CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
                     CheckType::Known(TypeAnnotation::UInt | TypeAnnotation::CUInt),
-                ) => CheckType::Known(TypeAnnotation::Bool),
-                (
+                )
+                | (
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
                     CheckType::Known(TypeAnnotation::Byte | TypeAnnotation::CByte),
-                ) => CheckType::Known(TypeAnnotation::Bool),
+                ) => CheckedExpr::new(CheckType::Known(TypeAnnotation::Bool), None),
 
                 _ => {
                     self.error(
                         format!(
                             "type mismatch on {}: got {} and {}",
                             op_str(op),
-                            left.info(),
-                            right.info()
+                            left.ty.info(),
+                            right.ty.info()
                         ),
                         span,
                     );
-                    CheckType::Unknown
+                    CheckedExpr::new(CheckType::Unknown, None)
                 }
             },
 
             // equality should be between same types
             TokenType::Compare | TokenType::BangEqual => {
                 let ok = matches!(
-                    (&left, &right),
+                    (&left.ty, &right.ty),
                     (
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
                         CheckType::Known(TypeAnnotation::Int | TypeAnnotation::CInt),
@@ -152,18 +196,20 @@ impl TypeChecker {
                         format!(
                             "type mismatch on {}: got {} and {}",
                             op_str(op),
-                            left.info(),
-                            right.info()
+                            left.ty.info(),
+                            right.ty.info()
                         ),
                         span,
                     );
+                } else {
+                    self.check_comparable_units(&left.unit, &right.unit, op, span);
                 }
-                CheckType::Known(TypeAnnotation::Bool)
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Bool), None)
             }
 
             TokenType::And | TokenType::Or => {
                 if !matches!(
-                    left,
+                    left.ty,
                     CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool)
                 ) {
                     self.error(
@@ -172,7 +218,7 @@ impl TypeChecker {
                     );
                 }
                 if !matches!(
-                    right,
+                    right.ty,
                     CheckType::Known(TypeAnnotation::Bool | TypeAnnotation::CBool)
                 ) {
                     self.error(
@@ -181,14 +227,59 @@ impl TypeChecker {
                     );
                 }
 
-                CheckType::Known(TypeAnnotation::Bool)
+                CheckedExpr::new(CheckType::Known(TypeAnnotation::Bool), None)
             }
 
             // unknown operator
             _ => {
                 self.error(format!("unknown binary operator {:?}", op), span);
-                CheckType::Unknown
+                CheckedExpr::new(CheckType::Unknown, None)
             }
         }
+    }
+
+    /// Emits a unit mismatch error for comparisons/equality when the two
+    /// operands carry incompatible (non-dimensionless, unequal) units.
+    fn check_comparable_units(
+        &mut self,
+        left: &Option<Unit>,
+        right: &Option<Unit>,
+        op: &TokenType,
+        span: Span,
+    ) {
+        if let Some(msg) = add_unit_mismatch(left, right) {
+            self.error(format!("unit mismatch on {}: {}", op_str(op), msg), span);
+        }
+    }
+}
+
+/// Returns an error message when `left` and `right` carry incompatible units
+/// for an adding/comparing operation. A dimensionless side never conflicts.
+fn add_unit_mismatch(left: &Option<Unit>, right: &Option<Unit>) -> Option<String> {
+    match (left.as_ref(), right.as_ref()) {
+        (Some(l), Some(r)) if !l.is_compatible_with(r) => {
+            Some(format!("got {} and {}", l, r))
+        }
+        _ => None,
+    }
+}
+
+/// Combines the units of two operands under `op` (multiply or divide).
+///
+/// A missing unit is treated as dimensionless (`1`), and a dimensionless
+/// result is normalized back to `None`.
+fn combine_units(
+    left: &Option<Unit>,
+    right: &Option<Unit>,
+    op: fn(&Unit, &Unit) -> Unit,
+) -> Option<Unit> {
+    let l = left.clone().unwrap_or_default();
+    let r = right.clone().unwrap_or_default();
+    let result = op(&l, &r);
+
+    if result.is_dimensionless() {
+        None
+    } else {
+        Some(result)
     }
 }
