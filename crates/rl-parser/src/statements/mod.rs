@@ -255,18 +255,24 @@ impl Parser {
         let attribute = match self.peek() {
             TokenType::Identifier(name) if name == "entry" => {
                 self.advance();
+                if self.check(&TokenType::Assign) {
+                    return Err(self.err("`!#[entry]` does not take a priority", self.peek_span()));
+                }
                 FunctionAttribute::Entry
             }
             TokenType::Identifier(name) if name == "init" => {
                 self.advance();
-                FunctionAttribute::Init
+                FunctionAttribute::Init(self.parse_optional_priority()?)
             }
             TokenType::Identifier(name) if name == "final" => {
                 self.advance();
-                FunctionAttribute::Final
+                FunctionAttribute::Final(self.parse_optional_priority()?)
             }
             TokenType::Identifier(name) if name == "test" => {
                 self.advance();
+                if self.check(&TokenType::Assign) {
+                    return Err(self.err("`!#[test]` does not take a priority", self.peek_span()));
+                }
                 FunctionAttribute::Test
             }
             _ => return Err(self.err("expected valid attribute", self.peek_span())),
@@ -287,5 +293,28 @@ impl Parser {
             ));
         }
         self.parse_function(start, Some(attribute))
+    }
+
+    /// Parses an optional `=n` priority suffix for `!#[init=n]` / `!#[final=n]`.
+    ///
+    /// Returns `Some(n)` when the next token is `=` followed by a number
+    /// literal, otherwise `None` (the unnumbered form, which runs last).
+    ///
+    /// # Errors
+    /// Returns an error if `=` is present but not followed by a number.
+    fn parse_optional_priority(&mut self) -> Result<Option<u32>, Error> {
+        if !self.match_type(&[TokenType::Assign]) {
+            return Ok(None);
+        }
+
+        match self.peek() {
+            TokenType::NumberLiteral(value) => {
+                let priority = u32::try_from(value)
+                    .map_err(|_| self.err("priority is out of range", self.peek_span()))?;
+                self.advance();
+                Ok(Some(priority))
+            }
+            _ => Err(self.err("expected a number after `=`", self.peek_span())),
+        }
     }
 }
