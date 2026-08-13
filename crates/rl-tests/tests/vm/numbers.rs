@@ -112,3 +112,18 @@ fn const_with_unit_runs_in_vm() {
 
     assert_eq!(result, VmValue::Float(50.0));
 }
+
+#[test]
+fn convert_attribute_is_discarded_before_runtime() {
+    let result = common::compile_and_run(
+        r#"
+        #![convert(kg=1000(g))]
+        dec float weight_kg: kg = 2.5
+        dec float weight_g: g = weight_kg
+        weight_g
+        "#,
+    )
+    .expect("vm run failed");
+
+    assert_eq!(result, VmValue::Float(2.5));
+}

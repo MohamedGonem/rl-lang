@@ -399,3 +399,67 @@ dec float bad = (speed) + (time)
         "unit mismatch on +",
     );
 }
+
+#[test]
+fn convertible_units_are_accepted_on_assignment() {
+    assert_checker_clean(
+        r#"
+#![convert(kg=1000(g))]
+dec float weight_kg: kg = 2.5
+dec float weight_g: g = weight_kg
+dec float heavy: g = 0.0
+heavy = weight_kg
+"#,
+    );
+}
+
+#[test]
+fn convertible_units_can_be_added_and_subtracted() {
+    assert_checker_clean(
+        r#"
+#![convert(kg=1000(g))]
+dec float weight_kg: kg = 2.5
+dec float weight_g: g = 300.0
+dec float total_kg: kg = weight_kg + weight_g
+dec float diff_g: g = weight_g - weight_kg
+"#,
+    );
+}
+
+#[test]
+fn convertible_units_can_be_compared() {
+    assert_checker_clean(
+        r#"
+#![convert(kg=1000(g))]
+dec float weight_kg: kg = 2.5
+dec float weight_g: g = 300.0
+dec bool heavier = weight_kg > weight_g
+"#,
+    );
+}
+
+#[test]
+fn unrelated_units_remain_incompatible() {
+    assert_checker_msg(
+        r#"
+#![convert(kg=1000(g))]
+dec float weight: kg = 2.5
+dec float time: s = 4.0
+dec float bad: kg = time
+"#,
+        "unit mismatch",
+    );
+}
+
+#[test]
+fn conversion_keeps_dimensions_separate() {
+    assert_checker_msg(
+        r#"
+#![convert(km=1000(m))]
+dec float speed: m/s = 12.5
+dec float time: s = 4.0
+dec float bad: km = speed
+"#,
+        "unit mismatch",
+    );
+}
