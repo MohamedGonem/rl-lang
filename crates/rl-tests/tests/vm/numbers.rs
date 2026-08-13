@@ -83,3 +83,32 @@ fn cast_value_to_small_float() {
     let result = common::compile_and_run("7 as small float").expect("vm run failed");
     assert_eq!(result, VmValue::SFloat(7.0));
 }
+
+#[test]
+fn units_are_discarded_by_the_vm() {
+    let result = common::compile_and_run(
+        r#"
+        dec float distance: m = 100.0
+        dec float time: s = 4.0
+        dec float speed: m/s = distance / time
+        speed * time
+        "#,
+    )
+    .expect("vm run failed");
+
+    assert_eq!(result, VmValue::Float(100.0));
+}
+
+#[test]
+fn const_with_unit_runs_in_vm() {
+    let result = common::compile_and_run(
+        r#"
+        CONST float SPEED: m/s = 12.5
+        dec float time: s = 4.0
+        SPEED * time
+        "#,
+    )
+    .expect("vm run failed");
+
+    assert_eq!(result, VmValue::Float(50.0));
+}

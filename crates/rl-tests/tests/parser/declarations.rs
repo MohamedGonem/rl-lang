@@ -1,6 +1,6 @@
 use rl_ast::{
     nodes::ExpressionKind,
-    statements::{StatementKind, TypeAnnotation},
+    statements::{StatementKind, TypeAnnotation, UnitAnnotation},
 };
 
 use crate::common::{self, span_of, span_up_to, span_whole};
@@ -353,4 +353,99 @@ fn const_fn() {
         value: ExpressionKind::Lambda { params: vec![], return_type: None, body: vec![] }, span_of(source, "fn(){}"),
         span: span_whole(source),
     );
+}
+
+#[test]
+fn dec_float_with_unit() {
+    let source = "dec float speed: m/s = 12.5";
+    let (ast, statements) = common::parse(source);
+    assert_eq!(statements.len(), 1);
+
+    match &statements[0].kind {
+        StatementKind::VariableDeclaration {
+            name,
+            type_annotation,
+            unit_annotation,
+            value,
+            ..
+        } => {
+            assert_eq!(name, "speed");
+            assert_eq!(*type_annotation, TypeAnnotation::Float);
+            assert_eq!(
+                unit_annotation,
+                &Some(UnitAnnotation::Divide(
+                    Box::new(UnitAnnotation::Symbol("m".to_string())),
+                    Box::new(UnitAnnotation::Symbol("s".to_string())),
+                ))
+            );
+            assert_eq!(ast.exprs.get(*value).kind, ExpressionKind::Float(12.5));
+            assert_eq!(ast.exprs.get(*value).span, span_of(source, "12.5"));
+        }
+        other => panic!("expected VariableDeclaration, got {:?}", other),
+    }
+    assert_eq!(statements[0].span, span_whole(source));
+}
+
+#[test]
+fn const_float_with_unit() {
+    let source = "CONST float speed: m/s = 12.5";
+    let (ast, statements) = common::parse(source);
+    assert_eq!(statements.len(), 1);
+
+    match &statements[0].kind {
+        StatementKind::ConstantDeclaration {
+            name,
+            type_annotation,
+            unit_annotation,
+            value,
+            ..
+        } => {
+            assert_eq!(name, "speed");
+            assert_eq!(*type_annotation, TypeAnnotation::CFloat);
+            assert_eq!(
+                unit_annotation,
+                &Some(UnitAnnotation::Divide(
+                    Box::new(UnitAnnotation::Symbol("m".to_string())),
+                    Box::new(UnitAnnotation::Symbol("s".to_string())),
+                ))
+            );
+            assert_eq!(ast.exprs.get(*value).kind, ExpressionKind::Float(12.5));
+            assert_eq!(ast.exprs.get(*value).span, span_of(source, "12.5"));
+        }
+        other => panic!("expected ConstantDeclaration, got {:?}", other),
+    }
+    assert_eq!(statements[0].span, span_whole(source));
+}
+
+#[test]
+fn dec_compound_unit_is_parsed_left_to_right() {
+    let (_, statements) = common::parse("dec float force: kg*m/s = 20.0");
+    match &statements[0].kind {
+        StatementKind::VariableDeclaration {
+            unit_annotation, ..
+        } => {
+            assert_eq!(
+                unit_annotation,
+                &Some(UnitAnnotation::Divide(
+                    Box::new(UnitAnnotation::Multiply(
+                        Box::new(UnitAnnotation::Symbol("kg".to_string())),
+                        Box::new(UnitAnnotation::Symbol("m".to_string())),
+                    )),
+                    Box::new(UnitAnnotation::Symbol("s".to_string())),
+                ))
+            );
+        }
+        other => panic!("expected VariableDeclaration, got {:?}", other),
+    }
+}
+
+#[test]
+fn dec_without_unit_has_none() {
+    let (_, statements) = common::parse("dec float x = 1.0");
+    match &statements[0].kind {
+        StatementKind::VariableDeclaration {
+            unit_annotation, ..
+        } => assert!(unit_annotation.is_none()),
+        other => panic!("expected VariableDeclaration, got {:?}", other),
+    }
 }
