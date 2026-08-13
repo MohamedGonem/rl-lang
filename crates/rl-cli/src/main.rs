@@ -88,9 +88,28 @@ enum Commands {
     #[command(
         long_about = "Read `rl.toml` in the current directory and run the project's \
                        configured entry file.\n\n\
-                       Use `rl new` first if you don't have an rl.toml yet."
+                       Use `rl new` first if you don't have an rl.toml yet.",
+        after_help = "EXAMPLES:\n    \
+                       rl dev\n    \
+                       rl dev --treewalker\n    \
+                       rl dev --vm\n    \
+                       rl dev --cranelift"
     )]
-    Dev,
+    Dev {
+        /// Run through the tree-walking evaluator instead of the bytecode VM
+        #[arg(long)]
+        treewalker: bool,
+
+        /// Run thought the bytecode VM instead of the tree-walking evaluator
+        /// (this is highly experimental)
+        #[arg(long)]
+        vm: bool,
+
+        /// JIT compile via cranelift instead
+        /// (this is very very highly experimental)
+        #[arg(long)]
+        cranelift: bool,
+    },
 
     /// Scaffold a new project directory
     #[command(after_help = "EXAMPLES:\n    rl new my_project\n    rl new my_project --no-git")]
@@ -404,7 +423,11 @@ fn main() {
             }
         }
 
-        Commands::Dev => {
+        Commands::Dev {
+            treewalker,
+            vm,
+            cranelift,
+        } => {
             let config = read_rl_toml();
             let path = std::path::PathBuf::from(&config.project.entry);
             let source_text = std::fs::read_to_string(&path).unwrap_or_else(|_| {
@@ -418,17 +441,45 @@ fn main() {
             let source = SourceFile::new(&*config.project.entry, source_text);
             let tokens = lexing_loop(source.clone());
             let (ast, statements) = parsing_loop(source.clone(), tokens);
-            #[cfg(feature = "treewalker")]
-            eval_loop(source, ast, statements, 3);
-            #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
-            crate::logic_loops::vm_loop(source, ast, statements);
-            #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
-            {
-                let _ = (&ast, &statements);
-                eprintln!(
-                    "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
-                );
-                std::process::exit(1);
+            if vm {
+                #[cfg(feature = "vm")]
+                crate::logic_loops::vm_loop(source, ast, statements);
+                #[cfg(not(feature = "vm"))]
+                {
+                    eprintln!("error: --vm requires the `vm` feature");
+                    std::process::exit(1)
+                }
+            } else if cranelift {
+                #[cfg(feature = "cranelift")]
+                crate::logic_loops::cranelift_loop(source, ast, statements);
+                #[cfg(not(feature = "cranelift"))]
+                {
+                    eprintln!(
+                        "error: --cranelift requires the `cranelift` feature (which implies `vm`)"
+                    );
+                    std::process::exit(1)
+                }
+            } else if treewalker {
+                #[cfg(feature = "treewalker")]
+                eval_loop(source, ast, statements, 3);
+                #[cfg(not(feature = "treewalker"))]
+                {
+                    eprintln!("error: --treewalker requires the `treewalker` feature");
+                    std::process::exit(1)
+                }
+            } else {
+                #[cfg(feature = "treewalker")]
+                eval_loop(source, ast, statements, 3);
+                #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
+                crate::logic_loops::vm_loop(source, ast, statements);
+                #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
+                {
+                    let _ = (&ast, &statements);
+                    eprintln!(
+                        "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
+                    );
+                    std::process::exit(1);
+                }
             }
         }
 
