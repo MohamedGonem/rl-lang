@@ -74,32 +74,10 @@ fn bench_vm_run(c: &mut Criterion) {
     group.finish();
 }
 
-/// Interpreter evaluate only (the full lex -> parse -> resolve -> evaluate
-/// path used by the original `pipeline` bench).
-fn bench_interp_evaluate(c: &mut Criterion) {
-    let mut group = c.benchmark_group("pipeline/interp_evaluate");
-    group.measurement_time(std::time::Duration::from_secs(5));
-    group.sample_size(100);
-
-    for (name, src) in BASE_PROGRAMS {
-        group.bench_with_input(BenchmarkId::new("base", *name), src, |b, s| {
-            b.iter(|| interp_evaluate_only(black_box(s)))
-        });
-    }
-    for (name, src, _) in WORKLOAD_PROGRAMS {
-        group.bench_with_input(BenchmarkId::new("workload", *name), src, |b, s| {
-            b.iter(|| interp_evaluate_only(black_box(s)))
-        });
-    }
-
-    group.finish();
-}
-
 criterion_group!(
     benches_pipeline,
     bench_resolve,
     bench_vm_compile,
     bench_vm_run,
-    bench_interp_evaluate,
 );
 criterion_main!(benches_pipeline);
