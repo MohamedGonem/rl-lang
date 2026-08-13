@@ -9,7 +9,7 @@
 //! |---|---|
 //! | [`lexing_loop`] | source -> [`Vec<Token>`] |
 //! | [`parsing_loop`] | tokens -> [`Vec<Statement>`] |
-//! | [`eval_loop`] | statements -> execution (`treewalker` feature only) |
+//! | [`vm_loop`] | statements -> execution on the bytecode VM |
 //!
 //! [`Vec<Token>`]: crate::lexer::tokentypes::Token
 //! [`Vec<Statement>`]: crate::ast::statements::Statement
@@ -17,9 +17,7 @@
 use log::info;
 
 use rl_ast::Ast;
-
-#[cfg(any(feature = "treewalker", feature = "vm"))]
-use rl_interpreter::evaluator::Evaluator;
+use rl_resolver::Resolver;
 
 #[cfg(feature = "vm")]
 use rl_utils::line_index::LineIndex;
@@ -56,41 +54,6 @@ pub fn parsing_loop(source: SourceFile, tokens: Vec<Token>) -> (Ast, Vec<Stateme
     }
 }
 
-/// Resolves and evaluates `statements`, or prints the error and exits.
-///
-/// Only available with the `treewalker` feature. Constructs a fresh [`Evaluator`]
-/// with the stdlib loaded, runs the [`Resolver`] pass, then evaluates the program.
-///
-/// [`Resolver`]: crate::resolver
-#[cfg(feature = "treewalker")]
-pub fn eval_loop(
-    source: SourceFile,
-    ast: Ast,
-    statements: Vec<Statement>,
-    user_args_offset: usize,
-) {
-    #[cfg(feature = "debug")]
-    info!("evaluating the ast tree...");
-    let mut evaluator = Evaluator::default()
-        .with_stdlib()
-        .with_source_file(source.clone())
-        .with_user_args_offset(user_args_offset);
-
-    evaluator.resolver.current_dir = std::path::Path::new(source.name.as_ref())
-        .parent()
-        .unwrap_or(std::path::Path::new(""))
-        .to_path_buf();
-
-    let statements = evaluator.resolver.resolve_program(ast, statements);
-    if let Err(e) = evaluator.evaluate_program(&statements) {
-        e.report_to_stderr();
-        std::process::exit(1);
-    }
-
-    #[cfg(feature = "debug")]
-    info!("evaluation done");
-}
-
 #[cfg(feature = "vm")]
 pub fn vm_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
     let chunk = compile_to_chunk(source.clone(), ast, statements);
@@ -104,18 +67,15 @@ pub fn vm_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
 pub fn compile_to_chunk(source: SourceFile, ast: Ast, statements: Vec<Statement>) -> rl_vm::Chunk {
     use rl_vm::Compiler;
 
-    let mut evaluator = Evaluator::default()
-        .with_stdlib()
-        .with_source_file(source.clone());
-
-    evaluator.resolver.current_dir = std::path::Path::new(source.name.as_ref())
+    let mut resolver = Resolver::new();
+    resolver.current_dir = std::path::Path::new(source.name.as_ref())
         .parent()
         .unwrap_or(std::path::Path::new(""))
         .to_path_buf();
 
-    let statements = evaluator.resolver.resolve_program(ast, statements);
+    let statements = resolver.resolve_program(ast, statements);
 
-    match Compiler::new(&evaluator.resolver.ast_arena)
+    match Compiler::new(&resolver.ast_arena)
         .with_source_file(source.clone())
         .compile(&statements)
     {
@@ -188,18 +148,15 @@ pub fn run_rlc_bytes(bytes: &[u8], label: &str) {
 pub fn cranelift_loop(source: SourceFile, ast: Ast, statements: Vec<Statement>) {
     use rl_vm::Compiler;
 
-    let mut evaluator = Evaluator::default()
-        .with_stdlib()
-        .with_source_file(source.clone());
-
-    evaluator.resolver.current_dir = std::path::Path::new(source.name.as_ref())
+    let mut resolver = Resolver::new();
+    resolver.current_dir = std::path::Path::new(source.name.as_ref())
         .parent()
         .unwrap_or(std::path::Path::new(""))
         .to_path_buf();
 
-    let statements = evaluator.resolver.resolve_program(ast, statements);
+    let statements = resolver.resolve_program(ast, statements);
 
-    let chunk = match Compiler::new(&evaluator.resolver.ast_arena)
+    let chunk = match Compiler::new(&resolver.ast_arena)
         .with_source_file(source.clone())
         .compile(&statements)
     {

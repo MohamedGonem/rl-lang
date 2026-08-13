@@ -25,7 +25,7 @@ use rl_cranelift::run_chunk;
 let result = run_chunk(&chunk)?; // -> i64
 ```
 
-> **Note:** this backend is experimental and currently supports only a subset of what the tree-walking interpreter and bytecode VM support.
+> **Note:** this backend is experimental and currently supports only a subset of what the bytecode VM supports.
 
 ## License
 

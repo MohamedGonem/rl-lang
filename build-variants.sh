@@ -11,9 +11,8 @@ mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 
 declare -A ENGINE_FEATURES=(
-  ["rl"]="treewalker,vm"
+  ["rl"]="vm"
   ["rl_vm"]="vm"
-  ["rl_treewalker"]="treewalker"
 )
 
 declare -A ACTUAL_NAME=(
@@ -33,18 +32,10 @@ declare -A ACTUAL_NAME=(
   ["rl_vm_debug_no_docs"]="rlcd_nd"
   ["rl_vm_debug_no_repl"]="rlcd_nr"
   ["rl_vm_debug_no_docs_repl"]="rlcd_ndr"
-  ["rl_treewalker"]="rlp"
-  ["rl_treewalker_no_docs"]="rlp_nd"
-  ["rl_treewalker_no_repl"]="rlp_nr"
-  ["rl_treewalker_no_docs_repl"]="rlp_ndr"
-  ["rl_treewalker_debug"]="rlpd"
-  ["rl_treewalker_debug_no_docs"]="rlpd_nd"
-  ["rl_treewalker_debug_no_repl"]="rlpd_nr"
-  ["rl_treewalker_debug_no_docs_repl"]="rlpd_ndr"
   ["rl_lsp"]="rlsp"
 )
 
-BASES=(rl rl_debug rl_vm rl_vm_debug rl_treewalker rl_treewalker_debug)
+BASES=(rl rl_debug rl_vm rl_vm_debug)
 SUFFIXES=("" "_no_docs" "_no_repl" "_no_docs_repl")
 
 build_variant_list() {

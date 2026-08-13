@@ -12,8 +12,8 @@ use crate::native::Module;
 use crate::runtime::VmRuntime;
 
 /// Builds the compiler-facing native module tree: an unnamed root holding
-/// a `std` submodule, mirroring `rl-interpreter`'s `root_module` shape so
-/// `std::io::println` resolves the same way in both.
+/// a `std` submodule, mirroring the shared `rl-std` module shape so
+/// `std::io::println` resolves correctly.
 pub fn root() -> Module {
     Module::new("root").with_module(
         Module::new("std")

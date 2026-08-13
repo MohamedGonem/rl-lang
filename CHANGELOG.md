@@ -2,6 +2,23 @@
 
 All notable changes to the rl-lang toolchain are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/) (see [VERSIONING.md](VERSIONING.md)). Full per-commit history is available on the [GitHub Releases](https://github.com/rl-lang/rl-lang/releases) page.
 
+## [2.0.0] - 2026-08-13
+
+The bytecode VM is now the sole execution backend; the tree-walking interpreter has been removed.
+
+### Removed
+
+- **Tree-walking interpreter** - the `rl-interpreter` crate and its `treewalker` feature are gone. `rl run` / `rl dev` execute through the bytecode VM only, and the `--treewalker` CLI flag no longer exists.
+- **Interpreter test suite** - the `tests/interpreter` suite and the interpreter-vs-VM benchmark target have been removed.
+- **Treewalker build variants** - the `rl_treewalker` / `rlp` release variants are no longer built or offered by the installers.
+
+### Changed
+
+- `rl run` / `rl dev` default to the bytecode VM backend.
+- The VM now resolves programs directly via `rl-resolver` (previously it borrowed the interpreter's `Evaluator` as a resolver+stdlib holder).
+
+[2.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.0.0
+
 ## [1.0.0] - 2026-08-06
 
 First stable release. The workspace is now a set of 1.0.0 crates, and the bytecode VM is a default, drop-in execution backend alongside the tree-walking interpreter. Interactive installers are available for Linux and Windows.

@@ -35,12 +35,10 @@ A dark, Tokyo-Night-adjacent palette is centralized in `theme.rs` - see that mod
 ## Backends
 
 The REPL UI never touches an execution engine directly - it drives a
-[`ReplBackend`](src/backend.rs), so `rl` can run the same interactive loop on
-either engine:
+[`ReplBackend`](src/backend.rs), backed by the bytecode VM:
 
 | Backend | Execution engine | Feature |
 |---|---|---|
-| `TreewalkerBackend` | tree-walking interpreter (`rl-interpreter`) | `treewalker` |
 | `VmBackend` | bytecode VM (`rl-vm`) with persistent global state across inputs | `vm` |
 
 `VmBackend` keeps a single `Vm` + `Resolver` alive for the whole session, so
@@ -53,7 +51,7 @@ via `run_and_return` so a trailing expression's value is rendered.
 
 | Module | Contents |
 |---|---|
-| `backend` | [`ReplBackend`] trait plus the `TreewalkerBackend` / `VmBackend` implementations |
+| `backend` | [`ReplBackend`] trait plus the `VmBackend` implementation |
 | `logic_loop` | Main event loop driving the REPL |
 | `command_handler` | Handles REPL meta-commands |
 | `completion` | Tab-completion candidate generation (`:`-commands, keywords, stdlib paths, bound names) |
@@ -67,18 +65,14 @@ via `run_and_return` so a trailing expression's value is rendered.
 
 ## Features
 
-- `treewalker` (default) - tree-walking interpreter backend (`rl-interpreter`)
-- `vm` - bytecode VM backend (`rl-vm` + `rl-resolver`)
+- `vm` (default) - bytecode VM backend (`rl-vm` + `rl-resolver`)
 
-Both backends produce identical REPL behavior; enabling `vm` makes the VM the
-preferred engine (as wired up by `rl-cli`). The crate requires at least one
-backend feature.
+The crate requires the `vm` feature.
 
 ## Dependencies
 
 Builds on `rl-ast`, `rl-docs`, `rl-parser`, `rl-lexer`, `rl-utils`, `crossterm`,
-and `ratatui`, plus `rl-interpreter` (`treewalker`), `rl-vm` (`vm`), and
-`rl-resolver` (`vm`).
+and `ratatui`, plus `rl-vm` (`vm`) and `rl-resolver` (`vm`).
 
 ## Usage
 
@@ -88,13 +82,10 @@ rl-repl = { workspace = true }
 ```
 
 ```rust
-use rl_repl::start_treewalker_repl;
+use rl_repl::start_vm_repl;
 
-start_treewalker_repl();
+start_vm_repl();
 ```
-
-`start_vm_repl()` starts the bytecode VM-backed REPL instead. `start_repl()` is
-kept as a deprecated alias for `start_treewalker_repl()`.
 
 ## License
 

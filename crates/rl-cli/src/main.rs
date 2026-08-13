@@ -27,8 +27,6 @@ use rl_tooling::workflows::generate;
 use rl_tooling::{format::format_tokens, package::EmbeddedProgram};
 use std::path::PathBuf;
 
-#[cfg(feature = "treewalker")]
-use crate::logic_loops::eval_loop;
 use crate::logic_loops::{lexing_loop, parsing_loop};
 #[cfg(feature = "lsp")]
 use rl_lsp::run_lsp;
@@ -59,14 +57,10 @@ enum Commands {
         #[arg(value_name = "FILE")]
         file: PathBuf,
 
-        /// Run thought the bytecode VM instead of the tree-walking evaluator
+        /// Run through the bytecode VM
         /// (this is highly experimental)
         #[arg(long)]
         vm: bool,
-
-        /// Run through the tree-walking evaluator instead of the bytecode VM
-        #[arg(long)]
-        treewalker: bool,
 
         /// JIT compile via cranelift instead
         /// (this is very very highly experimental)
@@ -91,16 +85,11 @@ enum Commands {
                        Use `rl new` first if you don't have an rl.toml yet.",
         after_help = "EXAMPLES:\n    \
                        rl dev\n    \
-                       rl dev --treewalker\n    \
                        rl dev --vm\n    \
                        rl dev --cranelift"
     )]
     Dev {
-        /// Run through the tree-walking evaluator instead of the bytecode VM
-        #[arg(long)]
-        treewalker: bool,
-
-        /// Run thought the bytecode VM instead of the tree-walking evaluator
+        /// Run through the bytecode VM
         /// (this is highly experimental)
         #[arg(long)]
         vm: bool,
@@ -290,17 +279,15 @@ fn main() {
             let sf = SourceFile::new("program", source);
             let tokens = lexing_loop(sf.clone());
             let (ast, statements) = parsing_loop(sf.clone(), tokens);
-            #[cfg(feature = "treewalker")]
+            #[cfg(feature = "vm")]
             {
-                eval_loop(sf, ast, statements, 1);
+                crate::logic_loops::vm_loop(sf, ast, statements);
                 return;
             }
-            #[cfg(not(feature = "treewalker"))]
+            #[cfg(not(feature = "vm"))]
             {
                 let _ = (sf, ast, statements);
-                eprintln!(
-                    "error: running source-packaged binaries requires the `treewalker` feature"
-                );
+                eprintln!("error: running source-packaged binaries requires the `vm` feature");
                 std::process::exit(1);
             }
         }
@@ -327,7 +314,6 @@ fn main() {
         Commands::Run {
             file,
             vm,
-            treewalker,
             cranelift,
             ..
         } => {
@@ -399,35 +385,21 @@ fn main() {
                     );
                     std::process::exit(1)
                 }
-            } else if treewalker {
-                #[cfg(feature = "treewalker")]
-                eval_loop(source, ast, statements, 3);
-                #[cfg(not(feature = "treewalker"))]
-                {
-                    eprintln!("error: --treewalker requires the `treewalker` feature");
-                    std::process::exit(1)
-                }
             } else {
-                #[cfg(feature = "treewalker")]
-                eval_loop(source, ast, statements, 3);
-                #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
+                #[cfg(feature = "vm")]
                 crate::logic_loops::vm_loop(source, ast, statements);
-                #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
+                #[cfg(not(feature = "vm"))]
                 {
                     let _ = (&ast, &statements);
                     eprintln!(
-                        "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
+                        "error: this build of rl has no execution backend (missing the `vm` feature)"
                     );
                     std::process::exit(1);
                 }
             }
         }
 
-        Commands::Dev {
-            treewalker,
-            vm,
-            cranelift,
-        } => {
+        Commands::Dev { vm, cranelift } => {
             let config = read_rl_toml();
             let path = std::path::PathBuf::from(&config.project.entry);
             let source_text = std::fs::read_to_string(&path).unwrap_or_else(|_| {
@@ -459,24 +431,14 @@ fn main() {
                     );
                     std::process::exit(1)
                 }
-            } else if treewalker {
-                #[cfg(feature = "treewalker")]
-                eval_loop(source, ast, statements, 3);
-                #[cfg(not(feature = "treewalker"))]
-                {
-                    eprintln!("error: --treewalker requires the `treewalker` feature");
-                    std::process::exit(1)
-                }
             } else {
-                #[cfg(feature = "treewalker")]
-                eval_loop(source, ast, statements, 3);
-                #[cfg(all(not(feature = "treewalker"), feature = "vm"))]
+                #[cfg(feature = "vm")]
                 crate::logic_loops::vm_loop(source, ast, statements);
-                #[cfg(all(not(feature = "treewalker"), not(feature = "vm")))]
+                #[cfg(not(feature = "vm"))]
                 {
                     let _ = (&ast, &statements);
                     eprintln!(
-                        "error: this build of rl has no execution backend (missing the `treewalker` or `vm` feature)"
+                        "error: this build of rl has no execution backend (missing the `vm` feature)"
                     );
                     std::process::exit(1);
                 }
@@ -853,12 +815,9 @@ fn main() {
             #[cfg(feature = "vm")]
             rl_repl::start_vm_repl();
 
-            #[cfg(all(not(feature = "vm"), feature = "treewalker"))]
-            rl_repl::start_treewalker_repl();
-
-            #[cfg(all(not(feature = "vm"), not(feature = "treewalker")))]
+            #[cfg(not(feature = "vm"))]
             {
-                eprintln!("error: repl requires the 'treewalker' or 'vm' feature to be enabled");
+                eprintln!("error: repl requires the 'vm' feature to be enabled");
                 std::process::exit(1);
             }
         }

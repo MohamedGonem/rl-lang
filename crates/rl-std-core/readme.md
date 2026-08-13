@@ -6,7 +6,7 @@ Part of the [rl-lang](https://github.com/rl-lang/rl-lang) workspace.
 
 ## Overview
 
-Holds what the shared stdlib (`rl-std`) and both runtimes (`rl-vm`, `rl-interpreter`) need in common, without referencing either runtime's value type, so it can sit below both in the dependency graph:
+Holds what the shared stdlib (`rl-std`) and the `rl-vm` runtime need in common, without referencing the runtime's value type, so it can sit below it in the dependency graph:
 
 - The `Runtime` trait each runtime implements, plus the shared `HandleStore` for opaque resource handles
 - The thin-`fn`-pointer native descriptor (`NativeHandle` / `Arity`)
