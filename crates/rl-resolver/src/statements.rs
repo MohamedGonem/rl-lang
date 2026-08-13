@@ -92,6 +92,7 @@ impl Resolver {
             StatementKind::VariableDeclaration {
                 name,
                 type_annotation,
+                unit_annotation: _,
                 value,
             } => {
                 let value = self.resolve_expression(value);
@@ -106,6 +107,7 @@ impl Resolver {
             StatementKind::ConstantDeclaration {
                 name,
                 type_annotation,
+                unit_annotation: _,
                 value,
             } => {
                 let value = self.resolve_expression(value);
