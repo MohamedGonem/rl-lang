@@ -4,7 +4,7 @@ mod assign;
 mod call;
 mod declare;
 
-use crate::structs::{CheckedExpr, CheckType, TypeChecker};
+use crate::structs::{CheckType, CheckedExpr, TypeChecker};
 use rl_utils::{span::Span, suggest::closest_match};
 
 use std::collections::HashMap;

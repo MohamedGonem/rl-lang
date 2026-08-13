@@ -216,7 +216,10 @@ impl<'a> Compiler<'a> {
 
         for statement in statements {
             let StatementKind::ResolvedFunctionDeclaration {
-                name, attribute, slot, ..
+                name,
+                attribute,
+                slot,
+                ..
             } = &statement.kind
             else {
                 continue;

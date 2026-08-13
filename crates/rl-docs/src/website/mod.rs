@@ -1,5 +1,9 @@
 use crate::{
-    entry::{ConceptEntry, StdEntry}, website::{builder::SiteBuilder, platform::{docs_dir, open_browser}},
+    entry::{ConceptEntry, StdEntry},
+    website::{
+        builder::SiteBuilder,
+        platform::{docs_dir, open_browser},
+    },
 };
 
 mod builder;
@@ -14,22 +18,18 @@ mod platform;
 pub fn build_and_open_website(
     std_entries: &[&StdEntry],
     concept_entries: &[&ConceptEntry],
-    tutorial_entries: &[&ConceptEntry]
+    tutorial_entries: &[&ConceptEntry],
 ) {
     let docs_dir = docs_dir();
     let index_path = docs_dir.join("index.html");
     if !index_path.exists() {
-        let site_builder = SiteBuilder::new(
-            docs_dir, 
-            std_entries, 
-            concept_entries,
-            tutorial_entries
-        );
+        let site_builder =
+            SiteBuilder::new(docs_dir, std_entries, concept_entries, tutorial_entries);
         if let Err(e) = site_builder.build() {
             eprintln!("error: building website {}", e);
-            return
+            return;
         };
-    } 
+    }
     if let Err(e) = open_browser(&index_path) {
         eprintln!("error: opening browser {}", e);
     }

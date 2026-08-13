@@ -94,7 +94,10 @@ fn check_arity_range<R: HttpStore>(
     if !(from..=to).contains(&len) {
         return Err(R::error(
             cx,
-            format!("{}: expected from {} to {} arg(s), got {}", name, from, to, len),
+            format!(
+                "{}: expected from {} to {} arg(s), got {}",
+                name, from, to, len
+            ),
             span,
         ));
     }

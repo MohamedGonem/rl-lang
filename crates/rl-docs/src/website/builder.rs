@@ -1,6 +1,11 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
-use crate::{entry::{ConceptEntry, StdEntry}, website::helpers::{html_escape, page, render_description_entry, render_fn_entry, render_related, slugify}};
+use crate::{
+    entry::{ConceptEntry, StdEntry},
+    website::helpers::{
+        html_escape, page, render_description_entry, render_fn_entry, render_related, slugify,
+    },
+};
 
 const STYLE_CSS: &str = include_str!("../../assets/style.css");
 const RL_HIGHLIGHT_JS: &str = include_str!("../../assets/rl-highlight.js");
@@ -13,11 +18,16 @@ pub struct SiteBuilder<'a> {
     concept_files: HashMap<String, String>,
     tutorials: &'a [&'a ConceptEntry],
     tutorial_files: HashMap<String, String>,
-    fn_files: HashMap<String, String>
+    fn_files: HashMap<String, String>,
 }
 
 impl<'a> SiteBuilder<'a> {
-    pub fn new(out_dir: PathBuf, stdlib: &'a [&'a StdEntry], concepts: &'a [&'a ConceptEntry], tutorials: &'a [&'a ConceptEntry]) -> Self {
+    pub fn new(
+        out_dir: PathBuf,
+        stdlib: &'a [&'a StdEntry],
+        concepts: &'a [&'a ConceptEntry],
+        tutorials: &'a [&'a ConceptEntry],
+    ) -> Self {
         // filename maps, so cross-references (see_also / related / related_stdlib)
         // can become real links between pages
         let mut concept_files = HashMap::new();
@@ -42,25 +52,21 @@ impl<'a> SiteBuilder<'a> {
             std_files.insert(e.name.into(), filename.clone());
 
             for func in e.functions {
-                let bare = func
-                    .signature
-                    .split('(')
-                    .next()
-                    .unwrap_or("");
+                let bare = func.signature.split('(').next().unwrap_or("");
 
                 fn_files.insert(bare.to_string(), filename.clone());
             }
         }
 
-        Self { 
-            out_dir, 
-            stdlib, 
-            std_files, 
-            concepts, 
-            concept_files, 
-            tutorials, 
+        Self {
+            out_dir,
+            stdlib,
+            std_files,
+            concepts,
+            concept_files,
+            tutorials,
             tutorial_files,
-            fn_files
+            fn_files,
         }
     }
 
@@ -99,10 +105,7 @@ impl<'a> SiteBuilder<'a> {
 
     fn write(&self, filename: &str, title: &str, body: &str) -> std::io::Result<()> {
         let contents = page(title, &self.sidebar_html(Some(filename)), body);
-        std::fs::write(
-            self.out_dir.join(filename), 
-            contents
-        )?;
+        std::fs::write(self.out_dir.join(filename), contents)?;
         Ok(())
     }
 
@@ -116,10 +119,10 @@ impl<'a> SiteBuilder<'a> {
         }
 
         fs::write(
-            self.out_dir.join("index.html"), 
-            page("rl docs", &self.sidebar_html(Some("index.html")), &body)
+            self.out_dir.join("index.html"),
+            page("rl docs", &self.sidebar_html(Some("index.html")), &body),
         )?;
-    
+
         Ok(())
     }
 
@@ -148,14 +151,11 @@ impl<'a> SiteBuilder<'a> {
 
         if !self.stdlib.is_empty() {
             out.push_str("<h2>stdlib</h2>\n<ul>\n");
-            
+
             for entry in self.stdlib {
                 let name = entry.name;
 
-                out.push_str(&link(
-                    &self.std_files[name],
-                    &format!("std::{}", name)
-                ));
+                out.push_str(&link(&self.std_files[name], &format!("std::{}", name)));
             }
 
             out.push_str("</ul>\n");
@@ -163,14 +163,11 @@ impl<'a> SiteBuilder<'a> {
 
         if !self.concepts.is_empty() {
             out.push_str("<h2>concepts</h2>\n<ul>\n");
-            
+
             for entry in self.concepts {
                 let name = entry.name;
 
-                out.push_str(&link(
-                    &self.concept_files[name],
-                    name
-                ));
+                out.push_str(&link(&self.concept_files[name], name));
             }
 
             out.push_str("</ul>\n");
@@ -178,14 +175,11 @@ impl<'a> SiteBuilder<'a> {
 
         if !self.tutorials.is_empty() {
             out.push_str("<h2>tutorial</h2>\n<ul>\n");
-            
+
             for entry in self.tutorials {
                 let name = entry.name;
 
-                out.push_str(&link(
-                    &self.tutorial_files[name],
-                    name
-                ));
+                out.push_str(&link(&self.tutorial_files[name], name));
             }
 
             out.push_str("</ul>\n");
@@ -198,20 +192,12 @@ impl<'a> SiteBuilder<'a> {
         let name = entry.name;
         let mut body = String::new();
 
-        body.push_str(&format!(
-            "<h1>std::{}</h1>\n",
-            html_escape(name)
-        ));
+        body.push_str(&format!("<h1>std::{}</h1>\n", html_escape(name)));
 
         let mut meta_bits = Vec::new();
 
         if let Some(since) = entry.since {
-            meta_bits.push(
-                format!(
-                    "since {}",
-                    html_escape(since)
-                )
-            );
+            meta_bits.push(format!("since {}", html_escape(since)));
         };
 
         if entry.unstable {
@@ -219,20 +205,10 @@ impl<'a> SiteBuilder<'a> {
         };
 
         if !meta_bits.is_empty() {
-            body.push_str(
-                &format!(
-                    "<p><em>{}</em></p>\n",
-                    meta_bits.join(" | ")
-                )
-            );
+            body.push_str(&format!("<p><em>{}</em></p>\n", meta_bits.join(" | ")));
         };
 
-        body.push_str(
-            &format!(
-                "<p>{}</p>\n",
-                html_escape(entry.description)
-            )
-        );
+        body.push_str(&format!("<p>{}</p>\n", html_escape(entry.description)));
 
         for func in entry.functions {
             body.push_str(&render_fn_entry(func, &self.fn_files));
@@ -241,33 +217,29 @@ impl<'a> SiteBuilder<'a> {
         self.write(&self.std_files[name], &format!("std::{}", name), &body)
     }
 
-    fn build_concept_or_tutorial_page(&self, entry: &ConceptEntry, file_map: &HashMap<String, String>) -> std::io::Result<()> {
+    fn build_concept_or_tutorial_page(
+        &self,
+        entry: &ConceptEntry,
+        file_map: &HashMap<String, String>,
+    ) -> std::io::Result<()> {
         let name = entry.name;
         let mut body = format!("<h1>{}</h1>\n", html_escape(name));
 
         let mut meta_bits = vec![entry.category.to_string()];
 
         if let Some(since) = entry.since {
-            meta_bits.push(
-                format!("since {}", html_escape(since))
-            );
-            body.push_str(
-                &format!("<p><em>{}</em></p>\n", meta_bits.join(" | "))
-            );
+            meta_bits.push(format!("since {}", html_escape(since)));
+            body.push_str(&format!("<p><em>{}</em></p>\n", meta_bits.join(" | ")));
         }
 
-        body.push_str(
-            &format!("<p>{}</p>\n", entry.summary)
-        );
+        body.push_str(&format!("<p>{}</p>\n", entry.summary));
 
-        body.push_str(
-            &render_related(
-                "Prerequisites",
-                entry.prerequisites.to_vec(),
-                &self.concept_files,
-                ""
-            )
-        );
+        body.push_str(&render_related(
+            "Prerequisites",
+            entry.prerequisites.to_vec(),
+            &self.concept_files,
+            "",
+        ));
 
         for desc in entry.descriptions {
             body.push_str(&render_description_entry(desc));
@@ -281,26 +253,20 @@ impl<'a> SiteBuilder<'a> {
             body.push_str("</ul>\n");
         }
 
-        body.push_str(
-            &render_related(
-                "Related concepts", 
-                entry.related.to_vec(), 
-                &self.concept_files, 
-                ""
-            )
-        );
+        body.push_str(&render_related(
+            "Related concepts",
+            entry.related.to_vec(),
+            &self.concept_files,
+            "",
+        ));
 
-        body.push_str(
-            &render_related(
-                "Related stdlib", 
-                entry.related_stdlib.to_vec(), 
-                &self.std_files, 
-                "std::"
-            )
-        );
+        body.push_str(&render_related(
+            "Related stdlib",
+            entry.related_stdlib.to_vec(),
+            &self.std_files,
+            "std::",
+        ));
 
         self.write(&file_map[name], name, &body)
     }
-
-    
 }

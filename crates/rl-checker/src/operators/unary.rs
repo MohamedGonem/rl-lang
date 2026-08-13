@@ -13,7 +13,7 @@
 //! A unit-carrying operand keeps its unit through `-` (negation doesn't
 //! change dimensionality); `!` always produces a dimensionless `bool`.
 
-use crate::structs::{CheckedExpr, CheckType, TypeChecker};
+use crate::structs::{CheckType, CheckedExpr, TypeChecker};
 use rl_ast::statements::TypeAnnotation;
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::span::Span;

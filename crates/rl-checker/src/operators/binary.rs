@@ -33,7 +33,7 @@
 
 use crate::{
     operators::op_str,
-    structs::{CheckedExpr, CheckType, TypeChecker},
+    structs::{CheckType, CheckedExpr, TypeChecker},
     units::Unit,
 };
 use rl_ast::statements::TypeAnnotation;
@@ -100,10 +100,7 @@ impl TypeChecker {
                         if let Some(msg) =
                             add_unit_mismatch(&left.unit, &right.unit, &self.conversions)
                         {
-                            self.error(
-                                format!("unit mismatch on {}: {}", op_str(op), msg),
-                                span,
-                            );
+                            self.error(format!("unit mismatch on {}: {}", op_str(op), msg), span);
                             None
                         } else {
                             // a dimensionless operand adopts the other side's unit

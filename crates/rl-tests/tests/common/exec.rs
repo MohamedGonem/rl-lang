@@ -21,9 +21,8 @@ pub fn parse_assert_err(source: &str) -> String {
     let text = SourceFile::new("test", source.to_string());
     let result = rl_lexer::tokenizer::Tokenizer::lex(text.clone())
         .and_then(|tokens| {
-            rl_parser::parser_logic::Parser::parse(tokens, text).map(|_| {
-                panic!("expected `{source}` to fail to parse, but it succeeded")
-            })
+            rl_parser::parser_logic::Parser::parse(tokens, text)
+                .map(|_| panic!("expected `{source}` to fail to parse, but it succeeded"))
         })
         .unwrap_err();
     result.message().to_string()

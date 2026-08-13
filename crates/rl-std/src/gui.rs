@@ -1055,11 +1055,7 @@ pub fn gui_is_visible<R: GuiStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value
 // ---- event-callback registration -------------------------------------------
 
 #[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui), callback( -> null) -> result[null]))]
-pub fn gui_on_click<R: GuiStore>(
-    cx: &mut R::Cx,
-    handle: R::Value,
-    function: R::Value,
-) -> R::Value {
+pub fn gui_on_click<R: GuiStore>(cx: &mut R::Cx, handle: R::Value, function: R::Value) -> R::Value {
     let id = match extract_handle::<R>(&handle, "gui_on_click") {
         Ok(id) => id,
         Err(e) => return R::err(R::from_string(e)),
@@ -1613,7 +1609,10 @@ pub fn gui_get_z<R: GuiStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value {
         Some(GuiHandle::Separator(w)) => w.z,
         Some(GuiHandle::Image(w)) => w.z,
         Some(GuiHandle::Window(_)) => {
-            return R::err(R::from_string(format!("gui_get_z: handle {} is a window", id)));
+            return R::err(R::from_string(format!(
+                "gui_get_z: handle {} is a window",
+                id
+            )));
         }
         None => {
             return R::err(R::from_string(format!("gui_get_z: unknown handle {}", id)));
@@ -1650,10 +1649,7 @@ pub fn gui_remove<R: GuiStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value {
             )));
         }
         None => {
-            return R::err(R::from_string(format!(
-                "gui_remove: unknown handle {}",
-                id
-            )));
+            return R::err(R::from_string(format!("gui_remove: unknown handle {}", id)));
         }
     };
 

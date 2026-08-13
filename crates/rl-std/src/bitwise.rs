@@ -82,7 +82,9 @@ pub fn bit_not<R: Runtime>(v: R::Value) -> R::Value {
     } else if let Some(x) = R::as_i64(&v) {
         R::ok(R::from_i64(!x))
     } else {
-        R::err(R::from_string("bit_not expects a byte or an int".to_string()))
+        R::err(R::from_string(
+            "bit_not expects a byte or an int".to_string(),
+        ))
     }
 }
 

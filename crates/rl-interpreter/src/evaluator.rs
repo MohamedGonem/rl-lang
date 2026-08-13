@@ -9,15 +9,15 @@ use crate::{
     stdlib,
     values::{FunctionData, MapKey, Value},
 };
+use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
+use rl_lexer::tokentypes::TokenType;
+use rl_resolver::Resolver;
 use rl_std::audio::AudioHandle;
 use rl_std::c::CHandle;
 use rl_std::gui::GuiHandle;
 use rl_std::http::HttpHandle;
 use rl_std::net::NetHandle;
 use rl_std_core::Xoshiro256;
-use rl_ast::{ExprId, nodes::ExpressionKind, statements::TypeAnnotation};
-use rl_lexer::tokentypes::TokenType;
-use rl_resolver::Resolver;
 use rl_utils::{
     errors::{Error, Reason},
     source::SourceFile,
@@ -185,9 +185,10 @@ impl Evaluator {
     where
         F: IntoNativeFn<A>,
     {
-        self.root_module
-            .functions
-            .insert(name.into(), crate::native::EvalNative::Legacy(f.into_native()));
+        self.root_module.functions.insert(
+            name.into(),
+            crate::native::EvalNative::Legacy(f.into_native()),
+        );
         self
     }
 
@@ -213,38 +214,65 @@ impl Evaluator {
                     "str",
                     rl_std::string::handles::<EvalRuntime>(),
                 ))
-                .with_module(Module::from_std("types", rl_std::types::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "types",
+                    rl_std::types::handles::<EvalRuntime>(),
+                ))
                 .with_module(
                     Module::from_std("array", rl_std::array::handles::<EvalRuntime>())
                         .with_function("len", stdlib::len::std_len),
                 )
-                .with_module(Module::from_std("path", rl_std::path::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "path",
+                    rl_std::path::handles::<EvalRuntime>(),
+                ))
                 .with_module(Module::from_std("fs", rl_std::fs::handles::<EvalRuntime>()))
                 .with_module(Module::from_std(
                     "random",
                     rl_std::random::handles::<EvalRuntime>(),
                 ))
-                .with_module(Module::from_std("time", rl_std::time::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "time",
+                    rl_std::time::handles::<EvalRuntime>(),
+                ))
                 .with_module(Module::from_std(
                     "process",
                     rl_std::process::handles::<EvalRuntime>(),
                 ))
-                .with_module(Module::from_std("res", rl_std::result::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "res",
+                    rl_std::result::handles::<EvalRuntime>(),
+                ))
                 .with_module(Module::from_std(
                     "term",
                     rl_std::terminal::handles::<EvalRuntime>(),
                 ))
                 .with_module(stdlib::rl::module())
-                .with_module(Module::from_std("debug", rl_std::debug::handles::<EvalRuntime>()))
-                .with_module(Module::from_std("net", rl_std::net::handles::<EvalRuntime>()))
-                .with_module(Module::from_std("http", rl_std::http::handles::<EvalRuntime>()))
+                .with_module(Module::from_std(
+                    "debug",
+                    rl_std::debug::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std(
+                    "net",
+                    rl_std::net::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std(
+                    "http",
+                    rl_std::http::handles::<EvalRuntime>(),
+                ))
                 .with_module(Module::from_std(
                     "collections",
                     rl_std::collections::handles::<EvalRuntime>(),
                 ))
                 .with_module(Module::from_std("c", rl_std::c::handles::<EvalRuntime>()))
-                .with_module(Module::from_std("audio", rl_std::audio::handles::<EvalRuntime>()))
-                .with_module(Module::from_std("gui", rl_std::gui::handles::<EvalRuntime>())),
+                .with_module(Module::from_std(
+                    "audio",
+                    rl_std::audio::handles::<EvalRuntime>(),
+                ))
+                .with_module(Module::from_std(
+                    "gui",
+                    rl_std::gui::handles::<EvalRuntime>(),
+                )),
         )
     }
 

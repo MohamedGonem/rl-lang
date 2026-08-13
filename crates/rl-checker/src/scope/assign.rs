@@ -36,7 +36,8 @@ impl TypeChecker {
                         ));
                     }
 
-                    if let Some(msg) = unit_mismatch(name, &value.unit, &item.unit, &self.conversions)
+                    if let Some(msg) =
+                        unit_mismatch(name, &value.unit, &item.unit, &self.conversions)
                     {
                         unit_error = Some(msg);
                     }

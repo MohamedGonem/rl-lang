@@ -27,26 +27,62 @@ pub fn root() -> Module {
                     .with_function("len", len::std_len),
             )
             .with_module(Module::from_std("c", rl_std::c::handles::<VmRuntime>()))
-            .with_module(Module::from_std("audio", rl_std::audio::handles::<VmRuntime>()))
+            .with_module(Module::from_std(
+                "audio",
+                rl_std::audio::handles::<VmRuntime>(),
+            ))
             .with_module(Module::from_std("gui", rl_std::gui::handles::<VmRuntime>()))
-            .with_module(Module::from_std("bitwise", rl_std::bitwise::handles::<VmRuntime>()))
-            .with_module(Module::from_std("debug", rl_std::debug::handles::<VmRuntime>()))
+            .with_module(Module::from_std(
+                "bitwise",
+                rl_std::bitwise::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "debug",
+                rl_std::debug::handles::<VmRuntime>(),
+            ))
             .with_module(Module::from_std("fs", rl_std::fs::handles::<VmRuntime>()))
-            .with_module(Module::from_std("http", rl_std::http::handles::<VmRuntime>()))
+            .with_module(Module::from_std(
+                "http",
+                rl_std::http::handles::<VmRuntime>(),
+            ))
             .with_module(
                 Module::from_std("math", rl_std::math::handles::<VmRuntime>()).with_module(
                     Module::from_std("consts", rl_std::math::constants::handles::<VmRuntime>()),
                 ),
             )
             .with_module(Module::from_std("net", rl_std::net::handles::<VmRuntime>()))
-            .with_module(Module::from_std("path", rl_std::path::handles::<VmRuntime>()))
-            .with_module(Module::from_std("process", rl_std::process::handles::<VmRuntime>()))
-            .with_module(Module::from_std("random", rl_std::random::handles::<VmRuntime>()))
-            .with_module(Module::from_std("res", rl_std::result::handles::<VmRuntime>()))
+            .with_module(Module::from_std(
+                "path",
+                rl_std::path::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "process",
+                rl_std::process::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "random",
+                rl_std::random::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "res",
+                rl_std::result::handles::<VmRuntime>(),
+            ))
             .with_module(rl::module())
-            .with_module(Module::from_std("str", rl_std::string::handles::<VmRuntime>()))
-            .with_module(Module::from_std("term", rl_std::terminal::handles::<VmRuntime>()))
-            .with_module(Module::from_std("time", rl_std::time::handles::<VmRuntime>()))
-            .with_module(Module::from_std("types", rl_std::types::handles::<VmRuntime>())),
+            .with_module(Module::from_std(
+                "str",
+                rl_std::string::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "term",
+                rl_std::terminal::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "time",
+                rl_std::time::handles::<VmRuntime>(),
+            ))
+            .with_module(Module::from_std(
+                "types",
+                rl_std::types::handles::<VmRuntime>(),
+            )),
     )
 }

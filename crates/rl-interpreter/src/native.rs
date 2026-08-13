@@ -108,7 +108,8 @@ impl Module {
     /// mixes migrated functions with legacy submodules).
     pub fn with_std_handles(mut self, handles: Vec<NativeHandle<EvalRuntime>>) -> Self {
         for h in handles {
-            self.functions.insert(h.name.to_string(), EvalNative::Std(h));
+            self.functions
+                .insert(h.name.to_string(), EvalNative::Std(h));
         }
         self
     }

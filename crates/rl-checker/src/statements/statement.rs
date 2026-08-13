@@ -3,11 +3,7 @@
 
 use std::{collections::HashSet, path::PathBuf};
 
-use crate::{
-    TypeChecker,
-    structs::CheckType,
-    units::Unit,
-};
+use crate::{TypeChecker, structs::CheckType, units::Unit};
 use rl_ast::statements::{MatchPattern, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
@@ -91,7 +87,9 @@ impl TypeChecker {
                     );
                 }
 
-                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions) {
+                if let Some(msg) =
+                    declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions)
+                {
                     self.error(
                         format!("unit mismatch on declaration: {}", msg),
                         statement.span,
@@ -130,7 +128,9 @@ impl TypeChecker {
                     );
                 }
 
-                if let Some(msg) = declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions) {
+                if let Some(msg) =
+                    declaration_unit_mismatch(&declared_unit, &value_typed.unit, &self.conversions)
+                {
                     self.error(
                         format!("unit mismatch on declaration: {}", msg),
                         statement.span,
@@ -881,13 +881,7 @@ impl TypeChecker {
                     } else {
                         CheckType::Known(type_annotation.clone())
                     };
-                    self.declare_with_unit(
-                        name.clone(),
-                        declared,
-                        declared_unit,
-                        false,
-                        stmt.span,
-                    );
+                    self.declare_with_unit(name.clone(), declared, declared_unit, false, stmt.span);
                 }
                 StatementKind::ConstantDeclaration {
                     name,

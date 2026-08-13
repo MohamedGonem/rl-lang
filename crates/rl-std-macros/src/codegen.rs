@@ -34,7 +34,10 @@ enum Ret {
 
 pub fn expand(attr: NativeFnAttr, func: ItemFn) -> syn::Result<TokenStream> {
     let module = attr.module.clone().ok_or_else(|| {
-        syn::Error::new(func.sig.ident.span(), "#[native_fn] requires `module = \"...\"`")
+        syn::Error::new(
+            func.sig.ident.span(),
+            "#[native_fn] requires `module = \"...\"`",
+        )
     })?;
     let _ = module; // module name is used by the aggregating builder, not here
 
@@ -46,7 +49,10 @@ pub fn expand(attr: NativeFnAttr, func: ItemFn) -> syn::Result<TokenStream> {
     let mut params = Vec::new();
     for (i, arg) in func.sig.inputs.iter().enumerate() {
         let FnArg::Typed(PatType { ty, .. }) = arg else {
-            return Err(syn::Error::new(arg.span(), "#[native_fn] does not support `self`"));
+            return Err(syn::Error::new(
+                arg.span(),
+                "#[native_fn] does not support `self`",
+            ));
         };
         params.push(classify_param(ty, i == 0)?);
     }
@@ -58,9 +64,8 @@ pub fn expand(attr: NativeFnAttr, func: ItemFn) -> syn::Result<TokenStream> {
         .iter()
         .filter(|p| matches!(p, Param::Raw | Param::Typed(_)))
         .count();
-    let has_raw = params.iter().any(|p| matches!(p, Param::Raw))
-        || has_varargs
-        || matches!(ret, Ret::Raw);
+    let has_raw =
+        params.iter().any(|p| matches!(p, Param::Raw)) || has_varargs || matches!(ret, Ret::Raw);
 
     // ---- build the wrapper body -------------------------------------------
     let rt = quote!(::rl_std_core::Runtime);
@@ -118,7 +123,11 @@ pub fn expand(attr: NativeFnAttr, func: ItemFn) -> syn::Result<TokenStream> {
         }
     }
 
-    let turbofish = if has_r_generic { quote!(::<R>) } else { quote!() };
+    let turbofish = if has_r_generic {
+        quote!(::<R>)
+    } else {
+        quote!()
+    };
     let call = quote!(super::#fn_ident #turbofish (#(#forward),*));
 
     let ret_expr = match &ret {
@@ -293,9 +302,13 @@ fn classify_ret(output: &syn::ReturnType) -> Ret {
 
 fn path_idents(ty: &Type) -> Option<Vec<String>> {
     match ty {
-        Type::Path(tp) if tp.qself.is_none() => {
-            Some(tp.path.segments.iter().map(|s| s.ident.to_string()).collect())
-        }
+        Type::Path(tp) if tp.qself.is_none() => Some(
+            tp.path
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect(),
+        ),
         _ => None,
     }
 }

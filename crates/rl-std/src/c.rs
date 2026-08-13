@@ -273,7 +273,10 @@ pub fn close<R: CStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value {
 
     match R::c_remove(cx, handle_id) {
         Some(_) => R::ok(R::null()),
-        None => R::err(R::from_string(format!("close: unknown handle {}", handle_id))),
+        None => R::err(R::from_string(format!(
+            "close: unknown handle {}",
+            handle_id
+        ))),
     }
 }
 

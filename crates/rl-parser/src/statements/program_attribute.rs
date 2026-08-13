@@ -46,10 +46,7 @@ impl Parser {
         while self.match_type(&[TokenType::Newline]) {}
 
         if !self.match_type(&[TokenType::RightBracket]) {
-            return Err(self.err(
-                "expected `]` to close program attribute",
-                self.peek_span(),
-            ));
+            return Err(self.err("expected `]` to close program attribute", self.peek_span()));
         }
 
         Ok(attribute)
@@ -71,7 +68,8 @@ impl Parser {
 
         while self.match_type(&[TokenType::Newline]) {}
 
-        let symbol = self.parse_unit_symbol_name("expected a unit symbol before `=` in `convert`")?;
+        let symbol =
+            self.parse_unit_symbol_name("expected a unit symbol before `=` in `convert`")?;
 
         if !self.match_type(&[TokenType::Assign]) {
             return Err(self.err("expected `=` in `convert` attribute", self.peek_span()));
@@ -97,7 +95,7 @@ impl Parser {
                 return Err(self.err(
                     "expected a numeric factor in `convert` attribute",
                     self.peek_span(),
-                ))
+                ));
             }
         };
 
@@ -121,7 +119,10 @@ impl Parser {
         }
 
         if !self.match_type(&[TokenType::RightParen]) {
-            return Err(self.err("expected `)` to close `convert` attribute", self.peek_span()));
+            return Err(self.err(
+                "expected `)` to close `convert` attribute",
+                self.peek_span(),
+            ));
         }
 
         Ok(ProgramAttribute::Convert {
