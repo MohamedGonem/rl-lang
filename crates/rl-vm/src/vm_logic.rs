@@ -834,7 +834,7 @@ impl Vm {
                     }
                     let flat = self.stack.split_off(self.stack.len() - count * 2);
                     let mut map = HashMap::with_capacity(count);
-                    for pair in flat.chunks_exact(2) {
+                    for pair in flat.as_chunks::<2>().0 {
                         let key = VmMapKey::from_value(&pair[0]).ok_or_else(|| {
                             self.err(format!(
                                 "type {} cannot be used as a map key",
