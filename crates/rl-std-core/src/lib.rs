@@ -1,8 +1,8 @@
 //! Runtime-agnostic core for the rl-lang standard library.
 //!
-//! This crate holds everything the shared stdlib (`rl-std`) and both runtimes
-//! (`rl-vm`, `rl-interpreter`) need in common, without referencing either
-//! runtime's value type - so it can sit below both in the dependency graph:
+//! This crate holds everything the shared stdlib (`rl-std`) and the `rl-vm`
+//! runtime need in common, without referencing the runtime's value type - so
+//! it can sit below it in the dependency graph:
 //!
 //! - [`Runtime`] / [`HandleStore`] - the abstraction each runtime implements,
 //! - [`NativeHandle`] / [`Arity`] - the thin-`fn`-pointer native descriptor,

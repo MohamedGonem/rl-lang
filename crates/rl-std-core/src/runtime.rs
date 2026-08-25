@@ -1,40 +1,33 @@
 //! The [`Runtime`] abstraction: the single trait that lets every stdlib
 //! function be written once (generic over `R: Runtime`) and monomorphized into
-//! a thin function pointer for each runtime (the bytecode VM and the
-//! tree-walking interpreter).
+//! a thin function pointer for the bytecode VM.
 //!
 //! It carries three associated types:
-//! - [`Runtime::Value`] - the runtime's value enum (`VmValue` / `Value`),
-//! - [`Runtime::Cx`] - the mutable context threaded through calls (`Vm` /
-//!   `Evaluator`),
+//! - [`Runtime::Value`] - the runtime's value enum (`VmValue`),
+//! - [`Runtime::Cx`] - the mutable context threaded through calls (`Vm`),
 //! - [`Runtime::Span`] - the call-site span type: `()` on the VM (which
-//!   re-anchors native errors after the fact via `Vm::annotate`) and a real
-//!   [`rl_utils::span::Span`] on the interpreter.
+//!   re-anchors native errors after the fact via `Vm::annotate`).
 //!
 //! The compound-value constructors ([`Runtime::array`], [`Runtime::map`], ...)
-//! all take a [`TypeAnnotation`]: the interpreter stores it (as `items_type`
-//! / `key_type`), while the VM impl discards it. This lets one stdlib source
-//! line stay valid for both runtimes without leaking the asymmetry into the
-//! function bodies.
+//! all take a [`TypeAnnotation`]: the VM impl discards it. This lets one
+//! stdlib source line stay valid without leaking asymmetry into the function
+//! bodies.
 
 use crate::rng::Xoshiro256;
 use rl_ast::statements::{HandleKind, TypeAnnotation};
 use rl_utils::errors::Error;
 
 pub trait Runtime: Sized + 'static {
-    /// The runtime's value enum (`VmValue` / `Value`).
+    /// The runtime's value enum (`VmValue`).
     type Value: Clone;
-    /// The mutable context threaded through every native call (`Vm` /
-    /// `Evaluator`).
+    /// The mutable context threaded through every native call (`Vm`).
     type Cx;
-    /// The call-site span type: `()` on the VM, [`rl_utils::span::Span`] on the
-    /// interpreter.
+    /// The call-site span type: `()` on the VM.
     type Span: Copy;
 
     // ---- error construction (absorbs the Span asymmetry) -------------------
 
-    /// Builds a runtime error. The interpreter uses the live `span` (and
-    /// attaches its source file); the VM discards `span` and relies on
+    /// Builds a runtime error. The VM discards `span` and relies on
     /// `Vm::annotate` re-anchoring at the native call site.
     fn error(cx: &Self::Cx, msg: impl Into<String>, span: Self::Span) -> Error;
 
@@ -86,8 +79,7 @@ pub trait Runtime: Sized + 'static {
     fn err(v: Self::Value) -> Self::Value;
     fn error_value(v: Self::Value) -> Self::Value;
 
-    // ---- compound values (the TypeAnnotation is stored by the interpreter,
-    //      ignored by the VM) ------------------------------------------------
+    // ---- compound values (the TypeAnnotation is ignored by the VM) --------
 
     fn array(items: Vec<Self::Value>, elem: TypeAnnotation) -> Self::Value;
     fn tuple(items: Vec<Self::Value>) -> Self::Value;
@@ -99,9 +91,8 @@ pub trait Runtime: Sized + 'static {
     fn set(items: Vec<Self::Value>, elem: TypeAnnotation) -> Self::Value;
 
     /// Deconstructs an array into `(items, element_type)`. The VM returns
-    /// [`TypeAnnotation::Infer`] for the element type; the interpreter returns
-    /// its tracked `items_type`. Functions that do not care ignore the second
-    /// field.
+    /// [`TypeAnnotation::Infer`] for the element type. Functions that do not
+    /// care ignore the second field.
     fn as_array(v: &Self::Value) -> Option<(&[Self::Value], TypeAnnotation)>;
 
     /// The elements of a tuple value, if `v` is a tuple.
@@ -185,20 +176,17 @@ pub trait Runtime: Sized + 'static {
     fn values_equal(a: &Self::Value, b: &Self::Value) -> bool;
 
     /// The inferred type annotation of a value. The VM does not track element
-    /// types (returns [`TypeAnnotation::Infer`]); the interpreter infers a
-    /// concrete type. Used for the interpreter-only container element-type
-    /// checks (e.g. `set_add`).
+    /// types and returns [`TypeAnnotation::Infer`].
     fn value_type(v: &Self::Value) -> TypeAnnotation;
 
     /// Whether a value of type `actual` may be stored where `expected` is
-    /// required. The VM performs no such check (always `true`); the interpreter
-    /// applies its assignment-compatibility rules.
+    /// required. The VM performs no such check and always returns `true`.
     fn types_compatible(actual: &TypeAnnotation, expected: &TypeAnnotation) -> bool;
 
     // ---- re-entrancy (higher-order functions: arr_map/filter/sort) ---------
 
-    /// Invokes a callable value with `args`. Normalizes the two runtimes'
-    /// `call_value` signatures (by-slice vs by-value, span present vs absent).
+    /// Invokes a callable value with `args`. Normalizes the VM's `call_value`
+    /// signature.
     fn call_value(
         cx: &mut Self::Cx,
         callee: &Self::Value,
@@ -207,8 +195,8 @@ pub trait Runtime: Sized + 'static {
     ) -> Result<Self::Value, Error>;
 
     /// The declared return type of a callable, when the runtime tracks it
-    /// (interpreter returns `Some`; the VM returns `None`, so return-type
-    /// checks in higher-order functions are simply skipped there).
+    /// (the VM returns `None`, so return-type checks in higher-order
+    /// functions are simply skipped there).
     fn callable_return_type(v: &Self::Value) -> Option<TypeAnnotation>;
 
     // ---- shared context state ----------------------------------------------

@@ -6,7 +6,6 @@
 
 use criterion::black_box;
 use rl_ast::statements::Statement;
-use rl_interpreter::evaluator::Evaluator;
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_resolver::Resolver;
@@ -286,31 +285,19 @@ pub fn resolve_only(text: &str) {
     let _ = parse_and_resolve(text);
 }
 
-/// Full interpreter pipeline (lex + parse + resolve + evaluate).
-pub fn interp_evaluate_only(text: &str) {
-    let sf = src("bench", black_box(text));
-    let tokens = Tokenizer::lex(sf.clone()).expect("bench fixture failed to lex");
-    let (ast, stmts) = Parser::parse(tokens, sf.clone()).expect("bench fixture failed to parse");
-    let mut ev = Evaluator::default().with_stdlib().with_source_file(sf);
-    let stmts = ev.resolver.resolve_program(ast, stmts);
-    ev.evaluate_program(&stmts)
-        .expect("bench fixture failed to evaluate");
-}
-
 // ===== self-validation =====
 
-/// Verifies a `BASE_PROGRAMS` fixture runs cleanly through BOTH the VM and
-/// the interpreter. Called once before benchmarking so a broken fixture
-/// fails the bench loudly instead of being silently skipped.
+/// Verifies a `BASE_PROGRAMS` fixture runs cleanly through the VM. Called
+/// once before benchmarking so a broken fixture fails the bench loudly
+/// instead of being silently skipped.
 pub fn verify_base_program(text: &str) {
     let program = parse_and_resolve(text);
     let chunk = compile_resolved(&program);
     run_chunk(&chunk);
-    interp_evaluate_only(text);
 }
 
 /// Verifies a `WORKLOAD_PROGRAMS` fixture produces exactly `expected` when
-/// run on the VM, and that the interpreter can run it cleanly too.
+/// run on the VM.
 pub fn verify_workload(text: &str, expected: rl_vm::VmValue) {
     let program = parse_and_resolve(text);
     let chunk = compile_resolved(&program);
@@ -319,5 +306,4 @@ pub fn verify_workload(text: &str, expected: rl_vm::VmValue) {
         .run_and_return(&chunk)
         .expect("bench fixture failed to run");
     assert_eq!(got, expected, "bench fixture produced the wrong result");
-    interp_evaluate_only(text);
 }

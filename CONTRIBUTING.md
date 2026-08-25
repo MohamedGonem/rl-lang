@@ -36,17 +36,14 @@ rl-lang follows SemVer (`vMAJOR.MINOR.PATCH`, with `-alpha`/`-beta`/`-rc` pre-re
 
 ## Adding a stdlib function
 
-Registering a new `std::<module>::<function>` now touches five files across three crates -- don't stop at the implementation, or the function will run but won't type-check, autocomplete, or show up in `rl docs`.
+Registering a new `std::<module>::<function>` now touches four files across three crates -- don't stop at the implementation, or the function will run but won't type-check, autocomplete, or show up in `rl docs`.
 
-1. **Implementation** -- add `crates/rl-interpreter/src/stdlib/<module>/<function>.rs` (one file per function, following the existing modules like `math/`, `string/`, `bitwise/`).
-2. **Register the function** -- wire it up in `crates/rl-interpreter/src/stdlib/<module>/mod.rs` with `.with_function("name", <function>::std_<function>)`.
+1. **Implementation** -- add the function to `crates/rl-std/src/<module>.rs` (one file per module, following the existing ones like `math.rs`, `string.rs`, `bitwise.rs`), written generic over `rl_std_core::Runtime`.
+2. **Register the function** -- wire it up in that module's `handles::<R>()` builder (e.g. `crates/rl-std/src/io.rs`) so the VM stdlib picks it up via `Module::from_std`.
 3. **Register the name for the checker** -- add `"name"` to that module's list in `crates/rl-commons/src/keywords.rs`. This is what powers `std::<module>::<function>` resolution, single-name shorthand resolution, and "did you mean?" suggestions in `rl-checker` -- skip it and the checker will report the function as undefined even though it runs fine.
-4. **Doc entry** -- add `crates/rl-docs/src/entries/stdlib/<module>/<function>.rs` describing the function (signature, description, example).
-5. **Register the doc entry** -- add it to that module's array in `crates/rl-docs/src/entries/stdlib/<module>/mod.rs` so it shows up in `rl docs` and the LSP hover.
+4. **Doc entry** -- add `crates/rl-docs/src/entries/stdlib/<module>/<function>.rs` describing the function (signature, description, example), then add it to that module's array in `crates/rl-docs/src/entries/stdlib/<module>/mod.rs` so it shows up in `rl docs` and the LSP hover.
 
-If you're adding a brand-new module (not just a new function in an existing one), you'll also need to register the module itself in `crates/rl-interpreter/src/stdlib/mod.rs`, `crates/rl-commons/src/lib.rs` (`stdlib_names()`), and `crates/rl-docs/src/entries/mod.rs` (`stdlib_entries()`).
-
-The bytecode VM (`rl-vm`) has its own, much smaller stdlib (`crates/rl-vm/src/stdlib/`) that only covers `io` so far -- you generally don't need to touch it unless you're specifically porting a function to the VM backend.
+If you're adding a brand-new module (not just a new function in an existing one), you'll also need to register the module itself in `crates/rl-vm/src/stdlib/mod.rs` (`root()`), `crates/rl-commons/src/lib.rs` (`stdlib_names()`), and `crates/rl-docs/src/entries/mod.rs` (`stdlib_entries()`).
 
 ## AI usage
 

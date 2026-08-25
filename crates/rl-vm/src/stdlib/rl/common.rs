@@ -5,7 +5,7 @@ use std::path::PathBuf;
 /// Lexes, parses, resolves, compiles, and runs `code` on a fresh `Vm`,
 /// returning the value of the last expression. Used by `std::rl::eval` and
 /// `std::rl::eval_isolated` (the bytecode VM cannot splice into the running
-/// call stack the way the tree-walking evaluator can, so both run isolated).
+/// call stack, so both run isolated).
 pub fn compile_and_run(code: String, name: &str) -> Result<VmValue, String> {
     let source = SourceFile::new(name, code);
 

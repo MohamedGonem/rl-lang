@@ -834,7 +834,7 @@ impl Vm {
                     }
                     let flat = self.stack.split_off(self.stack.len() - count * 2);
                     let mut map = HashMap::with_capacity(count);
-                    for pair in flat.chunks_exact(2) {
+                    for pair in flat.as_chunks::<2>().0 {
                         let key = VmMapKey::from_value(&pair[0]).ok_or_else(|| {
                             self.err(format!(
                                 "type {} cannot be used as a map key",
@@ -1160,8 +1160,7 @@ impl Vm {
     }
 
     /// Runs `value as <type>` for the given numeric target `code`
-    /// (see `CastTarget` in `compiler.rs`). Mirrors `rl-interpreter`'s
-    /// cast evaluation (`evaluator.rs`): sources are widened to `i128`/`f64`,
+    /// (see `CastTarget` in `compiler.rs`). Sources are widened to `i128`/`f64`,
     /// then narrowed via checked `try_from` into the target type.
     fn cast(&self, value: VmValue, code: usize) -> Result<VmValue, VmError> {
         fn as_i128(v: &VmValue) -> Option<i128> {
@@ -1302,9 +1301,8 @@ impl Vm {
     }
 
     /// Helper function for comparsion operations
-    /// accepts every numeric VmValue variant (mirrors rl-interpreter's
-    /// `cmp_op!` macro: ints [Int, UInt, SInt, SUInt, BByte, BSByte,
-    /// Byte, SByte], floats [Float, SFloat])
+    /// accepts every numeric VmValue variant (ints [Int, UInt, SInt, SUInt,
+    /// BByte, BSByte, Byte, SByte], floats [Float, SFloat])
     /// handles >, <, >=, <=
     fn binary_cmp(&mut self, pred: fn(std::cmp::Ordering) -> bool) -> Result<(), VmError> {
         let (a, b) = self.pop_two_unchecked();
