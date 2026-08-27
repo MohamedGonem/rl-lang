@@ -10,15 +10,23 @@ impl Tokenizer {
     ///
     /// Supports multi-line strings and the following escape sequences:
     ///
-    /// | Sequence | Meaning        |
-    /// |----------|----------------|
-    /// | `\n`     | newline        |
-    /// | `\t`     | tab            |
-    /// | `\r`     | carriage return|
-    /// | `\0`     | null           |
-    /// | `\\`     | backslash      |
-    /// | `\"`     | double quote   |
-    /// | `\'`     | single quote   |
+    /// | Sequence   | Meaning              |
+    /// |------------|----------------------|
+    /// | `\n`       | newline              |
+    /// | `\t`       | tab                  |
+    /// | `\r`       | carriage return      |
+    /// | `\0`       | null                 |
+    /// | `\\`       | backslash            |
+    /// | `\"`       | double quote         |
+    /// | `\'`       | single quote         |
+    /// | `\a`       | bell                 |
+    /// | `\b`       | backspace            |
+    /// | `\f`       | form feed            |
+    /// | `\v`       | vertical tab         |
+    /// | `\e`       | escape (ESC)         |
+    /// | `\xHH`     | hex byte (1–2 digits)|
+    /// | `\uHHHH`   | unicode (4 digits)   |
+    /// | `\u{HHHH}` | unicode (braced)     |
     ///
     /// # Errors
     ///

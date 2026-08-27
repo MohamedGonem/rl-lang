@@ -10,15 +10,23 @@ impl Tokenizer {
     /// Only a single character is allowed between the quotes.
     /// Supports the following escape sequences:
     ///
-    /// | Sequence | Meaning         |
-    /// |----------|-----------------|
-    /// | `\n`     | newline         |
-    /// | `\t`     | tab             |
-    /// | `\r`     | carriage return |
-    /// | `\0`     | null            |
-    /// | `\\`     | backslash       |
-    /// | '\"'     | double quote    |
-    /// | `\'`     | single quote    |
+    /// | Sequence   | Meaning              |
+    /// |------------|----------------------|
+    /// | `\n`       | newline              |
+    /// | `\t`       | tab                  |
+    /// | `\r`       | carriage return      |
+    /// | `\0`       | null                 |
+    /// | `\\`       | backslash            |
+    /// | `\"`       | double quote         |
+    /// | `\'`       | single quote         |
+    /// | `\a`       | bell                 |
+    /// | `\b`       | backspace            |
+    /// | `\f`       | form feed            |
+    /// | `\v`       | vertical tab         |
+    /// | `\e`       | escape (ESC)         |
+    /// | `\xHH`     | hex byte (1–2 digits)|
+    /// | `\uHHHH`   | unicode (4 digits)   |
+    /// | `\u{HHHH}` | unicode (braced)     |
     ///
     /// # Errors
     ///
@@ -159,7 +167,6 @@ impl Tokenizer {
         } else {
             character
         };
-
         if self.peek() != '\'' {
             return Err(self.err("unterminated character literal", self.current_span()));
         }
