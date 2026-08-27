@@ -67,6 +67,88 @@ impl Tokenizer {
                     })?;
                     byte as char
                 }
+                'u' => {
+                    if self.is_at_end() {
+                        return Err(self.err(
+                            "unterminated unicode escape",
+                            self.current_span(),
+                        ));
+                    }
+                    if self.peek() == '{' {
+                        self.advance();
+                        let mut hex = String::new();
+                        while !self.is_at_end() && self.peek() != '}' {
+                            if self.peek().is_ascii_hexdigit() {
+                                hex.push(self.advance());
+                            } else {
+                                let invalid_ch = self.peek();
+                                return Err(self.err(
+                                    format!(
+                                        "invalid character in unicode escape: '{}'",
+                                        invalid_ch
+                                    ),
+                                    self.current_span(),
+                                ));
+                            }
+                        }
+                        if self.is_at_end() {
+                            return Err(self.err(
+                                "unterminated unicode escape",
+                                self.current_span(),
+                            ));
+                        }
+                        self.advance();
+                        if hex.is_empty() {
+                            return Err(self.err(
+                                "expected hex digits in unicode escape",
+                                self.current_span(),
+                            ));
+                        }
+                        let codepoint = u32::from_str_radix(&hex, 16).map_err(|_| {
+                            self.err(
+                                format!("invalid unicode escape '\\u{{{}}}'", hex),
+                                self.current_span(),
+                            )
+                        })?;
+                        char::from_u32(codepoint).ok_or_else(|| {
+                            self.err(
+                                format!(
+                                    "invalid unicode codepoint '\\u{{{}}}'",
+                                    hex
+                                ),
+                                self.current_span(),
+                            )
+                        })?
+                    } else {
+                        let hex = self.read_hex_digits(4).map_err(|_| {
+                            self.err(
+                                "expected 4 hex digits after '\\u'",
+                                self.current_span(),
+                            )
+                        })?;
+                        if hex.len() != 4 {
+                            return Err(self.err(
+                                format!(
+                                    "expected 4 hex digits after '\\u', found {}",
+                                    hex.len()
+                                ),
+                                self.current_span(),
+                            ));
+                        }
+                        let codepoint = u32::from_str_radix(&hex, 16).map_err(|_| {
+                            self.err(
+                                format!("invalid unicode escape '\\u{}'", hex),
+                                self.current_span(),
+                            )
+                        })?;
+                        char::from_u32(codepoint).ok_or_else(|| {
+                            self.err(
+                                format!("invalid unicode codepoint '\\u{}'", hex),
+                                self.current_span(),
+                            )
+                        })?
+                    }
+                }
                 _ => {
                     return Err(self.err(
                         format!("unknown escape sequence `\\{}`", escaped),
