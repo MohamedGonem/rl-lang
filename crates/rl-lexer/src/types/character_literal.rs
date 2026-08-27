@@ -47,6 +47,11 @@ impl Tokenizer {
                 '\"' => '\"',
                 '\'' => '\'',
                 '0' => '\0',
+                'a' => '\x07',
+                'b' => '\x08',
+                'f' => '\x0C',
+                'v' => '\x0B',
+                'e' => '\x1B',
                 _ => {
                     return Err(self.err(
                         format!("unknown escape sequence `\\{}`", escaped),
