@@ -2,6 +2,12 @@
 
 All notable changes to the rl-lang toolchain are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/) (see [VERSIONING.md](VERSIONING.md)). Full per-commit history is available on the [GitHub Releases](https://github.com/rl-lang/rl-lang/releases) page.
 
+## [Unreleased]
+
+### Added
+
+- **Escape sequences** - string and character literals now support the full set of escape sequences: `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'`, `\a`, `\b`, `\f`, `\v`, `\e`, plus `\xHH` hex byte escapes (1–2 hex digits, e.g. `\x41`, `\xff`) and `\uHHHH` / `\u{HHHH...}` unicode codepoint escapes (e.g. `\u0041`, `\u{1F600}`).
+
 ## [2.0.0] - 2026-08-13
 
 The bytecode VM is now the sole execution backend; the tree-walking interpreter has been removed.
