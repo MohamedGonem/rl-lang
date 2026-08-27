@@ -69,3 +69,168 @@ fn eof_is_last_token() {
     let tokens = common::lex("42");
     assert_eq!(tokens.last().unwrap().token, TokenType::Eof);
 }
+
+// --- \x hex escape tests ---
+
+/// `\x41` in a string resolves to 'A'
+#[test]
+fn string_hex_escape_one_digit() {
+    let tokens = common::lex(r#""\x41""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("A".to_string())
+    );
+}
+
+/// `\xff` in a string resolves to '\u{FF}'
+#[test]
+fn string_hex_escape_two_digits() {
+    let tokens = common::lex(r#""\xff""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("\u{FF}".to_string())
+    );
+}
+
+/// `\x4` in a string resolves to '\u{04}' (single hex digit)
+#[test]
+fn string_hex_escape_single_digit() {
+    let tokens = common::lex(r#""\x4""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("\u{04}".to_string())
+    );
+}
+
+/// `'\xff'` as a character literal resolves to '\u{FF}'
+#[test]
+fn character_hex_escape() {
+    let tokens = common::lex(r"'\xff'");
+    assert_eq!(tokens[0].token, TokenType::CharacterLiteral('\u{FF}'));
+}
+
+/// `\x` with no hex digits in a string produces an error
+#[test]
+fn string_hex_escape_no_digits() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\x""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("expected hex digits"));
+}
+
+/// `\xG` (non-hex) in a string produces an error
+#[test]
+fn string_hex_escape_non_hex() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\xG""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("expected hex digits"));
+}
+
+// --- \u unicode escape tests ---
+
+/// `\u0041` (fixed 4-digit) in a string resolves to 'A'
+#[test]
+fn string_unicode_escape_fixed() {
+    let tokens = common::lex(r#""\u0041""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("A".to_string())
+    );
+}
+
+/// `\u{1F600}` (braced) in a string resolves to the grinning face emoji
+#[test]
+fn string_unicode_escape_braced() {
+    let tokens = common::lex(r#""\u{1F600}""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("\u{1F600}".to_string())
+    );
+}
+
+/// `\u{41}` (braced, short) in a string resolves to 'A'
+#[test]
+fn string_unicode_escape_braced_short() {
+    let tokens = common::lex(r#""\u{41}""#);
+    assert_eq!(
+        tokens[0].token,
+        TokenType::StringLiteral("A".to_string())
+    );
+}
+
+/// `\u0041` as a character literal resolves to 'A'
+#[test]
+fn character_unicode_escape_fixed() {
+    let tokens = common::lex(r"'\u0041'");
+    assert_eq!(tokens[0].token, TokenType::CharacterLiteral('A'));
+}
+
+/// `\u{1F600}` as a character literal resolves to the grinning face emoji
+#[test]
+fn character_unicode_escape_braced() {
+    let tokens = common::lex(r"'\u{1F600}'");
+    assert_eq!(tokens[0].token, TokenType::CharacterLiteral('\u{1F600}'));
+}
+
+/// `\u{}` (empty) in a string produces an error
+#[test]
+fn string_unicode_escape_empty() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\u{}""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("expected hex digits"));
+}
+
+/// `\u` with fewer than 4 hex digits (non-braced) in a string produces an error
+#[test]
+fn string_unicode_escape_too_few_digits() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\u004""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("expected 4 hex digits"));
+}
+
+/// `\u{110000}` (out of range) in a string produces an error
+#[test]
+fn string_unicode_escape_out_of_range() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\u{110000}""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("invalid unicode codepoint"));
+}
+
+/// `\u{ZZZZ}` (invalid char) in a string produces an error
+#[test]
+fn string_unicode_escape_invalid_char() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\u{ZZZZ}""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(err.message().contains("invalid character in unicode escape"));
+}
+
+/// `\u{` (unterminated) in a string produces an error
+#[test]
+fn string_unicode_escape_unterminated() {
+    let result = rl_lexer::tokenizer::Tokenizer::lex(
+        rl_utils::source::SourceFile::new("test", r#""\u{41""#.to_string()),
+    );
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    assert!(
+        err.message().contains("unterminated unicode escape")
+            || err.message().contains("invalid character in unicode escape")
+    );
+}
