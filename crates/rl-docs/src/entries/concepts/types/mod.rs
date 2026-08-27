@@ -55,6 +55,15 @@ pub static TYPES: ConceptEntry = ConceptEntry {
             expected_output: &["'a'"],
         },
         DescriptionEntry {
+            kind: DescriptionKind::Syntax,
+            title: Some("escape sequences"),
+            description: "both string and character literals support escape sequences introduced with `\\\\`",
+            examples: &[
+                "// common escapes\ndec string s = \"line1\\nline2\"\nprintln(s)\n\n// control characters\ndec string bell = \"\\a\"\ndec string tab = \"\\t\"\nprintln(bell)\nprintln(tab)\n\n// hex byte (1-2 digits)\ndec char a = '\\x41'\nprintln(a)  // A\n\n// unicode (4 digits)\ndec string u = \"\\u0041\"\nprintln(u)  // A\n\n// unicode (braced, 1-6 digits)\ndec string emoji = \"\\u{1F600}\"\nprintln(emoji)",
+            ],
+            expected_output: &["line1", "line2", "\x07", "\t", "A", "A", "\u{1F600}"],
+        },
+        DescriptionEntry {
             kind: DescriptionKind::Explanation,
             title: Some("byte"),
             description: "`byte` is an unsigned 8-bit integer (0-255); unlike the other primitives, a bare integer literal is always typed `int`, never `byte` - get a byte value with `<literal> as byte` (see the `byte` concept for the full casting rules)",
