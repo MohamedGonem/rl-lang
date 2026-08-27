@@ -52,6 +52,21 @@ impl Tokenizer {
                 'f' => '\x0C',
                 'v' => '\x0B',
                 'e' => '\x1B',
+                'x' => {
+                    let hex = self.read_hex_digits(2).map_err(|_| {
+                        self.err(
+                            "expected hex digits after '\\x'",
+                            self.current_span(),
+                        )
+                    })?;
+                    let byte = u8::from_str_radix(&hex, 16).map_err(|_| {
+                        self.err(
+                            format!("invalid hex escape '\\x{}'", hex),
+                            self.current_span(),
+                        )
+                    })?;
+                    byte as char
+                }
                 _ => {
                     return Err(self.err(
                         format!("unknown escape sequence `\\{}`", escaped),
