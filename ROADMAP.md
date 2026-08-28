@@ -87,7 +87,7 @@ rl-lang
 |   |
 |   +-- [DONE] type mapping (int -> int64_t, string -> rl_string, etc.)
 |   +-- [DONE] variable/constant/function declarations
-|   +-- [DONE] control flow (if/else, while, for, break, continue)
+|   +-- [DONE] control flow (if/else, while, for, foreach, forrange, loop, break, continue)
 |   +-- [DONE] return with value
 |   +-- [DONE] string escape sequences
 |   +-- [DONE] C11 _Generic runtime for type-dispatched printing
@@ -97,18 +97,18 @@ rl-lang
 |   +-- [DONE] comparison operators (==, !=, <, >, <=, >=)
 |   +-- [DONE] cast expressions (as)
 |   +-- [DONE] byte/sbyte/big byte/big sbyte/small int/small uint/small float types
-|   +-- [WIP] tuple literals (transpiles, no rl_tuple in runtime)
-|   +-- [WIP] array literals and index access (transpiles, no rl_array in runtime)
-|   +-- [WIP] record/struct literals and field access (transpiles, no rl_Record in runtime)
-|   +-- [WIP] enum/tag literals and match (transpiles, no RL_TAG_ defines in runtime)
-|   +-- [WIP] result type, ok/err/error literals (transpiles, no rl_result in runtime)
-|   +-- [WIP] error propagation ? operator (transpiles, no rl_result in runtime)
-|   +-- [TODO] runtime: rl_tuple, rl_array, rl_Record, rl_result struct definitions
-|   +-- [TODO] runtime: rl_ok, rl_err, rl_error function implementations
-|   +-- [TODO] runtime: rl_arr_from_vals, RL_TAG_ constant definitions
+|   +-- [DONE] tuple literals and tuple destruction
+|   +-- [DONE] array literals, index access, and index assignment
+|   +-- [DONE] record/struct literals, field access, and field assignment
+|   +-- [DONE] enum/tag literals and match
+|   +-- [DONE] result type, ok/err/error literals, and ? propagation
+|   +-- [DONE] rl_result, rl_array, rl_map, rl_set runtime structs
+|   +-- [DONE] per-program record/tuple print functions
+|   +-- [DONE] map/set declarations, literals, and len
+|   +-- [DONE] impl methods on records
+|   +-- [DONE] foreach, forrange, and loop
+|   +-- [TODO] closures / function pointers
 |   +-- [TODO] tagged union dispatch for match on enums
-|   +-- [TODO] closure/function pointer support (rl_closure placeholder)
-|   +-- [TODO] map/set operations in runtime
 |   +-- [TODO] multi-file / module transpilation
 +-- (language)
 |   +-- [TODO] #462 - pipe operator |>
@@ -147,8 +147,4 @@ rl-lang
 
 ## Active Work
 
-### rl-cc C Transpiler
-
-Core language works end-to-end: types, arithmetic, booleans, comparisons, control flow, functions, casts, println/print. Compound types (tuples, arrays, records, enums, result) transpile fine but the C runtime doesn't define the structs/functions they reference yet.
-
-**Next:** Add rl_tuple, rl_array, rl_Record, rl_result, rl_ok, rl_err, RL_TAG_* to the runtime, then tackle tagged union match and closures.
+_No active work tracked for rl-cc. See the [DONE] items in the project tree for what has been completed._

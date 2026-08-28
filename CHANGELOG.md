@@ -6,7 +6,7 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Added
 
-- **C transpiler (`rl-cc`)** - transpiles rl to C99. Core language works end-to-end: types, arithmetic, booleans, comparisons, control flow, functions, casts, println/print. Compound types (tuples, arrays, records, enums, result) emit valid C but need runtime support to link. CLI: `rl transpile file.rl --compile`.
+- **C transpiler (`rl-cc`)** - transpiles rl to C99. Full pipeline works end-to-end: lex, parse, resolve, type-check, C codegen, optional `cc` compilation. Supported features: types, arithmetic, booleans, comparisons, control flow (if/else, while, for, foreach, forrange, loop, break, continue), functions, casts, println/print, tuples, tuple destruction, arrays, maps, sets, records/structs, enums/tags, match, result type (ok/err/error), error propagation (`?`), impl methods, escape sequences. Runtime includes `rl_string`, `rl_result`, `rl_array`, `rl_map`, `rl_set`, and per-program record/tuple print functions. CLI: `rl transpile file.rl --compile`.
 - **Escape sequences** - string and character literals now support the full set of escape sequences: `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'`, `\a`, `\b`, `\f`, `\v`, `\e`, plus `\xHH` hex byte escapes (1–2 hex digits, e.g. `\x41`, `\xff`) and `\uHHHH` / `\u{HHHH...}` unicode codepoint escapes (e.g. `\u0041`, `\u{1F600}`).
 
 ## [2.0.0] - 2026-08-13
