@@ -13,6 +13,13 @@ void greet(rl_string name) {
     rl_println(name);
 }
 
+rl_result safe_div(int64_t a, int64_t b) {
+    if (b == (int64_t)0) {
+        return rl_err((int64_t)0);
+    }
+    return rl_ok(a / b);
+}
+
 int main(int argc, char **argv) {
     int64_t x = (int64_t)10;
     int64_t y = (int64_t)3;
@@ -119,6 +126,9 @@ int main(int argc, char **argv) {
     int64_t as_big = (int64_t)42;
     double from_int = (double)as_big;
     rl_println(from_int);
+    rl_result r = rl_ok((int64_t)42);
+    rl_result r2 = rl_err((int64_t)1);
+    rl_result divided = safe_div((int64_t)10, (int64_t)2);
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("\033[32mAll end-to-end transpiler features demonstrated!\033[0m", 63));
     return 0;

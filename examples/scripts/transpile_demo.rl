@@ -196,18 +196,15 @@ println(from_int)
 // }
 
 // --- 18. Ok / Err / Error ---
-// dec result[int] r = ok(42)
-// println(r)
-// dec result[int] r2 = err(1)
-// println(r2)
+dec result[int] r = ok(42)
+dec result[int] r2 = err(1)
 
 // --- 19. Error propagation ---
-// fn safe_div(int a, int b) -> result[int] {
-//     if (b == 0) { return err(0) }
-//     return ok(a / b)
-// }
-// dec result[int] divided = safe_div(10, 2)
-// println(divided)
+fn safe_div(int a, int b) -> result[int] {
+    if (b == 0) { return err(0) }
+    return ok(a / b)
+}
+dec result[int] divided = safe_div(10, 2)
 
 // --- Done ---
 println("")
