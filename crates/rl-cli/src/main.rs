@@ -12,7 +12,7 @@
 //! | `docs [topic]` | print stdlib / concept / tutorial reference |
 //! | `repl` | start the interactive TUI REPL (`repl_tui` feature) |
 //! | `lsp` | start the LSP server over stdio (`lsp` feature) |
-mod logic_loops;
+mod pipeline;
 use clap::{Parser, Subcommand};
 #[cfg(feature = "docs")]
 use rl_docs::{
@@ -27,7 +27,8 @@ use rl_tooling::workflows::generate;
 use rl_tooling::{format::format_tokens, package::EmbeddedProgram};
 use std::path::PathBuf;
 
-use crate::logic_loops::{lexing_loop, parsing_loop};
+use crate::pipeline::lex::lex;
+use crate::pipeline::parse::parse;
 #[cfg(feature = "lsp")]
 use rl_lsp::run_lsp;
 use rl_tooling::dev::read_rl_toml;
@@ -317,11 +318,11 @@ fn main() {
     match find_embedded() {
         Some(EmbeddedProgram::Source(source)) => {
             let sf = SourceFile::new("program", source);
-            let tokens = lexing_loop(sf.clone());
-            let (ast, statements) = parsing_loop(sf.clone(), tokens);
+            let tokens = lex(sf.clone());
+            let (ast, statements) = parse(sf.clone(), tokens);
             #[cfg(feature = "vm")]
             {
-                crate::logic_loops::vm_loop(sf, ast, statements);
+                crate::pipeline::vm::vm_loop(sf, ast, statements);
                 return;
             }
             #[cfg(not(feature = "vm"))]
@@ -334,7 +335,7 @@ fn main() {
         Some(EmbeddedProgram::Bytecode(bytes)) => {
             #[cfg(feature = "vm")]
             {
-                use crate::logic_loops::run_rlc_bytes;
+                use crate::pipeline::vm::run_rlc_bytes;
                 run_rlc_bytes(&bytes, "program");
                 return;
             }
@@ -362,7 +363,7 @@ fn main() {
             if is_rlc {
                 #[cfg(feature = "vm")]
                 {
-                    use crate::logic_loops::run_rlc_file;
+                    use crate::pipeline::vm::run_rlc_file;
                     run_rlc_file(&file);
                     return;
                 }
@@ -385,11 +386,11 @@ fn main() {
                 std::process::exit(1);
             });
             let source = SourceFile::new(&*path, source_text);
-            let tokens = lexing_loop(source.clone());
-            let (ast, statements) = parsing_loop(source.clone(), tokens);
+            let tokens = lex(source.clone());
+            let (ast, statements) = parse(source.clone(), tokens);
             {
-                let tokens = lexing_loop(source.clone());
-                let (checker_ast, checker_statements) = parsing_loop(source.clone(), tokens);
+                let tokens = lex(source.clone());
+                let (checker_ast, checker_statements) = parse(source.clone(), tokens);
                 use rl_checker::TypeChecker;
                 let base_dir = file
                     .parent()
@@ -409,7 +410,7 @@ fn main() {
             }
             if vm {
                 #[cfg(feature = "vm")]
-                crate::logic_loops::vm_loop(source, ast, statements);
+                crate::pipeline::vm::vm_loop(source, ast, statements);
                 #[cfg(not(feature = "vm"))]
                 {
                     eprintln!("error: --vm requires the `vm` feature");
@@ -417,7 +418,7 @@ fn main() {
                 }
             } else if cranelift {
                 #[cfg(feature = "cranelift")]
-                crate::logic_loops::cranelift_loop(source, ast, statements);
+                crate::pipeline::vm::cranelift_loop(source, ast, statements);
                 #[cfg(not(feature = "cranelift"))]
                 {
                     eprintln!(
@@ -427,7 +428,7 @@ fn main() {
                 }
             } else {
                 #[cfg(feature = "vm")]
-                crate::logic_loops::vm_loop(source, ast, statements);
+                crate::pipeline::vm::vm_loop(source, ast, statements);
                 #[cfg(not(feature = "vm"))]
                 {
                     let _ = (&ast, &statements);
@@ -451,11 +452,11 @@ fn main() {
             });
             println!("[{}] v{}", config.project.name, config.project.version);
             let source = SourceFile::new(&*config.project.entry, source_text);
-            let tokens = lexing_loop(source.clone());
-            let (ast, statements) = parsing_loop(source.clone(), tokens);
+            let tokens = lex(source.clone());
+            let (ast, statements) = parse(source.clone(), tokens);
             if vm {
                 #[cfg(feature = "vm")]
-                crate::logic_loops::vm_loop(source, ast, statements);
+                crate::pipeline::vm::vm_loop(source, ast, statements);
                 #[cfg(not(feature = "vm"))]
                 {
                     eprintln!("error: --vm requires the `vm` feature");
@@ -463,7 +464,7 @@ fn main() {
                 }
             } else if cranelift {
                 #[cfg(feature = "cranelift")]
-                crate::logic_loops::cranelift_loop(source, ast, statements);
+                crate::pipeline::vm::cranelift_loop(source, ast, statements);
                 #[cfg(not(feature = "cranelift"))]
                 {
                     eprintln!(
@@ -473,7 +474,7 @@ fn main() {
                 }
             } else {
                 #[cfg(feature = "vm")]
-                crate::logic_loops::vm_loop(source, ast, statements);
+                crate::pipeline::vm::vm_loop(source, ast, statements);
                 #[cfg(not(feature = "vm"))]
                 {
                     let _ = (&ast, &statements);
@@ -498,8 +499,8 @@ fn main() {
                 std::process::exit(1);
             });
             let source = SourceFile::new(&*path, source_text);
-            let tokens = lexing_loop(source.clone());
-            let (ast, statements) = parsing_loop(source.clone(), tokens);
+            let tokens = lex(source.clone());
+            let (ast, statements) = parse(source.clone(), tokens);
 
             use rl_checker::TypeChecker;
             let base_dir = file
@@ -563,8 +564,8 @@ fn main() {
                     });
                     println!("[{}] v{}", config.project.name, config.project.version);
                     let source = SourceFile::new(&*config.project.entry, source_text);
-                    let tokens = lexing_loop(source.clone());
-                    let (ast, statements) = parsing_loop(source.clone(), tokens);
+                    let tokens = lex(source.clone());
+                    let (ast, statements) = parse(source.clone(), tokens);
 
                     use rl_checker::TypeChecker;
                     let mut checker = TypeChecker::new()
@@ -619,7 +620,7 @@ fn main() {
                                 std::process::exit(1);
                             });
                         let source = SourceFile::new(&*file_path.to_string_lossy(), source_text);
-                        let tokens = lexing_loop(source);
+                        let tokens = lex(source);
                         let formatted = format_tokens(&tokens);
                         if let Err(e) = std::fs::write(&file_path, formatted) {
                             eprintln!("error: {}", e);
@@ -656,7 +657,7 @@ fn main() {
                                 std::process::exit(1);
                             });
                         let source = SourceFile::new(&*file_path.to_string_lossy(), source_text);
-                        let tokens = lexing_loop(source);
+                        let tokens = lex(source);
                         let file_name = file_path
                             .file_name()
                             .and_then(|n| n.to_str())
@@ -880,19 +881,19 @@ fn main() {
             if vm {
                 #[cfg(feature = "vm")]
                 {
-                    use crate::logic_loops::compile_to_chunk;
+                    use crate::pipeline::vm::compile_to_chunk;
 
                     let source_text = std::fs::read_to_string(&file).unwrap_or_else(|_| {
                         eprintln!("error: could not read file '{}'", file.display());
                         std::process::exit(1);
                     });
                     let source = SourceFile::new(path, source_text);
-                    let tokens = lexing_loop(source.clone());
-                    let (ast, statements) = parsing_loop(source.clone(), tokens);
+                    let tokens = lex(source.clone());
+                    let (ast, statements) = parse(source.clone(), tokens);
 
-                    let checker_tokens = lexing_loop(source.clone());
+                    let checker_tokens = lex(source.clone());
                     let (checker_ast, checker_statements) =
-                        parsing_loop(source.clone(), checker_tokens);
+                        parse(source.clone(), checker_tokens);
                     use rl_checker::TypeChecker;
                     use rl_tooling::package::package_vm;
                     let base_dir = file
@@ -943,7 +944,7 @@ fn main() {
             });
             let source = SourceFile::new(&*path, source_text);
 
-            let tokens = lexing_loop(source);
+            let tokens = lex(source);
             let formatted = format_tokens(&tokens);
             if let Err(e) = std::fs::write(path, formatted) {
                 eprintln!("error: {}", e);
@@ -953,7 +954,7 @@ fn main() {
         Commands::Compile { file, output } => {
             #[cfg(feature = "vm")]
             {
-                use crate::logic_loops::compile_to_chunk;
+                use crate::pipeline::vm::compile_to_chunk;
                 let path = file
                     .to_str()
                     .unwrap_or_else(|| {
@@ -966,12 +967,12 @@ fn main() {
                     std::process::exit(1);
                 });
                 let source = SourceFile::new(&*path, source_text);
-                let tokens = lexing_loop(source.clone());
-                let (ast, statements) = parsing_loop(source.clone(), tokens);
+                let tokens = lex(source.clone());
+                let (ast, statements) = parse(source.clone(), tokens);
 
-                let checker_tokens = lexing_loop(source.clone());
+                let checker_tokens = lex(source.clone());
                 let (checker_ast, checker_statements) =
-                    parsing_loop(source.clone(), checker_tokens);
+                    parse(source.clone(), checker_tokens);
                 use rl_checker::TypeChecker;
                 let base_dir = file
                     .parent()
@@ -1007,6 +1008,57 @@ fn main() {
                 eprintln!("error: `compile` requires the `vm` feature");
                 std::process::exit(1);
             }
+        }
+
+        #[cfg(feature = "cc")]
+        Commands::Transpile {
+            file,
+            output,
+            runtime,
+            compile,
+            opt,
+            cc_flags,
+        } => {
+            use crate::pipeline::cc::transpile_loop;
+            let embed_rt = runtime || compile;
+            let c_path = transpile_loop(&file, output, embed_rt);
+            if compile {
+                let opt_flag = match opt.as_deref() {
+                    Some(level) => format!("-O{}", level),
+                    None => "-O2".to_string(),
+                };
+                let mut cmd = std::process::Command::new("cc");
+                cmd.arg(&opt_flag);
+                cmd.arg("-o").arg(c_path.with_extension(""));
+                cmd.arg(&c_path);
+                if embed_rt {
+                    let dir = c_path.parent().unwrap_or(std::path::Path::new("."));
+                    cmd.arg(dir.join("rl_runtime.c"));
+                    cmd.arg("-I").arg(dir);
+                }
+                for flag in &cc_flags {
+                    cmd.arg(flag);
+                }
+                let status = cmd.status().unwrap_or_else(|e| {
+                    eprintln!("error: failed to run cc: {}", e);
+                    std::process::exit(1);
+                });
+                if !status.success() {
+                    std::process::exit(status.code().unwrap_or(1));
+                }
+                println!(
+                    "compiled '{}' -> '{}' ({})",
+                    file.display(),
+                    c_path.with_extension("").display(),
+                    opt_flag
+                );
+            }
+        }
+        #[cfg(not(feature = "cc"))]
+        Commands::Transpile { file, .. } => {
+            let _ = file;
+            eprintln!("error: `transpile` requires the `cc` feature\n       rebuild with: cargo build --features cc");
+            std::process::exit(1);
         }
     }
 }
