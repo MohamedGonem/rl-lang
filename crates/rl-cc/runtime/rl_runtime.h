@@ -19,6 +19,34 @@ uint64_t rl_str_len(rl_string s);
 rl_string rl_str_concat(rl_string a, rl_string b);
 bool rl_str_eq(rl_string a, rl_string b);
 
+// ---- result type ----
+
+typedef struct {
+    bool is_ok;
+    union {
+        int64_t ok_value;
+        int64_t err_value;
+    } data;
+    int32_t err_code;
+} rl_result;
+
+rl_result rl_ok(int64_t value);
+rl_result rl_err(int64_t value);
+rl_result rl_error(int64_t value);
+
+// ---- array type ----
+
+typedef struct {
+    void *data;
+    uint64_t len;
+    uint64_t cap;
+    int32_t elem_size;
+} rl_array;
+
+rl_array rl_arr_from_vals(const void *vals, uint64_t count, int32_t elem_size);
+
+// ---- print functions ----
+
 void rl_print_int64(int64_t v);
 void rl_print_float64(double v);
 void rl_print_bool(bool v);

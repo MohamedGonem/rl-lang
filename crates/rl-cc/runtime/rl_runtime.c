@@ -22,6 +22,40 @@ bool rl_str_eq(rl_string a, rl_string b) {
     return memcmp(a.data, b.data, a.len) == 0;
 }
 
+// ---- result type ----
+
+rl_result rl_ok(int64_t value) {
+    rl_result r = { .is_ok = true, .data.ok_value = value, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_err(int64_t value) {
+    rl_result r = { .is_ok = false, .data.err_value = value, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_error(int64_t value) {
+    rl_result r = { .is_ok = false, .data.err_value = value, .err_code = -1 };
+    return r;
+}
+
+// ---- array type ----
+
+rl_array rl_arr_from_vals(const void *vals, uint64_t count, int32_t elem_size) {
+    rl_array arr;
+    arr.len = count;
+    arr.cap = count;
+    arr.elem_size = elem_size;
+    if (count == 0) {
+        arr.data = NULL;
+    } else {
+        arr.data = malloc(count * elem_size);
+        memcpy(arr.data, vals, count * elem_size);
+    }
+    return arr;
+}
+
+// ---- print functions ----
 void rl_print_int64(int64_t v) { printf("%ld", v); }
 void rl_print_float64(double v) { printf("%g", v); }
 void rl_print_bool(bool v) { printf(v ? "true" : "false"); }

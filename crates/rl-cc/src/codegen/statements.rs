@@ -1,7 +1,7 @@
 use crate::codegen::CCodegen;
 use crate::name_mangle::mangle;
 use crate::types::type_to_c;
-use rl_ast::{ExprId, statements::*};
+use rl_ast::{ExprId, nodes::ExpressionKind, statements::*};
 use rl_utils::errors::Error;
 
 impl<'a> CCodegen<'a> {
@@ -16,10 +16,29 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(type_annotation);
                 let c_name = mangle(name);
                 self.declare(name, &c_name);
-                self.writer.write_indent();
-                self.writer.write(&format!("{} {} = ", c_type, c_name));
-                self.compile_expr(*value)?;
-                self.writer.write(";\n");
+                let expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                    let temp = self.temp_var();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_result {} = ", temp));
+                    self.compile_expr(*inner)?;
+                    self.writer.write(";\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
+                    self.writer.indent();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("return {};\n", temp));
+                    self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("{} {} = {}.data.ok_value;\n", c_type, c_name, temp));
+                } else {
+                    self.writer.write_indent();
+                    self.writer.write(&format!("{} {} = ", c_type, c_name));
+                    self.compile_expr(*value)?;
+                    self.writer.write(";\n");
+                }
             }
             StatementKind::ResolvedConstantDeclaration {
                 name,
@@ -30,11 +49,31 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(type_annotation);
                 let c_name = mangle(name);
                 self.declare(name, &c_name);
-                self.writer.write_indent();
-                self.writer
-                    .write(&format!("const {} {} = ", c_type, c_name));
-                self.compile_expr(*value)?;
-                self.writer.write(";\n");
+                let expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                    let temp = self.temp_var();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_result {} = ", temp));
+                    self.compile_expr(*inner)?;
+                    self.writer.write(";\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
+                    self.writer.indent();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("return {};\n", temp));
+                    self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
+                    self.writer.write_indent();
+                    self.writer
+                        .write(&format!("const {} {} = {}.data.ok_value;\n", c_type, c_name, temp));
+                } else {
+                    self.writer.write_indent();
+                    self.writer
+                        .write(&format!("const {} {} = ", c_type, c_name));
+                    self.compile_expr(*value)?;
+                    self.writer.write(";\n");
+                }
             }
             StatementKind::ResolvedFunctionDeclaration {
                 name,
@@ -78,10 +117,29 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(";\n");
             }
             StatementKind::Return(Some(expr_id)) => {
-                self.writer.write_indent();
-                self.writer.write("return ");
-                self.compile_expr(*expr_id)?;
-                self.writer.write(";\n");
+                let expr = self.ast.exprs.get(*expr_id);
+                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                    let temp = self.temp_var();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_result {} = ", temp));
+                    self.compile_expr(*inner)?;
+                    self.writer.write(";\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
+                    self.writer.indent();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("return {};\n", temp));
+                    self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("return {}.data.ok_value;\n", temp));
+                } else {
+                    self.writer.write_indent();
+                    self.writer.write("return ");
+                    self.compile_expr(*expr_id)?;
+                    self.writer.write(";\n");
+                }
             }
             StatementKind::Return(None) => {
                 self.writer.writeln("return;");
