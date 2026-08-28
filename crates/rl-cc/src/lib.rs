@@ -6,7 +6,10 @@ pub mod writer;
 
 use rl_ast::{Ast, statements::Statement};
 use rl_checker::structs::TypeChecker;
-use rl_utils::{errors::{Error, Reason}, span::Span};
+use rl_utils::{
+    errors::{Error, Reason},
+    span::Span,
+};
 
 pub struct TranspileConfig {
     pub embed_runtime: bool,
@@ -38,9 +41,9 @@ pub fn transpile(
     let runtime_paths = if config.embed_runtime {
         let h_path = config.output_dir.join("rl_runtime.h");
         let c_path = config.output_dir.join("rl_runtime.c");
-        std::fs::write(&h_path, runtime::header::RUNTIME_H)
+        std::fs::write(&h_path, runtime::RUNTIME_H)
             .map_err(|e| vec![Error::at(Reason::Compile, e.to_string(), Span::dummy())])?;
-        std::fs::write(&c_path, runtime::implementation::RUNTIME_C)
+        std::fs::write(&c_path, runtime::RUNTIME_C)
             .map_err(|e| vec![Error::at(Reason::Compile, e.to_string(), Span::dummy())])?;
         Some((h_path, c_path))
     } else {

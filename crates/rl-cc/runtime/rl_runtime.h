@@ -1,4 +1,4 @@
-pub const RUNTIME_H: &str = r#"#ifndef RL_RUNTIME_H
+#ifndef RL_RUNTIME_H
 #define RL_RUNTIME_H
 
 #include <stdint.h>
@@ -72,4 +72,3 @@ rl_never rl_never_fn(void);
 #define rl_never() rl_never_fn()
 
 #endif
-"#;

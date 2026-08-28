@@ -1,4 +1,4 @@
-pub const RUNTIME_C: &str = r#"#include "rl_runtime.h"
+#include "rl_runtime.h"
 
 rl_string rl_str_literal(const char *s, uint64_t len) {
     rl_string str = { .data = s, .len = len, .rc = 0 };
@@ -40,4 +40,3 @@ rl_never rl_never_fn(void) {
     fprintf(stderr, "error: reached unreachable code\n");
     abort();
 }
-"#;
