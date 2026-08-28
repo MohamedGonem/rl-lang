@@ -191,6 +191,42 @@ impl<'a> CCodegen<'a> {
             StatementKind::Match { value, arms } => {
                 self.compile_match(*value, arms)?;
             }
+            StatementKind::ResolvedArray {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(
+                    name.clone(),
+                    TypeAnnotation::Array(Box::new(type_annotation.clone())),
+                );
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("rl_array {} = ", c_name));
+                self.compile_expr(*value)?;
+                self.writer.write(";\n");
+            }
+            StatementKind::ResolvedConstantArray {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(
+                    name.clone(),
+                    TypeAnnotation::CArray(Box::new(type_annotation.clone())),
+                );
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("const rl_array {} = ", c_name));
+                self.compile_expr(*value)?;
+                self.writer.write(";\n");
+            }
             _ => {}
         }
         Ok(())

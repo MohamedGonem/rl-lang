@@ -196,6 +196,17 @@ impl<'a> CCodegen<'a> {
                 self.compile_expr(*value)?;
             }
             ExpressionKind::Index { target, index } => {
+                let target_expr = self.ast.exprs.get(*target);
+                if let ExpressionKind::ResolvedIdentifier { name, .. } = &target_expr.kind
+                    && let Some(ta) = self.var_types.get(name)
+                        && let TypeAnnotation::Array(inner) = ta {
+                            let c_type = type_to_c(inner);
+                            let c_name = self.lookup(name);
+                            self.writer.write(&format!("(({}*){}.data)[", c_type, c_name));
+                            self.compile_expr(*index)?;
+                            self.writer.write("]");
+                            return Ok(());
+                        }
                 self.compile_expr(*target)?;
                 self.writer.write("[");
                 self.compile_expr(*index)?;
@@ -206,6 +217,18 @@ impl<'a> CCodegen<'a> {
                 index,
                 value,
             } => {
+                let target_expr = self.ast.exprs.get(*target);
+                if let ExpressionKind::ResolvedIdentifier { name, .. } = &target_expr.kind
+                    && let Some(ta) = self.var_types.get(name)
+                        && let TypeAnnotation::Array(inner) = ta {
+                            let c_type = type_to_c(inner);
+                            let c_name = self.lookup(name);
+                            self.writer.write(&format!("(({}*){}.data)[", c_type, c_name));
+                            self.compile_expr(*index)?;
+                            self.writer.write("] = ");
+                            self.compile_expr(*value)?;
+                            return Ok(());
+                        }
                 self.compile_expr(*target)?;
                 self.writer.write("[");
                 self.compile_expr(*index)?;
