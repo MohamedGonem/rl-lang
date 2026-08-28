@@ -70,6 +70,18 @@ void rl_println_char(char v) { printf("%c\n", v); }
 void rl_println_str(rl_string v) { printf("%.*s\n", (int)v.len, v.data); }
 void rl_println_ptr(void *v) { printf("<ptr:%p>\n", v); }
 
+void rl_print_result(rl_result v) {
+    if (v.is_ok) {
+        printf("ok(%ld)", (long)v.data.ok_value);
+    } else {
+        printf("err(%ld)", (long)v.data.err_value);
+    }
+}
+void rl_println_result(rl_result v) {
+    rl_print_result(v);
+    printf("\n");
+}
+
 rl_never rl_never_fn(void) {
     fprintf(stderr, "error: reached unreachable code\n");
     abort();

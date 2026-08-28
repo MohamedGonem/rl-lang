@@ -14,6 +14,7 @@ pub struct CCodegen<'a> {
     pub checker: &'a TypeChecker,
     pub writer: CWriter,
     pub scopes: Vec<HashMap<String, String>>,
+    pub var_types: HashMap<String, TypeAnnotation>,
     pub emitted_includes: bool,
     pub is_script_mode: bool,
     pub temp_counter: usize,
@@ -26,6 +27,7 @@ impl<'a> CCodegen<'a> {
             checker,
             writer: CWriter::new(),
             scopes: vec![HashMap::new()],
+            var_types: HashMap::new(),
             emitted_includes: false,
             is_script_mode: false,
             temp_counter: 0,
@@ -90,7 +92,7 @@ impl<'a> CCodegen<'a> {
         self.writer.writeln("#include \"rl_runtime.h\"");
         self.writer.blank_line();
 
-        // Emit record typedefs from checker's resolved record info
+        // Emit record typedefs and print functions
         for (name, fields) in &self.checker.records {
             self.writer.write("typedef struct { ");
             for (field_name, field_type) in fields {
@@ -98,6 +100,36 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(&format!("{} {}; ", c_type, field_name));
             }
             self.writer.write(&format!("}} rl_Record_{};\n", name));
+            // Generate print function
+            self.writer.write(&format!("void rl_print_rl_Record_{}(rl_Record_{} v) {{ ", name, name));
+            self.writer.write("printf(\"Record(");
+            for (i, (field_name, _)) in fields.iter().enumerate() {
+                if i > 0 { self.writer.write(", "); }
+                self.writer.write(&format!("{}: ", field_name));
+                match fields[i].1 {
+                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write("%ld"),
+                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write("%g"),
+                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write("%s"),
+                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write("%.*s"),
+                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write("%c"),
+                    _ => self.writer.write("?"),
+                }
+            }
+            self.writer.write(")\", ");
+            for (i, (field_name, field_type)) in fields.iter().enumerate() {
+                if i > 0 { self.writer.write(", "); }
+                match field_type {
+                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write(&format!("(long)v.{}", field_name)),
+                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write(&format!("v.{}", field_name)),
+                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write(&format!("v.{} ? \"true\" : \"false\"", field_name)),
+                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write(&format!("(int)v.{}.len, v.{}.data", field_name, field_name)),
+                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write(&format!("v.{}", field_name)),
+                    _ => self.writer.write("\"?\""),
+                }
+            }
+            self.writer.writeln(");");
+            self.writer.writeln("}");
+            self.writer.write(&format!("void rl_println_rl_Record_{}(rl_Record_{} v) {{ rl_print_rl_Record_{}(v); printf(\"\\n\"); }}\n", name, name, name));
         }
         if !self.checker.records.is_empty() {
             self.writer.blank_line();
@@ -132,6 +164,36 @@ impl<'a> CCodegen<'a> {
             }
             self.writer
                 .writeln(&format!("}} rl_tuple_{};", fields.len()));
+            // Generate print function for tuple
+            let arity = fields.len();
+            self.writer.write(&format!("void rl_print_rl_tuple_{}(rl_tuple_{} v) {{ ", arity, arity));
+            self.writer.write("printf(\"(");
+            for (i, field_type) in fields.iter().enumerate() {
+                if i > 0 { self.writer.write(", "); }
+                match field_type {
+                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write("%ld"),
+                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write("%g"),
+                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write("%s"),
+                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write("%.*s"),
+                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write("%c"),
+                    _ => self.writer.write("?"),
+                }
+            }
+            self.writer.write(")\", ");
+            for (i, field_type) in fields.iter().enumerate() {
+                if i > 0 { self.writer.write(", "); }
+                match field_type {
+                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write(&format!("(long)v.field_{}", i)),
+                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write(&format!("v.field_{}", i)),
+                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write(&format!("v.field_{} ? \"true\" : \"false\"", i)),
+                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write(&format!("(int)v.field_{}.len, v.field_{}.data", i, i)),
+                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write(&format!("v.field_{}", i)),
+                    _ => self.writer.write("\"?\""),
+                }
+            }
+            self.writer.writeln(");");
+            self.writer.writeln("}");
+            self.writer.write(&format!("void rl_println_rl_tuple_{}(rl_tuple_{} v) {{ rl_print_rl_tuple_{}(v); printf(\"\\n\"); }}\n", arity, arity, arity));
         }
         if !tuple_types.is_empty() {
             self.writer.blank_line();

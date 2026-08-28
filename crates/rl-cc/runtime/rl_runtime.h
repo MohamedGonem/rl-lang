@@ -61,6 +61,9 @@ void rl_println_char(char v);
 void rl_println_str(rl_string v);
 void rl_println_ptr(void *v);
 
+void rl_print_result(rl_result v);
+void rl_println_result(rl_result v);
+
 #define rl_print(x) _Generic((x), \
     int64_t:  rl_print_int64, \
     uint64_t: rl_print_int64, \
@@ -75,6 +78,7 @@ void rl_println_ptr(void *v);
     bool:     rl_print_bool, \
     char:     rl_print_char, \
     rl_string: rl_print_str, \
+    rl_result: rl_print_result, \
     default:  rl_print_ptr \
 )(x)
 
@@ -92,6 +96,7 @@ void rl_println_ptr(void *v);
     bool:     rl_println_bool, \
     char:     rl_println_char, \
     rl_string: rl_println_str, \
+    rl_result: rl_println_result, \
     default:  rl_println_ptr \
 )(x)
 

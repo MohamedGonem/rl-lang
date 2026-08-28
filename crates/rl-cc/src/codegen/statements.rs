@@ -16,6 +16,7 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(type_annotation);
                 let c_name = mangle(name);
                 self.declare(name, &c_name);
+                self.var_types.insert(name.clone(), type_annotation.clone());
                 let expr = self.ast.exprs.get(*value);
                 if let ExpressionKind::Propagate(inner) = &expr.kind {
                     let temp = self.temp_var();

@@ -3,6 +3,7 @@ use crate::codegen::ops::token_to_c_op;
 use crate::name_mangle::{escape_c_char, escape_c_string, mangle};
 use crate::types::type_to_c;
 use rl_ast::{ExprId, nodes::ExpressionKind};
+use rl_ast::statements::TypeAnnotation;
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::errors::Error;
 
@@ -227,20 +228,50 @@ impl<'a> CCodegen<'a> {
         let func_name = path.last().map(|s| s.as_str()).unwrap_or("");
 
         match func_name {
-            "println" => {
-                self.writer.write("rl_println(");
-                if !args.is_empty() {
-                    self.compile_expr(args[0])?;
+            "println" | "print" => {
+                let is_ln = func_name == "println";
+                if args.is_empty() {
+                    if is_ln {
+                        self.writer.write("rl_println(\"\")");
+                    } else {
+                        self.writer.write("rl_print(\"\")");
+                    }
+                } else {
+                    let arg = &args[0];
+                    let expr = self.ast.exprs.get(*arg);
+                    if let ExpressionKind::ResolvedIdentifier { name, .. } = &expr.kind {
+                        if let Some(ta) = self.var_types.get(name) {
+                            match ta {
+                                TypeAnnotation::Tuple(elems) => {
+                                    let c_name = self.lookup(name);
+                                    let print_fn = if is_ln { "rl_println" } else { "rl_print" };
+                                    self.writer.write(&format!("{}_rl_tuple_{}({})", print_fn, elems.len(), c_name));
+                                }
+                                TypeAnnotation::Record(rname) => {
+                                    let c_name = self.lookup(name);
+                                    let print_fn = if is_ln { "rl_println" } else { "rl_print" };
+                                    self.writer.write(&format!("{}_rl_Record_{}({})", print_fn, rname, c_name));
+                                }
+                                _ => {
+                                    let c_fn = if is_ln { "rl_println" } else { "rl_print" };
+                                    self.writer.write(&format!("{}(", c_fn));
+                                    self.compile_expr(*arg)?;
+                                    self.writer.write(")");
+                                }
+                            }
+                        } else {
+                            let c_fn = if is_ln { "rl_println" } else { "rl_print" };
+                            self.writer.write(&format!("{}(", c_fn));
+                            self.compile_expr(*arg)?;
+                            self.writer.write(")");
+                        }
+                    } else {
+                        let c_fn = if is_ln { "rl_println" } else { "rl_print" };
+                        self.writer.write(&format!("{}(", c_fn));
+                        self.compile_expr(*arg)?;
+                        self.writer.write(")");
+                    }
                 }
-                self.writer.write(")");
-                return Ok(());
-            }
-            "print" => {
-                self.writer.write("rl_print(");
-                if !args.is_empty() {
-                    self.compile_expr(args[0])?;
-                }
-                self.writer.write(")");
                 return Ok(());
             }
             "ok" => {
