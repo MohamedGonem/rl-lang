@@ -267,6 +267,46 @@ enum Commands {
         #[arg(short, long, value_name = "PATH")]
         output: Option<PathBuf>,
     },
+
+    /// Transpile a .rl source file to C
+    #[command(
+        long_about = "Lex, parse, resolve, type-check, and transpile a .rl source file to C99.\n\n\
+                       The resulting .c file is written next to the source (or to --output). \
+                       Use --runtime to also emit rl_runtime.h and rl_runtime.c.",
+        after_help = "EXAMPLES:\n    \
+                       rl transpile script.rl\n    \
+                       rl transpile script.rl --output out.c\n    \
+                       rl transpile script.rl --runtime\n    \
+                       rl transpile script.rl --runtime --compile\n    \
+                       rl transpile script.rl --runtime --compile --opt O3\n    \
+                       rl transpile script.rl --runtime --compile --opt Os"
+    )]
+    Transpile {
+        /// Path to the .rl file to transpile
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+
+        /// Output .c path (defaults to FILE with its extension changed to .c)
+        #[arg(short, long, value_name = "PATH")]
+        output: Option<PathBuf>,
+
+        /// Also emit rl_runtime.h and rl_runtime.c
+        #[arg(long)]
+        runtime: bool,
+
+        /// After transpiling, invoke cc to compile the .c file
+        #[arg(short = 'c', long)]
+        compile: bool,
+
+        /// Optimization level forwarded to cc (O0, O1, O2, O3, Os, Og).
+        /// Defaults to O2 when --compile is used.
+        #[arg(long, value_name = "LEVEL")]
+        opt: Option<String>,
+
+        /// Extra flags forwarded to cc (only used with --compile)
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        cc_flags: Vec<String>,
+    },
 }
 
 fn main() {
