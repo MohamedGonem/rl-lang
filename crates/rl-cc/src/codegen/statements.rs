@@ -335,6 +335,28 @@ impl<'a> CCodegen<'a> {
                     }
                 }
             }
+            StatementKind::ResolvedDestructureDeclaration {
+                bindings,
+                value,
+                ..
+            } => {
+                let temp = self.temp_var();
+                self.writer.write_indent();
+                self.writer.write(&format!("rl_tuple_{} {} = ", bindings.len(), temp));
+                self.compile_expr(*value)?;
+                self.writer.write(";\n");
+                for (i, (type_annotation, name)) in bindings.iter().enumerate() {
+                    let c_type = type_to_c(type_annotation);
+                    let c_name = mangle(name);
+                    self.declare(name, &c_name);
+                    self.var_types.insert(name.clone(), type_annotation.clone());
+                    self.writer.write_indent();
+                    self.writer.write(&format!(
+                        "{} {} = {}.field_{};\n",
+                        c_type, c_name, temp, i
+                    ));
+                }
+            }
             _ => {}
         }
         Ok(())
