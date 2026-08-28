@@ -33,7 +33,7 @@ env_logger = { workspace = true, optional = true }
 rl-cc = { workspace = true, optional = true }
 
 [features]
-default = ["repl", "vm", "docs", "docs-tui"]
+default = ["repl", "vm", "docs", "docs-tui", "cc"]
 run = []
 vm = ["rl-repl/vm"]
 cranelift = ["vm", "rl-cranelift"]
