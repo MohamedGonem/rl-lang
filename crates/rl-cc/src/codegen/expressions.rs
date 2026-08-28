@@ -135,14 +135,14 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(&format!("{}.data.ok_value", temp));
             }
             ExpressionKind::ArrayLiteral(elems) => {
-                self.writer.write("rl_arr_from_vals((");
+                self.writer.write("rl_arr_from_vals(&(int64_t[]){");
                 for (i, elem) in elems.iter().enumerate() {
                     if i > 0 {
                         self.writer.write(", ");
                     }
                     self.compile_expr(*elem)?;
                 }
-                self.writer.write(&format!("), {})", elems.len()));
+                self.writer.write(&format!("}}, {}, (int32_t)sizeof(int64_t))", elems.len()));
             }
             ExpressionKind::TupleLiteral(elems) => {
                 let tuple_name = format!("rl_tuple_{}", elems.len());
