@@ -121,7 +121,34 @@ for [int j = 0, j < 5, j += 1] {
     println(j)
 }
 
-// --- 11. Functions ---
+// --- 11. ForEach ---
+println("")
+println("=== ForEach ===")
+dec arr[int] items = [10, 20, 30]
+for x in items {
+    println(x)
+}
+
+// --- 12. ForRange ---
+println("")
+println("=== ForRange ===")
+for k in 0..5 {
+    println(k)
+}
+
+// --- 13. Loop ---
+println("")
+println("=== Loop ===")
+dec int counter = 0
+loop {
+    println(counter)
+    counter = counter + 1
+    if (counter == 3) {
+        break
+    }
+}
+
+// --- 14. Functions ---
 fn add(int a, int b) -> int {
     return a + b
 }
@@ -136,20 +163,20 @@ dec int res = add(100, 23)
 println(res)
 greet("from a function")
 
-// --- 12. Cast expressions ---
+// --- 15. Cast expressions ---
 println("")
 println("=== Casts ===")
 dec int as_big = 42
 dec float from_int = as_big as float
 println(from_int)
 
-// --- 13. Tuple literal ---
+// --- 16. Tuple literal ---
 println("")
 println("=== Tuples ===")
 dec (int, int, string) t = (1, 2, "three")
 println(t)
 
-// --- 14. Tuple destruction ---
+// --- 17. Tuple destruction ---
 println("")
 println("=== Tuple Destruction ===")
 dec (int, string) pair = (42, "hello")
@@ -157,7 +184,7 @@ dec int px, string py = pair
 println(px)
 println(py)
 
-// --- 15. Array literal ---
+// --- 18. Array literal ---
 println("")
 println("=== Arrays ===")
 dec arr[int] nums = [10, 20, 30]
@@ -165,7 +192,7 @@ println(nums[0])
 nums[1] = 99
 println(nums[1])
 
-// --- 16. Record / struct ---
+// --- 19. Record / struct ---
 println("")
 println("=== Records ===")
 record Point {
@@ -177,7 +204,7 @@ println(p.x)
 p.x = 30
 println(p.x)
 
-// --- 17. Impl methods ---
+// --- 20. Impl methods ---
 println("")
 println("=== Impl Methods ===")
 impl Point {
@@ -187,7 +214,7 @@ impl Point {
 }
 println(p.sum())
 
-// --- 18. Enum / tag ---
+// --- 21. Enum / tag ---
 println("")
 println("=== Enums ===")
 tag Color {
@@ -198,7 +225,7 @@ tag Color {
 dec Color c = Color.Red
 println(c)
 
-// --- 19. Match ---
+// --- 22. Match ---
 println("")
 println("=== Match ===")
 match (c) {
@@ -207,7 +234,7 @@ match (c) {
     _ => { println("other") }
 }
 
-// --- 20. Ok / Err / Error ---
+// --- 23. Ok / Err / Error ---
 println("")
 println("=== Results ===")
 dec result[int] r = ok(42)
@@ -215,7 +242,7 @@ println(r)
 dec result[int] r2 = err(1)
 println(r2)
 
-// --- 21. Error propagation ---
+// --- 24. Error propagation ---
 fn safe_div(int a, int b) -> result[int] {
     if (b == 0) { return err(0) }
     return ok(a / b)
@@ -223,7 +250,7 @@ fn safe_div(int a, int b) -> result[int] {
 dec result[int] divided = safe_div(10, 2)
 println(divided)
 
-// --- 22. Map ---
+// --- 25. Map ---
 println("")
 println("=== Maps ===")
 get map_len from std::collections
@@ -231,7 +258,7 @@ dec map[string, int] ages = { "alice": 30, "bob": 25 }
 println(ages)
 println(map_len(ages))
 
-// --- 23. Set ---
+// --- 26. Set ---
 println("")
 println("=== Sets ===")
 get set_len from std::collections

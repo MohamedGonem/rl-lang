@@ -139,6 +139,30 @@ int main(int argc, char **argv) {
         rl_println(j);
     }
     rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== ForEach ===", 15));
+    rl_array items = rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t));
+    rl_array _r_0 = items;
+    uint64_t _r_1 = 0;
+    for (; _r_1 < _r_0.len; _r_1++) {
+        int64_t x = ((int64_t*)_r_0.data)[_r_1];
+        rl_println(x);
+    }
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== ForRange ===", 16));
+    for (int64_t k = 0; k < 5; k++) {
+        rl_println(k);
+    }
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Loop ===", 12));
+    int64_t counter = (int64_t)0;
+    while (1) {
+        rl_println(counter);
+        counter = counter + (int64_t)1;
+        if (counter == (int64_t)3) {
+            break;
+        }
+    }
+    rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Functions ===", 17));
     int64_t res = add((int64_t)100, (int64_t)23);
     rl_println(res);
@@ -155,9 +179,9 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Tuple Destruction ===", 25));
     rl_tuple_2 pair = (rl_tuple_2){ .field_0 = (int64_t)42, .field_1 = rl_str_literal("hello", 5) };
-    rl_tuple_2 _r_0 = pair;
-    int64_t px = _r_0.field_0;
-    rl_string py = _r_0.field_1;
+    rl_tuple_2 _r_2 = pair;
+    int64_t px = _r_2.field_0;
+    rl_string py = _r_2.field_1;
     rl_println(px);
     rl_println(py);
     rl_println(rl_str_literal("", 0));
