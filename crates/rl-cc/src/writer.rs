@@ -39,9 +39,9 @@ impl CWriter {
         self.indent_level -= 1;
     }
 
-    fn write_indent(&mut self) {
+    pub fn write_indent(&mut self) {
         for _ in 0..self.indent_level {
-            self.source.push_str("      ");
+            self.source.push_str("    ");
         }
     }
 
