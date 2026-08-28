@@ -1,15 +1,4 @@
-// ============================================================
-// TRANSPILER DEMO - features supported by rl-cc
-// ============================================================
-// Run:  cargo run -- transpile examples/scripts/transpile_demo.rl --compile
-// Or:   cargo run -- transpile examples/scripts/transpile_demo.rl --runtime
-//       cc -std=c99 -o demo transpile_demo.c rl_runtime.c -I. && ./demo
-
 get println from std::io
-
-// ======================================================================
-// SECTION A - compiles and runs end-to-end
-// ======================================================================
 
 // --- 1. Variables and arithmetic ---
 dec int x = 10
@@ -147,11 +136,6 @@ dec int res = add(100, 23)
 println(res)
 greet("from a function")
 
-// ======================================================================
-// SECTION B - transpiles but C runtime types not yet defined
-//            (rl_tuple, rl_array, rl_value, rl_result, RL_TAG_*, len)
-// ======================================================================
-
 // --- 12. Cast expressions ---
 println("")
 println("=== Casts ===")
@@ -160,16 +144,22 @@ dec float from_int = as_big as float
 println(from_int)
 
 // --- 13. Tuple literal ---
+println("")
+println("=== Tuples ===")
 dec (int, int, string) t = (1, 2, "three")
 println(t)
 
 // --- 14. Array literal ---
-// dec arr[int] nums = [10, 20, 30]
-// println(nums[0])
-// nums[1] = 99
-// println(nums[1])
+println("")
+println("=== Arrays ===")
+dec arr[int] nums = [10, 20, 30]
+println(nums[0])
+nums[1] = 99
+println(nums[1])
 
 // --- 15. Record / struct ---
+println("")
+println("=== Records ===")
 record Point {
     int x,
     int y,
@@ -180,6 +170,8 @@ p.x = 30
 println(p.x)
 
 // --- 16. Enum / tag ---
+println("")
+println("=== Enums ===")
 tag Color {
     Red,
     Green,
@@ -189,6 +181,8 @@ dec Color c = Color.Red
 println(c)
 
 // --- 17. Match ---
+println("")
+println("=== Match ===")
 match (c) {
     Color.Red => { println("red") }
     Color.Green => { println("green") }
@@ -196,6 +190,8 @@ match (c) {
 }
 
 // --- 18. Ok / Err / Error ---
+println("")
+println("=== Results ===")
 dec result[int] r = ok(42)
 println(r)
 dec result[int] r2 = err(1)
@@ -209,6 +205,5 @@ fn safe_div(int a, int b) -> result[int] {
 dec result[int] divided = safe_div(10, 2)
 println(divided)
 
-// --- Done ---
 println("")
-println("\e[32mAll end-to-end transpiler features demonstrated!\e[0m")
+println("done")

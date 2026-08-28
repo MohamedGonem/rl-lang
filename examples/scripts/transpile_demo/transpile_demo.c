@@ -140,14 +140,28 @@ int main(int argc, char **argv) {
     int64_t as_big = (int64_t)42;
     double from_int = (double)as_big;
     rl_println(from_int);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Tuples ===", 14));
     rl_tuple_3 t = (rl_tuple_3){ .field_0 = (int64_t)1, .field_1 = (int64_t)2, .field_2 = rl_str_literal("three", 5) };
     rl_println_rl_tuple_3(t);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Arrays ===", 14));
+    rl_array nums = rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t));
+    rl_println(((int64_t*)nums.data)[(int64_t)0]);
+    ((int64_t*)nums.data)[(int64_t)1] = (int64_t)99;
+    rl_println(((int64_t*)nums.data)[(int64_t)1]);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Records ===", 15));
     rl_Record_Point p = (rl_Record_Point){ .x = (int64_t)10, .y = (int64_t)20 };
     rl_println(p.x);
     p.x = (int64_t)30;
     rl_println(p.x);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Enums ===", 13));
     int64_t /* Color */ c = RL_TAG_COLOR_RED;
     rl_println(c);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Match ===", 13));
     if (c == RL_TAG_COLOR_RED) {
         rl_println(rl_str_literal("red", 3));
     }
@@ -157,6 +171,8 @@ int main(int argc, char **argv) {
     else {
         rl_println(rl_str_literal("other", 5));
     }
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Results ===", 15));
     rl_result r = rl_ok((int64_t)42);
     rl_println(r);
     rl_result r2 = rl_err((int64_t)1);
@@ -164,6 +180,6 @@ int main(int argc, char **argv) {
     rl_result divided = safe_div((int64_t)10, (int64_t)2);
     rl_println(divided);
     rl_println(rl_str_literal("", 0));
-    rl_println(rl_str_literal("\033[32mAll end-to-end transpiler features demonstrated!\033[0m", 63));
+    rl_println(rl_str_literal("done", 4));
     return 0;
 }
