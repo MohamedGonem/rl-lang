@@ -21,7 +21,7 @@ cargo clippy -- -D warnings # no lint warnings
 
 ## What to work on
 
-Check the [issues](https://github.com/MohamedGonem/rl-lang/issues) page for open bugs and feature requests, or the [roadmap](https://github.com/MohamedGonem/rl-lang/wiki/Roadmap) for planned work.
+Check the [issues](https://github.com/MohamedGonem/rl-lang/issues) page for open bugs and feature requests, or the [roadmap](ROADMAP.md) for planned work.
 
 ## Versioning & releases
 
