@@ -11,22 +11,22 @@ impl<'a> CCodegen<'a> {
         let kind = self.ast.exprs.get(id).kind.clone();
         match &kind {
             ExpressionKind::Integer(v) => {
-                self.writer.write(&format!("((int64_t){})", v));
+                self.writer.write(&format!("(int64_t){}", v));
             }
             ExpressionKind::SInt(v) => {
-                self.writer.write(&format!("((int32_t){})", v));
+                self.writer.write(&format!("(int32_t){}", v));
             }
             ExpressionKind::UInt(v) => {
-                self.writer.write(&format!("((uint64_t){})", v));
+                self.writer.write(&format!("(uint64_t){}", v));
             }
             ExpressionKind::SUInt(v) => {
-                self.writer.write(&format!("((uint32_t){})", v));
+                self.writer.write(&format!("(uint32_t){}", v));
             }
             ExpressionKind::Float(v) => {
-                self.writer.write(&format!("((double){})", v));
+                self.writer.write(&format!("(double){}", v));
             }
             ExpressionKind::SFloat(v) => {
-                self.writer.write(&format!("((float){})", v));
+                self.writer.write(&format!("(float){}", v));
             }
             ExpressionKind::Bool(v) => {
                 self.writer.write(if *v { "true" } else { "false" });
@@ -43,41 +43,36 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("0");
             }
             ExpressionKind::Byte(v) => {
-                self.writer.write(&format!("((uint8_t){})", v));
+                self.writer.write(&format!("(uint8_t){}", v));
             }
             ExpressionKind::BByte(v) => {
-                self.writer.write(&format!("((uint16_t){})", v));
+                self.writer.write(&format!("(uint16_t){}", v));
             }
             ExpressionKind::SByte(v) => {
-                self.writer.write(&format!("((int8_t){})", v));
+                self.writer.write(&format!("(int8_t){}", v));
             }
             ExpressionKind::BSByte(v) => {
-                self.writer.write(&format!("((int16_t){})", v));
+                self.writer.write(&format!("(int16_t){}", v));
             }
             ExpressionKind::Grouping(inner) => {
-                self.writer.write("(");
                 self.compile_expr(*inner)?;
-                self.writer.write(")");
             }
             ExpressionKind::Binary {
                 left,
                 operator,
                 right,
             } => {
-                self.writer.write("(");
                 self.compile_expr(*left)?;
                 self.writer.write(&format!(" {} ", token_to_c_op(operator)));
                 self.compile_expr(*right)?;
-                self.writer.write(")");
             }
             ExpressionKind::Unary { operator, operand } => {
                 match operator {
-                    TokenType::Minus => self.writer.write("(-"),
-                    TokenType::Bang => self.writer.write("(!"),
-                    _ => self.writer.write("("),
+                    TokenType::Minus => self.writer.write("-"),
+                    TokenType::Bang => self.writer.write("!"),
+                    _ => {}
                 }
                 self.compile_expr(*operand)?;
-                self.writer.write(")");
             }
             ExpressionKind::ResolvedIdentifier { name, .. } => {
                 let c_name = self.lookup(name);
@@ -125,14 +120,18 @@ impl<'a> CCodegen<'a> {
             }
             ExpressionKind::Propagate(inner) => {
                 let temp = self.temp_var();
+                self.writer.write_indent();
                 self.writer.write(&format!("rl_result {} = ", temp));
                 self.compile_expr(*inner)?;
-                self.writer.writeln(";");
-                self.writer.writeln(&format!("if (!{}.is_ok) {{", temp));
+                self.writer.write(";\n");
+                self.writer.write_indent();
+                self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
                 self.writer.indent();
-                self.writer.writeln(&format!("return {};", temp));
+                self.writer.write_indent();
+                self.writer.write(&format!("return {};\n", temp));
                 self.writer.dedent();
-                self.writer.writeln("}");
+                self.writer.write_indent();
+                self.writer.write("}\n");
                 self.writer.write(&format!("{}.data.ok_value", temp));
             }
             ExpressionKind::ArrayLiteral(elems) => {
@@ -143,7 +142,7 @@ impl<'a> CCodegen<'a> {
                     }
                     self.compile_expr(*elem)?;
                 }
-                self.writer.write(&format!("), {}))", elems.len()));
+                self.writer.write(&format!("), {})", elems.len()));
             }
             ExpressionKind::TupleLiteral(elems) => {
                 let tuple_name = format!("rl_tuple_{}", elems.len());
@@ -214,9 +213,8 @@ impl<'a> CCodegen<'a> {
             }
             ExpressionKind::Cast { value, target_type } => {
                 let c_type = type_to_c(target_type);
-                self.writer.write(&format!("(({})", c_type));
+                self.writer.write(&format!("({})", c_type));
                 self.compile_expr(*value)?;
-                self.writer.write(")");
             }
             _ => {
                 self.writer.write("/* unhandled expr */");

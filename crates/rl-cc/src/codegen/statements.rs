@@ -16,9 +16,10 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(type_annotation);
                 let c_name = mangle(name);
                 self.declare(name, &c_name);
+                self.writer.write_indent();
                 self.writer.write(&format!("{} {} = ", c_type, c_name));
                 self.compile_expr(*value)?;
-                self.writer.writeln(";");
+                self.writer.write(";\n");
             }
             StatementKind::ResolvedConstantDeclaration {
                 name,
@@ -29,10 +30,11 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(type_annotation);
                 let c_name = mangle(name);
                 self.declare(name, &c_name);
+                self.writer.write_indent();
                 self.writer
                     .write(&format!("const {} {} = ", c_type, c_name));
                 self.compile_expr(*value)?;
-                self.writer.writeln(";");
+                self.writer.write(";\n");
             }
             StatementKind::ResolvedFunctionDeclaration {
                 name,
@@ -43,6 +45,7 @@ impl<'a> CCodegen<'a> {
             } => {
                 let c_ret = type_to_c(return_type);
                 let c_name = mangle(name);
+                self.writer.write_indent();
                 self.writer.write(&format!("{} {}(", c_ret, c_name));
 
                 let c_params: Vec<String> = params
@@ -54,7 +57,7 @@ impl<'a> CCodegen<'a> {
                     })
                     .collect();
                 self.writer.write(&c_params.join(", "));
-                self.writer.writeln(") {");
+                self.writer.write(") {\n");
                 self.writer.indent();
 
                 self.push_scope();
@@ -66,17 +69,19 @@ impl<'a> CCodegen<'a> {
                 }
                 self.pop_scope();
                 self.writer.dedent();
-                self.writer.writeln("}");
-                self.writer.blank_line();
+                self.writer.write_indent();
+                self.writer.write("}\n\n");
             }
             StatementKind::Expression(expr_id) => {
+                self.writer.write_indent();
                 self.compile_expr(*expr_id)?;
-                self.writer.writeln(";");
+                self.writer.write(";\n");
             }
             StatementKind::Return(Some(expr_id)) => {
+                self.writer.write_indent();
                 self.writer.write("return ");
                 self.compile_expr(*expr_id)?;
-                self.writer.writeln(";");
+                self.writer.write(";\n");
             }
             StatementKind::Return(None) => {
                 self.writer.writeln("return;");
@@ -88,15 +93,17 @@ impl<'a> CCodegen<'a> {
                 self.write_conditional(if_branch, else_branch)?;
             }
             StatementKind::While { condition, body } => {
+                self.writer.write_indent();
                 self.writer.write("while (");
                 self.compile_expr(*condition)?;
-                self.writer.writeln(") {");
+                self.writer.write(") {\n");
                 self.writer.indent();
                 for s in body {
                     self.compile_statement(s)?;
                 }
                 self.writer.dedent();
-                self.writer.writeln("}");
+                self.writer.write_indent();
+                self.writer.write("}\n");
             }
             StatementKind::ResolvedFor {
                 initializer,
@@ -104,27 +111,45 @@ impl<'a> CCodegen<'a> {
                 increment,
                 body,
             } => {
+                self.writer.write_indent();
                 self.writer.write("for (");
-                self.compile_statement(initializer)?;
+                self.compile_for_init(initializer)?;
+                self.writer.write("; ");
                 self.compile_expr(*condition)?;
                 self.writer.write("; ");
                 self.compile_expr(*increment)?;
-                self.writer.writeln(") {");
+                self.writer.write(") {\n");
                 self.writer.indent();
                 for s in body {
                     self.compile_statement(s)?;
                 }
                 self.writer.dedent();
-                self.writer.writeln("}");
+                self.writer.write_indent();
+                self.writer.write("}\n");
             }
             StatementKind::Break => self.writer.writeln("break;"),
             StatementKind::Continue => self.writer.writeln("continue;"),
             StatementKind::Match { value, arms } => {
                 self.compile_match(*value, arms)?;
             }
-            _ => {
-                self.writer.writeln("/* unhandled statement */");
-            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn compile_for_init(&mut self, stmt: &Statement) -> Result<(), Error> {
+        if let StatementKind::ResolvedVariableDeclaration {
+            name,
+            type_annotation,
+            value,
+            ..
+        } = &stmt.kind
+        {
+            let c_type = type_to_c(type_annotation);
+            let c_name = mangle(name);
+            self.declare(name, &c_name);
+            self.writer.write(&format!("{} {} = ", c_type, c_name));
+            self.compile_expr(*value)?;
         }
         Ok(())
     }
@@ -138,57 +163,96 @@ impl<'a> CCodegen<'a> {
             condition, body, ..
         } = &if_branch.kind
         {
+            self.writer.write_indent();
             if let Some(cond) = condition {
                 self.writer.write("if (");
                 self.compile_expr(*cond)?;
-                self.writer.writeln(") {");
+                self.writer.write(") {\n");
             } else {
-                self.writer.writeln("{");
+                self.writer.write("{\n");
             }
             self.writer.indent();
             for s in body {
                 self.compile_statement(s)?;
             }
             self.writer.dedent();
-            self.writer.writeln("}");
+            self.writer.write_indent();
+            if else_branch.is_some() {
+                self.writer.write("} ");
+            } else {
+                self.writer.write("}\n");
+            }
         }
 
         if let Some(else_stmt) = else_branch {
-            match &else_stmt.kind {
-                StatementKind::ConditionalBranch {
+            self.write_else_branch(else_stmt)?;
+        }
+
+        Ok(())
+    }
+
+    fn write_else_branch(&mut self, else_stmt: &Statement) -> Result<(), Error> {
+        match &else_stmt.kind {
+            StatementKind::ConditionalBranch {
+                condition, body, ..
+            } => {
+                if let Some(cond) = condition {
+                    self.writer.write("else if (");
+                    self.compile_expr(*cond)?;
+                    self.writer.write(") {\n");
+                } else {
+                    self.writer.write("else {\n");
+                }
+                self.writer.indent();
+                for s in body {
+                    self.compile_statement(s)?;
+                }
+                self.writer.dedent();
+                self.writer.write_indent();
+                self.writer.write("}\n");
+            }
+            StatementKind::Conditional {
+                if_branch,
+                else_branch,
+            } => {
+                self.writer.write("else ");
+                // Recurse but skip the indent since we're already on the } line
+                if let StatementKind::ConditionalBranch {
                     condition, body, ..
-                } => {
+                } = &if_branch.kind
+                {
                     if let Some(cond) = condition {
-                        self.writer.write(" else if (");
+                        self.writer.write("if (");
                         self.compile_expr(*cond)?;
-                        self.writer.writeln(") {");
+                        self.writer.write(") {\n");
                     } else {
-                        self.writer.writeln(" else {");
+                        self.writer.write("{\n");
                     }
                     self.writer.indent();
                     for s in body {
                         self.compile_statement(s)?;
                     }
                     self.writer.dedent();
-                    self.writer.writeln("}");
-                }
-                StatementKind::Conditional {
-                    if_branch,
-                    else_branch,
-                } => {
-                    self.writer.write(" else ");
-                    self.write_conditional(if_branch, else_branch)?;
-                }
-                _ => {
-                    self.writer.writeln(" else {");
-                    self.writer.indent();
-                    self.compile_statement(else_stmt)?;
-                    self.writer.dedent();
-                    self.writer.writeln("}");
+                    self.writer.write_indent();
+                    if else_branch.is_some() {
+                        self.writer.write("} ");
+                    } else {
+                        self.writer.write("}\n");
+                    }
+                    if let Some(inner_else) = else_branch {
+                        self.write_else_branch(inner_else)?;
+                    }
                 }
             }
+            _ => {
+                self.writer.write("else {\n");
+                self.writer.indent();
+                self.compile_statement(else_stmt)?;
+                self.writer.dedent();
+                self.writer.write_indent();
+                self.writer.write("}\n");
+            }
         }
-
         Ok(())
     }
 
@@ -200,33 +264,37 @@ impl<'a> CCodegen<'a> {
         for (i, (pattern, body)) in arms.iter().enumerate() {
             match pattern {
                 MatchPattern::Literal(lit_id) => {
+                    self.writer.write_indent();
                     if i == 0 {
                         self.writer.write("if (");
                     } else {
-                        self.writer.write("} else if (");
+                        self.writer.write("else if (");
                     }
-                    self.writer.write("(");
                     self.compile_expr(value)?;
                     self.writer.write(" == ");
                     self.compile_expr(*lit_id)?;
-                    self.writer.writeln(")) {");
+                    self.writer.write(") {\n");
                     self.writer.indent();
                     for s in body {
                         self.compile_statement(s)?;
                     }
                     self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
                 }
                 MatchPattern::Wildcard => {
-                    self.writer.writeln("} else {");
+                    self.writer.write_indent();
+                    self.writer.write("else {\n");
                     self.writer.indent();
                     for s in body {
                         self.compile_statement(s)?;
                     }
                     self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
                 }
             }
         }
-        self.writer.writeln("}");
         Ok(())
     }
 }

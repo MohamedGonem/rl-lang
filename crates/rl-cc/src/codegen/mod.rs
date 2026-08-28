@@ -41,14 +41,23 @@ impl<'a> CCodegen<'a> {
             )
         });
 
+        // Hoist function declarations before main
+        for stmt in statements {
+            if matches!(&stmt.kind, StatementKind::ResolvedFunctionDeclaration { .. }) {
+                self.compile_statement(stmt)?;
+            }
+        }
+
         if !has_main {
             self.is_script_mode = true;
-            self.writer.writeln("int main(int argc, char **argv) {");
+            self.writer.write("int main(int argc, char **argv) {\n");
             self.writer.indent();
         }
 
         for stmt in statements {
-            self.compile_statement(stmt)?;
+            if !matches!(&stmt.kind, StatementKind::ResolvedFunctionDeclaration { .. }) {
+                self.compile_statement(stmt)?;
+            }
         }
 
         if !has_main {
