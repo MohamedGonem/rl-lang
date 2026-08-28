@@ -5,6 +5,20 @@
 #include <string.h>
 #include "rl_runtime.h"
 
+typedef struct { int64_t x; int64_t y; } rl_Record_Point;
+void rl_print_rl_Record_Point(rl_Record_Point v) { printf("Record(x: %ld, y: %ld)", (long)v.x, (long)v.y);
+}
+void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v); printf("\n"); }
+
+#define RL_TAG_COLOR_RED ((int64_t)0)
+#define RL_TAG_COLOR_GREEN ((int64_t)1)
+#define RL_TAG_COLOR_BLUE ((int64_t)2)
+
+typedef struct { int64_t field_0; int64_t field_1; rl_string field_2; } rl_tuple_3;
+void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(%ld, %ld, %.*s)", (long)v.field_0, (long)v.field_1, (int)v.field_2.len, v.field_2.data);
+}
+void rl_println_rl_tuple_3(rl_tuple_3 v) { rl_print_rl_tuple_3(v); printf("\n"); }
+
 int64_t add(int64_t a, int64_t b) {
     return a + b;
 }
@@ -126,9 +140,29 @@ int main(int argc, char **argv) {
     int64_t as_big = (int64_t)42;
     double from_int = (double)as_big;
     rl_println(from_int);
+    rl_tuple_3 t = (rl_tuple_3){ .field_0 = (int64_t)1, .field_1 = (int64_t)2, .field_2 = rl_str_literal("three", 5) };
+    rl_println_rl_tuple_3(t);
+    rl_Record_Point p = (rl_Record_Point){ .x = (int64_t)10, .y = (int64_t)20 };
+    rl_println(p.x);
+    p.x = (int64_t)30;
+    rl_println(p.x);
+    int64_t /* Color */ c = RL_TAG_COLOR_RED;
+    rl_println(c);
+    if (c == RL_TAG_COLOR_RED) {
+        rl_println(rl_str_literal("red", 3));
+    }
+    else if (c == RL_TAG_COLOR_GREEN) {
+        rl_println(rl_str_literal("green", 5));
+    }
+    else {
+        rl_println(rl_str_literal("other", 5));
+    }
     rl_result r = rl_ok((int64_t)42);
+    rl_println(r);
     rl_result r2 = rl_err((int64_t)1);
+    rl_println(r2);
     rl_result divided = safe_div((int64_t)10, (int64_t)2);
+    rl_println(divided);
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("\033[32mAll end-to-end transpiler features demonstrated!\033[0m", 63));
     return 0;

@@ -160,8 +160,8 @@ dec float from_int = as_big as float
 println(from_int)
 
 // --- 13. Tuple literal ---
-// dec (int, int, string) t = (1, 2, "three")
-// println(t)
+dec (int, int, string) t = (1, 2, "three")
+println(t)
 
 // --- 14. Array literal ---
 // dec arr[int] nums = [10, 20, 30]
@@ -170,34 +170,36 @@ println(from_int)
 // println(nums[1])
 
 // --- 15. Record / struct ---
-// record Point {
-//     int x,
-//     int y,
-// }
-// dec Point p = Point { x: 10, y: 20 }
-// println(p.x)
-// p.x = 30
-// println(p.x)
+record Point {
+    int x,
+    int y,
+}
+dec Point p = Point { x: 10, y: 20 }
+println(p.x)
+p.x = 30
+println(p.x)
 
 // --- 16. Enum / tag ---
-// tag Color {
-//     Red,
-//     Green,
-//     Blue,
-// }
-// dec Color c = Color.Red
-// println(c)
+tag Color {
+    Red,
+    Green,
+    Blue,
+}
+dec Color c = Color.Red
+println(c)
 
 // --- 17. Match ---
-// match (c) {
-//     Color.Red => { println("red") }
-//     Color.Green => { println("green") }
-//     _ => { println("other") }
-// }
+match (c) {
+    Color.Red => { println("red") }
+    Color.Green => { println("green") }
+    _ => { println("other") }
+}
 
 // --- 18. Ok / Err / Error ---
 dec result[int] r = ok(42)
+println(r)
 dec result[int] r2 = err(1)
+println(r2)
 
 // --- 19. Error propagation ---
 fn safe_div(int a, int b) -> result[int] {
@@ -205,6 +207,7 @@ fn safe_div(int a, int b) -> result[int] {
     return ok(a / b)
 }
 dec result[int] divided = safe_div(10, 2)
+println(divided)
 
 // --- Done ---
 println("")
