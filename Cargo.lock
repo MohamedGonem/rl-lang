@@ -3728,6 +3728,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rl-cc"
+version = "2.0.0"
+dependencies = [
+ "rl-ast",
+ "rl-checker",
+ "rl-lexer",
+ "rl-parser",
+ "rl-resolver",
+ "rl-utils",
+]
+
+[[package]]
 name = "rl-checker"
 version = "2.0.0"
 dependencies = [
@@ -3747,6 +3759,7 @@ dependencies = [
  "env_logger",
  "log",
  "rl-ast",
+ "rl-cc",
  "rl-checker",
  "rl-cranelift",
  "rl-docs",

@@ -20,6 +20,7 @@ members = [
     "crates/rl-std",
     "crates/rl-tests",
     "crates/rl-benches",
+    "crates/rl-cc"
 ]
 
 [workspace.package]
@@ -45,6 +46,7 @@ rl-docs = { path = "crates/rl-docs", version = "2.0.0" }
 rl-tooling = { path = "crates/rl-tooling", version = "2.0.0" }
 rl-repl = { path = "crates/rl-repl", default-features = false, version = "2.0.0" }
 rl-lsp = { path = "crates/rl-lsp", version = "2.0.0" }
+rl-cc = { path = "crates/rl-cc", version = "2.0.0" }
 
 criterion = { version = "0.5", features = ["html_reports"] }
 syn = { version = "2", features = ["full"] }

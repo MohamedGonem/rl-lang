@@ -1,0 +1,16 @@
+[package]
+name = "rl-cc"
+version.workspace = true
+readme = "readme.md"
+edition.workspace = true
+license.workspace = true
+description = "C99 transpiler backend for the rl-lang programming language"
+repository.workspace = true
+
+[dependencies]
+rl-ast.workspace = true
+rl-checker.workspace = true
+rl-resolver.workspace = true
+rl-lexer.workspace = true
+rl-parser.workspace = true
+rl-utils.workspace = true
