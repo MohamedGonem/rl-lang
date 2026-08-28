@@ -14,6 +14,10 @@ void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v)
 #define RL_TAG_COLOR_GREEN ((int64_t)1)
 #define RL_TAG_COLOR_BLUE ((int64_t)2)
 
+typedef struct { int64_t field_0; rl_string field_1; } rl_tuple_2;
+void rl_print_rl_tuple_2(rl_tuple_2 v) { printf("(%ld, %.*s)", (long)v.field_0, (int)v.field_1.len, v.field_1.data);
+}
+void rl_println_rl_tuple_2(rl_tuple_2 v) { rl_print_rl_tuple_2(v); printf("\n"); }
 typedef struct { int64_t field_0; int64_t field_1; rl_string field_2; } rl_tuple_3;
 void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(%ld, %ld, %.*s)", (long)v.field_0, (long)v.field_1, (int)v.field_2.len, v.field_2.data);
 }
@@ -144,6 +148,14 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("=== Tuples ===", 14));
     rl_tuple_3 t = (rl_tuple_3){ .field_0 = (int64_t)1, .field_1 = (int64_t)2, .field_2 = rl_str_literal("three", 5) };
     rl_println_rl_tuple_3(t);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Tuple Destruction ===", 25));
+    rl_tuple_2 pair = (rl_tuple_2){ .field_0 = (int64_t)42, .field_1 = rl_str_literal("hello", 5) };
+    rl_tuple_2 _r_0 = pair;
+    int64_t px = _r_0.field_0;
+    rl_string py = _r_0.field_1;
+    rl_println(px);
+    rl_println(py);
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Arrays ===", 14));
     rl_array nums = rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t));

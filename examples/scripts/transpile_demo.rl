@@ -149,7 +149,15 @@ println("=== Tuples ===")
 dec (int, int, string) t = (1, 2, "three")
 println(t)
 
-// --- 14. Array literal ---
+// --- 14. Tuple destruction ---
+println("")
+println("=== Tuple Destruction ===")
+dec (int, string) pair = (42, "hello")
+dec int px, string py = pair
+println(px)
+println(py)
+
+// --- 15. Array literal ---
 println("")
 println("=== Arrays ===")
 dec arr[int] nums = [10, 20, 30]
@@ -157,7 +165,7 @@ println(nums[0])
 nums[1] = 99
 println(nums[1])
 
-// --- 15. Record / struct ---
+// --- 16. Record / struct ---
 println("")
 println("=== Records ===")
 record Point {
@@ -169,7 +177,7 @@ println(p.x)
 p.x = 30
 println(p.x)
 
-// --- 16. Enum / tag ---
+// --- 17. Enum / tag ---
 println("")
 println("=== Enums ===")
 tag Color {
@@ -180,7 +188,7 @@ tag Color {
 dec Color c = Color.Red
 println(c)
 
-// --- 17. Match ---
+// --- 18. Match ---
 println("")
 println("=== Match ===")
 match (c) {
@@ -189,7 +197,7 @@ match (c) {
     _ => { println("other") }
 }
 
-// --- 18. Ok / Err / Error ---
+// --- 19. Ok / Err / Error ---
 println("")
 println("=== Results ===")
 dec result[int] r = ok(42)
@@ -197,7 +205,7 @@ println(r)
 dec result[int] r2 = err(1)
 println(r2)
 
-// --- 19. Error propagation ---
+// --- 20. Error propagation ---
 fn safe_div(int a, int b) -> result[int] {
     if (b == 0) { return err(0) }
     return ok(a / b)
@@ -205,7 +213,7 @@ fn safe_div(int a, int b) -> result[int] {
 dec result[int] divided = safe_div(10, 2)
 println(divided)
 
-// --- 20. Map ---
+// --- 21. Map ---
 println("")
 println("=== Maps ===")
 get map_len from std::collections
@@ -213,7 +221,7 @@ dec map[string, int] ages = { "alice": 30, "bob": 25 }
 println(ages)
 println(map_len(ages))
 
-// --- 21. Set ---
+// --- 22. Set ---
 println("")
 println("=== Sets ===")
 get set_len from std::collections
