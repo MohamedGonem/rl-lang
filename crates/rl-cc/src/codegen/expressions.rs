@@ -422,6 +422,21 @@ impl<'a> CCodegen<'a> {
             _ => {}
         }
 
+        let caller_expr = self.ast.exprs.get(caller);
+        if let ExpressionKind::ResolvedIdentifier { name, .. } = &caller_expr.kind
+            && let Some(ta) = self.var_types.get(name)
+                && let TypeAnnotation::Record(rname) | TypeAnnotation::CRecord(rname) = ta {
+                    let c_name = self.lookup(name);
+                    let c_fn = format!("impl_{}_{}", rname, method_name);
+                    self.writer.write(&format!("{}({}", c_fn, c_name));
+                    for arg in args.iter() {
+                        self.writer.write(", ");
+                        self.compile_expr(*arg)?;
+                    }
+                    self.writer.write(")");
+                    return Ok(());
+                }
+
         self.compile_expr(caller)?;
         self.writer.write(&format!(".{}(", method_name));
         for (i, arg) in args.iter().enumerate() {

@@ -357,6 +357,48 @@ impl<'a> CCodegen<'a> {
                     ));
                 }
             }
+            StatementKind::ResolvedImplBlock { record, methods } => {
+                for m in methods {
+                    if let StatementKind::ResolvedFunctionDeclaration {
+                        name,
+                        params,
+                        return_type,
+                        body,
+                        ..
+                    } = &m.kind
+                    {
+                        let c_ret = type_to_c(return_type);
+                        let c_fn_name = format!("impl_{}_{}", record, name);
+                        self.writer.write_indent();
+                        self.writer
+                            .write(&format!("{} {}(", c_ret, c_fn_name));
+
+                        let c_params: Vec<String> = params
+                            .iter()
+                            .map(|p| {
+                                let c_type = type_to_c(&p.param_type);
+                                let c_name = mangle(&p.param_name);
+                                format!("{} {}", c_type, c_name)
+                            })
+                            .collect();
+                        self.writer.write(&c_params.join(", "));
+                        self.writer.write(") {\n");
+                        self.writer.indent();
+
+                        self.push_scope();
+                        for p in params {
+                            self.declare(&p.param_name, &mangle(&p.param_name));
+                        }
+                        for s in body {
+                            self.compile_statement(s)?;
+                        }
+                        self.pop_scope();
+                        self.writer.dedent();
+                        self.writer.write_indent();
+                        self.writer.write("}\n\n");
+                    }
+                }
+            }
             _ => {}
         }
         Ok(())

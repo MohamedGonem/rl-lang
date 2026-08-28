@@ -44,10 +44,16 @@ impl<'a> CCodegen<'a> {
             )
         });
 
-        // Hoist function declarations before main
+        // Hoist function declarations and impl methods before main
         for stmt in statements {
-            if matches!(&stmt.kind, StatementKind::ResolvedFunctionDeclaration { .. }) {
-                self.compile_statement(stmt)?;
+            match &stmt.kind {
+                StatementKind::ResolvedFunctionDeclaration { .. } => {
+                    self.compile_statement(stmt)?;
+                }
+                StatementKind::ResolvedImplBlock { .. } => {
+                    self.compile_statement(stmt)?;
+                }
+                _ => {}
             }
         }
 
