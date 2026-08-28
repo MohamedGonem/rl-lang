@@ -205,5 +205,21 @@ fn safe_div(int a, int b) -> result[int] {
 dec result[int] divided = safe_div(10, 2)
 println(divided)
 
+// --- 20. Map ---
+println("")
+println("=== Maps ===")
+get map_len from std::collections
+dec map[string, int] ages = { "alice": 30, "bob": 25 }
+println(ages)
+println(map_len(ages))
+
+// --- 21. Set ---
+println("")
+println("=== Sets ===")
+get set_len from std::collections
+dec set[int] s = { 1, 2, 3 }
+println(s)
+println(set_len(s))
+
 println("")
 println("done")

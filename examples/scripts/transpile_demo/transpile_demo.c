@@ -180,6 +180,21 @@ int main(int argc, char **argv) {
     rl_result divided = safe_div((int64_t)10, (int64_t)2);
     rl_println(divided);
     rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Maps ===", 12));
+    rl_map ages = rl_map_new();
+    rl_map_set(&ages, "alice", (int64_t)30);
+    rl_map_set(&ages, "bob", (int64_t)25);
+    rl_println(ages);
+    rl_println(rl_map_len(ages));
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Sets ===", 12));
+    rl_set s = rl_set_new();
+    rl_set_add(&s, (int64_t)1);
+    rl_set_add(&s, (int64_t)2);
+    rl_set_add(&s, (int64_t)3);
+    rl_println(s);
+    rl_println(rl_set_len(s));
+    rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("done", 4));
     return 0;
 }
