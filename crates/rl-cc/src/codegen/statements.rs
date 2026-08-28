@@ -227,6 +227,114 @@ impl<'a> CCodegen<'a> {
                 self.compile_expr(*value)?;
                 self.writer.write(";\n");
             }
+            StatementKind::ResolvedMap {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(name.clone(), type_annotation.clone());
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("rl_map {} = rl_map_new();\n", c_name));
+                let map_expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::MapLiteral(entries) = &map_expr.kind {
+                    for (key_id, val_id) in entries {
+                        let key_expr = self.ast.exprs.get(*key_id);
+                        if let ExpressionKind::String(key_str) = &key_expr.kind {
+                            self.writer.write_indent();
+                            self.writer.write(&format!(
+                                "rl_map_set(&{}, \"{}\", ",
+                                c_name, key_str
+                            ));
+                            self.compile_expr(*val_id)?;
+                            self.writer.write(");\n");
+                        }
+                    }
+                }
+            }
+            StatementKind::ResolvedConstantMap {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(name.clone(), type_annotation.clone());
+                self.writer.write_indent();
+                self.writer.write(&format!(
+                    "const rl_map {} = rl_map_new();\n",
+                    c_name
+                ));
+                let map_expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::MapLiteral(entries) = &map_expr.kind {
+                    for (key_id, val_id) in entries {
+                        let key_expr = self.ast.exprs.get(*key_id);
+                        if let ExpressionKind::String(key_str) = &key_expr.kind {
+                            self.writer.write_indent();
+                            self.writer.write(&format!(
+                                "rl_map_set((rl_map*)&{}, \"{}\", ",
+                                c_name, key_str
+                            ));
+                            self.compile_expr(*val_id)?;
+                            self.writer.write(");\n");
+                        }
+                    }
+                }
+            }
+            StatementKind::ResolvedSet {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(name.clone(), type_annotation.clone());
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("rl_set {} = rl_set_new();\n", c_name));
+                let set_expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::SetLiteral(items) = &set_expr.kind {
+                    for item_id in items {
+                        self.writer.write_indent();
+                        self.writer
+                            .write(&format!("rl_set_add(&{}, ", c_name));
+                        self.compile_expr(*item_id)?;
+                        self.writer.write(");\n");
+                    }
+                }
+            }
+            StatementKind::ResolvedConstantSet {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_name = mangle(name);
+                self.declare(name, &c_name);
+                self.var_types.insert(name.clone(), type_annotation.clone());
+                self.writer.write_indent();
+                self.writer.write(&format!(
+                    "const rl_set {} = rl_set_new();\n",
+                    c_name
+                ));
+                let set_expr = self.ast.exprs.get(*value);
+                if let ExpressionKind::SetLiteral(items) = &set_expr.kind {
+                    for item_id in items {
+                        self.writer.write_indent();
+                        self.writer.write(&format!(
+                            "rl_set_add((rl_set*)&{}, ",
+                            c_name
+                        ));
+                        self.compile_expr(*item_id)?;
+                        self.writer.write(");\n");
+                    }
+                }
+            }
             _ => {}
         }
         Ok(())

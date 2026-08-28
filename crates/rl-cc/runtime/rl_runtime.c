@@ -55,6 +55,106 @@ rl_array rl_arr_from_vals(const void *vals, uint64_t count, int32_t elem_size) {
     return arr;
 }
 
+// ---- map type ----
+
+rl_map rl_map_new(void) {
+    rl_map m = { .entries = NULL, .len = 0, .cap = 0 };
+    return m;
+}
+
+static void rl_map_grow(rl_map *m, uint64_t needed) {
+    if (m->cap >= needed) return;
+    uint64_t new_cap = m->cap == 0 ? 8 : m->cap * 2;
+    while (new_cap < needed) new_cap *= 2;
+    m->entries = realloc(m->entries, new_cap * sizeof(rl_map_entry));
+    m->cap = new_cap;
+}
+
+void rl_map_set(rl_map *m, const char *key, int64_t val) {
+    for (uint64_t i = 0; i < m->len; i++) {
+        if (strcmp(m->entries[i].key, key) == 0) {
+            m->entries[i].value = val;
+            return;
+        }
+    }
+    rl_map_grow(m, m->len + 1);
+    m->entries[m->len].key = strdup(key);
+    m->entries[m->len].value = val;
+    m->len++;
+}
+
+int64_t rl_map_get(rl_map m, const char *key) {
+    for (uint64_t i = 0; i < m.len; i++) {
+        if (strcmp(m.entries[i].key, key) == 0) {
+            return m.entries[i].value;
+        }
+    }
+    fprintf(stderr, "error: key '%s' not found in map\n", key);
+    abort();
+}
+
+bool rl_map_contains(rl_map m, const char *key) {
+    for (uint64_t i = 0; i < m.len; i++) {
+        if (strcmp(m.entries[i].key, key) == 0) return true;
+    }
+    return false;
+}
+
+uint64_t rl_map_len(rl_map m) { return m.len; }
+
+void rl_map_remove(rl_map *m, const char *key) {
+    for (uint64_t i = 0; i < m->len; i++) {
+        if (strcmp(m->entries[i].key, key) == 0) {
+            free(m->entries[i].key);
+            m->entries[i] = m->entries[m->len - 1];
+            m->len--;
+            return;
+        }
+    }
+}
+
+// ---- set type ----
+
+rl_set rl_set_new(void) {
+    rl_set s = { .data = NULL, .len = 0, .cap = 0 };
+    return s;
+}
+
+static void rl_set_grow(rl_set *s, uint64_t needed) {
+    if (s->cap >= needed) return;
+    uint64_t new_cap = s->cap == 0 ? 8 : s->cap * 2;
+    while (new_cap < needed) new_cap *= 2;
+    s->data = realloc(s->data, new_cap * sizeof(int64_t));
+    s->cap = new_cap;
+}
+
+void rl_set_add(rl_set *s, int64_t val) {
+    for (uint64_t i = 0; i < s->len; i++) {
+        if (s->data[i] == val) return;
+    }
+    rl_set_grow(s, s->len + 1);
+    s->data[s->len++] = val;
+}
+
+bool rl_set_contains(rl_set s, int64_t val) {
+    for (uint64_t i = 0; i < s.len; i++) {
+        if (s.data[i] == val) return true;
+    }
+    return false;
+}
+
+uint64_t rl_set_len(rl_set s) { return s.len; }
+
+void rl_set_remove(rl_set *s, int64_t val) {
+    for (uint64_t i = 0; i < s->len; i++) {
+        if (s->data[i] == val) {
+            s->data[i] = s->data[s->len - 1];
+            s->len--;
+            return;
+        }
+    }
+}
+
 // ---- print functions ----
 void rl_print_int64(int64_t v) { printf("%ld", v); }
 void rl_print_float64(double v) { printf("%g", v); }
@@ -79,6 +179,34 @@ void rl_print_result(rl_result v) {
 }
 void rl_println_result(rl_result v) {
     rl_print_result(v);
+    printf("\n");
+}
+
+void rl_print_rl_map(rl_map v) {
+    printf("{");
+    for (uint64_t i = 0; i < v.len; i++) {
+        if (i > 0) printf(", ");
+        printf("\"%s\": %ld", v.entries[i].key, (long)v.entries[i].value);
+    }
+    printf("}");
+}
+
+void rl_println_rl_map(rl_map v) {
+    rl_print_rl_map(v);
+    printf("\n");
+}
+
+void rl_print_rl_set(rl_set v) {
+    printf("{");
+    for (uint64_t i = 0; i < v.len; i++) {
+        if (i > 0) printf(", ");
+        printf("%ld", (long)v.data[i]);
+    }
+    printf("}");
+}
+
+void rl_println_rl_set(rl_set v) {
+    rl_print_rl_set(v);
     printf("\n");
 }
 

@@ -145,6 +145,38 @@ impl<'a> CCodegen<'a> {
                 }
                 self.writer.write(&format!("}}, {}, (int32_t)sizeof(int64_t))", elems.len()));
             }
+            ExpressionKind::MapLiteral(entries) => {
+                let temp = self.temp_var();
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("rl_map {} = rl_map_new();\n", temp));
+                for (key_id, val_id) in entries {
+                    let key_expr = self.ast.exprs.get(*key_id);
+                    if let ExpressionKind::String(key_str) = &key_expr.kind {
+                        self.writer.write_indent();
+                        self.writer.write(&format!(
+                            "rl_map_set(&{}, \"{}\", ",
+                            temp, key_str
+                        ));
+                        self.compile_expr(*val_id)?;
+                        self.writer.write(");\n");
+                    }
+                }
+                self.writer.write(&temp);
+            }
+            ExpressionKind::SetLiteral(items) => {
+                let temp = self.temp_var();
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("rl_set {} = rl_set_new();\n", temp));
+                for item_id in items {
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_set_add(&{}, ", temp));
+                    self.compile_expr(*item_id)?;
+                    self.writer.write(");\n");
+                }
+                self.writer.write(&temp);
+            }
             ExpressionKind::TupleLiteral(elems) => {
                 let tuple_name = format!("rl_tuple_{}", elems.len());
                 self.writer.write(&format!("({}){{ ", tuple_name));
@@ -315,6 +347,30 @@ impl<'a> CCodegen<'a> {
             }
             "error" => {
                 self.writer.write("rl_error(");
+                if !args.is_empty() {
+                    self.compile_expr(args[0])?;
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "map_len" => {
+                self.writer.write("rl_map_len(");
+                if !args.is_empty() {
+                    self.compile_expr(args[0])?;
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "set_len" => {
+                self.writer.write("rl_set_len(");
+                if !args.is_empty() {
+                    self.compile_expr(args[0])?;
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "len" => {
+                self.writer.write("rl_str_len(");
                 if !args.is_empty() {
                     self.compile_expr(args[0])?;
                 }

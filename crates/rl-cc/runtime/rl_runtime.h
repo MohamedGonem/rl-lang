@@ -45,6 +45,44 @@ typedef struct {
 
 rl_array rl_arr_from_vals(const void *vals, uint64_t count, int32_t elem_size);
 
+// ---- map type ----
+
+typedef struct {
+    char *key;
+    int64_t value;
+} rl_map_entry;
+
+typedef struct {
+    rl_map_entry *entries;
+    uint64_t len;
+    uint64_t cap;
+} rl_map;
+
+rl_map rl_map_new(void);
+void rl_map_set(rl_map *m, const char *key, int64_t val);
+int64_t rl_map_get(rl_map m, const char *key);
+bool rl_map_contains(rl_map m, const char *key);
+uint64_t rl_map_len(rl_map m);
+void rl_map_remove(rl_map *m, const char *key);
+void rl_print_rl_map(rl_map v);
+void rl_println_rl_map(rl_map v);
+
+// ---- set type ----
+
+typedef struct {
+    int64_t *data;
+    uint64_t len;
+    uint64_t cap;
+} rl_set;
+
+rl_set rl_set_new(void);
+void rl_set_add(rl_set *s, int64_t val);
+bool rl_set_contains(rl_set s, int64_t val);
+uint64_t rl_set_len(rl_set s);
+void rl_set_remove(rl_set *s, int64_t val);
+void rl_print_rl_set(rl_set v);
+void rl_println_rl_set(rl_set v);
+
 // ---- print functions ----
 
 void rl_print_int64(int64_t v);
@@ -79,6 +117,8 @@ void rl_println_result(rl_result v);
     char:     rl_print_char, \
     rl_string: rl_print_str, \
     rl_result: rl_print_result, \
+    rl_map:   rl_print_rl_map, \
+    rl_set:   rl_print_rl_set, \
     default:  rl_print_ptr \
 )(x)
 
@@ -97,6 +137,8 @@ void rl_println_result(rl_result v);
     char:     rl_println_char, \
     rl_string: rl_println_str, \
     rl_result: rl_println_result, \
+    rl_map:   rl_println_rl_map, \
+    rl_set:   rl_println_rl_set, \
     default:  rl_println_ptr \
 )(x)
 
