@@ -1,3 +1,6 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "rl_runtime.h"
 
 rl_string rl_str_literal(const char *s, uint64_t len) {
