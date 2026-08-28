@@ -399,6 +399,86 @@ impl<'a> CCodegen<'a> {
                     }
                 }
             }
+            StatementKind::ResolvedForEach {
+                variable,
+                iterable,
+                body,
+                ..
+            } => {
+                let arr_temp = self.temp_var();
+                let idx_temp = self.temp_var();
+                self.writer.write_indent();
+                self.writer.write(&format!("rl_array {} = ", arr_temp));
+                self.compile_expr(*iterable)?;
+                self.writer.write(";\n");
+                self.writer.write_indent();
+                self.writer
+                    .write(&format!("uint64_t {} = 0;\n", idx_temp));
+                self.writer.write_indent();
+                self.writer.write(&format!(
+                    "for (; {} < {}.len; {}++) {{\n",
+                    idx_temp, arr_temp, idx_temp
+                ));
+                self.writer.indent();
+                let elem_type = TypeAnnotation::Int;
+                let c_type = type_to_c(&elem_type);
+                let c_name = mangle(variable);
+                self.declare(variable, &c_name);
+                self.var_types.insert(variable.clone(), elem_type);
+                self.writer.write_indent();
+                self.writer.write(&format!(
+                    "{} {} = (({}*){}.data)[{}];\n",
+                    c_type, c_name, c_type, arr_temp, idx_temp
+                ));
+                for s in body {
+                    self.compile_statement(s)?;
+                }
+                self.writer.dedent();
+                self.writer.write_indent();
+                self.writer.write("}\n");
+            }
+            StatementKind::ResolvedForRange {
+                variable,
+                range,
+                body,
+                ..
+            } => {
+                let items = match &range.kind {
+                    StatementKind::Range(items) => items.clone(),
+                    _ => vec![],
+                };
+                if !items.is_empty() {
+                    let first = items[0];
+                    let last = items[items.len() - 1];
+                    let c_name = mangle(variable);
+                    self.declare(variable, &c_name);
+                    self.var_types
+                        .insert(variable.clone(), TypeAnnotation::Int);
+                    self.writer.write_indent();
+                    self.writer.write(&format!(
+                        "for (int64_t {} = {}; {} < {}; {}++) {{\n",
+                        c_name, first, c_name, last + 1, c_name
+                    ));
+                    self.writer.indent();
+                    for s in body {
+                        self.compile_statement(s)?;
+                    }
+                    self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
+                }
+            }
+            StatementKind::Loop(body) => {
+                self.writer.write_indent();
+                self.writer.write("while (1) {\n");
+                self.writer.indent();
+                for s in body {
+                    self.compile_statement(s)?;
+                }
+                self.writer.dedent();
+                self.writer.write_indent();
+                self.writer.write("}\n");
+            }
             _ => {}
         }
         Ok(())
