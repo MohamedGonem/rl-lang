@@ -31,6 +31,10 @@ void greet(rl_string name) {
     rl_println(name);
 }
 
+int64_t impl_Point_sum(rl_Record_Point a) {
+    return a.x + a.y;
+}
+
 rl_result safe_div(int64_t a, int64_t b) {
     if (b == (int64_t)0) {
         return rl_err((int64_t)0);
@@ -168,6 +172,9 @@ int main(int argc, char **argv) {
     rl_println(p.x);
     p.x = (int64_t)30;
     rl_println(p.x);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Impl Methods ===", 20));
+    rl_println(impl_Point_sum(p));
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Enums ===", 13));
     int64_t /* Color */ c = RL_TAG_COLOR_RED;

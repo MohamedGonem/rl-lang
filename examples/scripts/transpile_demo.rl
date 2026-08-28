@@ -177,7 +177,17 @@ println(p.x)
 p.x = 30
 println(p.x)
 
-// --- 17. Enum / tag ---
+// --- 17. Impl methods ---
+println("")
+println("=== Impl Methods ===")
+impl Point {
+    fn sum(Point a) -> int {
+        return a.x + a.y
+    }
+}
+println(p.sum())
+
+// --- 18. Enum / tag ---
 println("")
 println("=== Enums ===")
 tag Color {
@@ -188,7 +198,7 @@ tag Color {
 dec Color c = Color.Red
 println(c)
 
-// --- 18. Match ---
+// --- 19. Match ---
 println("")
 println("=== Match ===")
 match (c) {
@@ -197,7 +207,7 @@ match (c) {
     _ => { println("other") }
 }
 
-// --- 19. Ok / Err / Error ---
+// --- 20. Ok / Err / Error ---
 println("")
 println("=== Results ===")
 dec result[int] r = ok(42)
@@ -205,7 +215,7 @@ println(r)
 dec result[int] r2 = err(1)
 println(r2)
 
-// --- 20. Error propagation ---
+// --- 21. Error propagation ---
 fn safe_div(int a, int b) -> result[int] {
     if (b == 0) { return err(0) }
     return ok(a / b)
@@ -213,7 +223,7 @@ fn safe_div(int a, int b) -> result[int] {
 dec result[int] divided = safe_div(10, 2)
 println(divided)
 
-// --- 21. Map ---
+// --- 22. Map ---
 println("")
 println("=== Maps ===")
 get map_len from std::collections
@@ -221,7 +231,7 @@ dec map[string, int] ages = { "alice": 30, "bob": 25 }
 println(ages)
 println(map_len(ages))
 
-// --- 22. Set ---
+// --- 23. Set ---
 println("")
 println("=== Sets ===")
 get set_len from std::collections
