@@ -1392,7 +1392,7 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "is_bool" | "is_int" | "is_float" | "is_string" | "is_null" | "is_char" | "is_byte" | "is_error" => {
-                self.writer.write("1");
+                self.writer.write("rl_ok_bool(true)");
                 return Ok(());
             }
             // ---- random ----

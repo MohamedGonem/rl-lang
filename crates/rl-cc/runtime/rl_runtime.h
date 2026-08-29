@@ -362,6 +362,7 @@ rl_string rl_process_with_exec(rl_string env, rl_string cmd);
 int64_t rl_process_with_exec_code(rl_string env, rl_string cmd);
 rl_array rl_process_with_exec_lines(rl_string env, rl_string cmd);
 rl_array rl_process_args(void);
+void rl_store_args(int argc, char **argv);
 
 // ---- time ----
 rl_string rl_time_format_time(int64_t timestamp, rl_string pattern);

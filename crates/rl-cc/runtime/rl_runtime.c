@@ -1208,8 +1208,29 @@ rl_array rl_process_with_exec_lines(rl_string env, rl_string cmd) {
     return rl_process_exec_lines(combined);
 }
 
+static int _rl_stored_argc = 0;
+static char **_rl_stored_argv = NULL;
+
+void rl_store_args(int argc, char **argv) {
+    _rl_stored_argc = argc;
+    _rl_stored_argv = argv;
+}
+
 rl_array rl_process_args(void) {
-    rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
+    if (!_rl_stored_argv) {
+        rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
+        return arr;
+    }
+    uint64_t len = (uint64_t)(_rl_stored_argc > 0 ? _rl_stored_argc - 1 : 0);
+    rl_string *buf = malloc(len * sizeof(rl_string));
+    for (uint64_t i = 0; i < len; i++) {
+        const char *s = _rl_stored_argv[i + 1];
+        uint64_t slen = strlen(s);
+        char *sdup = malloc(slen + 1);
+        memcpy(sdup, s, slen + 1);
+        buf[i] = (rl_string){ .data = sdup, .len = slen };
+    }
+    rl_array arr = { .data = buf, .len = len, .cap = len, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
     return arr;
 }
 
@@ -1538,7 +1559,7 @@ rl_result rl_map_remove_s(rl_map m, rl_string key) {
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
     rl_map_remove(&m, buf);
-    return rl_ok_i64(1);
+    return rl_ok(m);
 }
 
 rl_result rl_map_get_s(rl_map m, rl_string key) {

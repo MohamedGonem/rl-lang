@@ -109,6 +109,7 @@ rl_result safe_div(int64_t a, int64_t b) {
 }
 
 int main(int argc, char **argv) {
+    rl_store_args(argc, argv);
     int64_t x = (int64_t)10;
     int64_t y = (int64_t)3;
     int64_t sum = x + y;

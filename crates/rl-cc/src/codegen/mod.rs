@@ -69,6 +69,7 @@ impl<'a> CCodegen<'a> {
             self.is_script_mode = true;
             self.writer.write("int main(int argc, char **argv) {\n");
             self.writer.indent();
+            self.writer.writeln("rl_store_args(argc, argv);");
         }
 
         for stmt in statements {

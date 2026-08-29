@@ -452,6 +452,31 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(&format!("rl_array {} = ", arr_temp));
                 self.compile_expr(*iterable)?;
                 self.writer.write(";\n");
+
+                // Resolve element type from the iterable
+                let iter_expr = self.ast.exprs.get(*iterable);
+                let elem_type = match &iter_expr.kind {
+                    ExpressionKind::ResolvedIdentifier { name, .. } => {
+                        match self.var_types.get(name) {
+                            Some(TypeAnnotation::Array(inner)) => (**inner).clone(),
+                            Some(ta) => ta.clone(),
+                            None => TypeAnnotation::Int,
+                        }
+                    }
+                    ExpressionKind::ArrayLiteral(elems) if !elems.is_empty() => {
+                        let first = self.ast.exprs.get(elems[0]);
+                        match &first.kind {
+                            ExpressionKind::Integer(_) => TypeAnnotation::Int,
+                            ExpressionKind::Float(_) => TypeAnnotation::Float,
+                            ExpressionKind::Bool(_) => TypeAnnotation::Bool,
+                            ExpressionKind::String(_) => TypeAnnotation::String,
+                            _ => TypeAnnotation::Int,
+                        }
+                    }
+                    _ => TypeAnnotation::Int,
+                };
+                let c_type = type_to_c(&elem_type);
+
                 self.writer.write_indent();
                 self.writer
                     .write(&format!("uint64_t {} = 0;\n", idx_temp));
@@ -461,8 +486,6 @@ impl<'a> CCodegen<'a> {
                     idx_temp, arr_temp, idx_temp
                 ));
                 self.writer.indent();
-                let elem_type = TypeAnnotation::Int;
-                let c_type = type_to_c(&elem_type);
                 let c_name = mangle(variable);
                 self.declare(variable, &c_name);
                 self.var_types.insert(variable.clone(), elem_type);
