@@ -281,6 +281,7 @@ impl<'a> CCodegen<'a> {
 
     pub fn compile_func_call(&mut self, path: &[String], args: &[ExprId]) -> Result<(), Error> {
         let func_name = path.last().map(|s| s.as_str()).unwrap_or("");
+        let _is_stdlib = path.first().map(|s| s.as_str()) == Some("std");
 
         match func_name {
             "println" | "print" => {
@@ -354,19 +355,19 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "map_len" => {
-                self.writer.write("rl_map_len(");
+                self.writer.write("rl_ok((int64_t)rl_map_len(");
                 if !args.is_empty() {
                     self.compile_expr(args[0])?;
                 }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "set_len" => {
-                self.writer.write("rl_set_len(");
+                self.writer.write("rl_ok((int64_t)rl_set_len(");
                 if !args.is_empty() {
                     self.compile_expr(args[0])?;
                 }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "len" => {
@@ -377,18 +378,25 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
-            // ---- math (single arg) ----
+            // ---- math (single arg, raw return) ----
             "sin" | "cos" | "tan" | "asin" | "acos" | "atan"
-            | "sqrt" | "exp" | "log2" | "log10" | "ceil" | "floor" | "round" => {
+            | "exp" | "sign" | "degrees" | "radians" => {
                 self.writer.write(&format!("{}(", func_name));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
-            "abs" => {
-                self.writer.write("(int64_t)llabs(");
+            // ---- math (single arg, ok()-wrapped) ----
+            "sqrt" | "log2" | "log10" | "ceil" | "floor" | "round" => {
+                self.writer.write(&format!("rl_ok({}(", func_name));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
+                return Ok(());
+            }
+            "abs" => {
+                self.writer.write("rl_ok((int64_t)llabs(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write("))");
                 return Ok(());
             }
             "hypot" => {
@@ -412,17 +420,17 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "pow" => {
-                self.writer.write("pow(");
+                self.writer.write("rl_ok(pow(");
                 if args.len() >= 2 {
                     self.compile_expr(args[0])?;
                     self.writer.write(", ");
                     self.compile_expr(args[1])?;
                 }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "log" => {
-                self.writer.write("(log(");
+                self.writer.write("rl_ok((log(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") / log(");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -481,13 +489,15 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "mod" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" % ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "max" => {
-                self.writer.write("((");
+                self.writer.write("rl_ok(((");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") > (");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -495,11 +505,11 @@ impl<'a> CCodegen<'a> {
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") : (");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write("))");
+                self.writer.write(")))");
                 return Ok(());
             }
             "min" => {
-                self.writer.write("((");
+                self.writer.write("rl_ok(((");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") < (");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -507,11 +517,11 @@ impl<'a> CCodegen<'a> {
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") : (");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write("))");
+                self.writer.write(")))");
                 return Ok(());
             }
             "clamp" => {
-                self.writer.write("((");
+                self.writer.write("rl_ok(((");
                 if args.len() >= 3 { self.compile_expr(args[0])?; }
                 self.writer.write(") < (");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -525,7 +535,7 @@ impl<'a> CCodegen<'a> {
                 if args.len() >= 3 { self.compile_expr(args[2])?; }
                 self.writer.write(") : (");
                 if args.len() >= 3 { self.compile_expr(args[0])?; }
-                self.writer.write(")))");
+                self.writer.write("))))");
                 return Ok(());
             }
             // ---- math (runtime needed) ----
@@ -538,59 +548,69 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
-            // ---- bitwise ----
+            // ---- bitwise (all ok()-wrapped) ----
             "bit_and" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" & ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "bit_or" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" | ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "bit_xor" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" ^ ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "bit_not" => {
-                self.writer.write("~(");
+                self.writer.write("rl_ok(~(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "bit_shift_left" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" << ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "bit_shift_right" => {
+                self.writer.write("rl_ok(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(" >> ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "count_bits" => {
-                self.writer.write("__builtin_popcountll(");
+                self.writer.write("rl_ok(__builtin_popcountll(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "leading_zeros" => {
-                self.writer.write("__builtin_clzll(");
+                self.writer.write("rl_ok(__builtin_clzll(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "trailing_zeros" => {
-                self.writer.write("__builtin_ctzll(");
+                self.writer.write("rl_ok(__builtin_ctzll(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             // ---- result ----
@@ -689,12 +709,12 @@ impl<'a> CCodegen<'a> {
             }
             // ---- path ----
             "path_exists" => {
-                self.writer.write("(access(");
+                self.writer.write("((bool)(access(");
                 if !args.is_empty() {
                     self.compile_expr(args[0])?;
                     self.writer.write(".data");
                 }
-                self.writer.write(", F_OK) == 0)");
+                self.writer.write(", F_OK) == 0))");
                 return Ok(());
             }
             // ---- fs ----
@@ -868,13 +888,13 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "slice" => {
-                self.writer.write("rl_str_slice(");
+                self.writer.write("rl_ok(rl_str_slice(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
                 self.writer.write(", ");
                 if args.len() >= 3 { self.compile_expr(args[2])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "reverse" => {
@@ -896,19 +916,19 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "char_at" => {
-                self.writer.write("rl_str_char_at(");
+                self.writer.write("rl_ok(rl_str_char_at(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "join" => {
-                self.writer.write("rl_str_join(");
+                self.writer.write("rl_ok(rl_str_join(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "split" => {
@@ -1106,94 +1126,94 @@ impl<'a> CCodegen<'a> {
             }
             // ---- fs ----
             "file_size" => {
-                self.writer.write("rl_fs_file_size(");
+                self.writer.write("rl_ok(rl_fs_file_size(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "file_modified" => {
-                self.writer.write("rl_fs_file_modified(");
+                self.writer.write("rl_ok(rl_fs_file_modified(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "copy_file" => {
-                self.writer.write("rl_fs_copy_file(");
+                self.writer.write("rl_ok(rl_fs_copy_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "mkdir_all" => {
-                self.writer.write("rl_fs_mkdir_all(");
+                self.writer.write("rl_ok(rl_fs_mkdir_all(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rmdir_all" => {
-                self.writer.write("rl_fs_rmdir_all(");
+                self.writer.write("rl_ok(rl_fs_rmdir_all(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "list_dir" => {
-                self.writer.write("rl_fs_list_dir(");
+                self.writer.write("rl_ok(rl_fs_list_dir(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             // ---- process ----
             "cwd" => {
-                self.writer.write("rl_process_cwd()");
+                self.writer.write("rl_ok(rl_process_cwd())");
                 return Ok(());
             }
             "set_cwd" => {
-                self.writer.write("rl_process_set_cwd(");
+                self.writer.write("rl_ok(rl_process_set_cwd(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "exec" => {
-                self.writer.write("rl_process_exec(");
+                self.writer.write("rl_ok(rl_process_exec(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "exec_code" => {
-                self.writer.write("rl_process_exec_code(");
+                self.writer.write("rl_ok(rl_process_exec_code(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "exec_lines" => {
-                self.writer.write("rl_process_exec_lines(");
+                self.writer.write("rl_ok(rl_process_exec_lines(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "with_exec" => {
-                self.writer.write("rl_process_with_exec(");
+                self.writer.write("rl_ok(rl_process_with_exec(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "with_exec_code" => {
-                self.writer.write("rl_process_with_exec_code(");
+                self.writer.write("rl_ok(rl_process_with_exec_code(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "with_exec_lines" => {
-                self.writer.write("rl_process_with_exec_lines(");
+                self.writer.write("rl_ok(rl_process_with_exec_lines(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "args" => {
@@ -1202,76 +1222,76 @@ impl<'a> CCodegen<'a> {
             }
             // ---- time (extended) ----
             "format_time" => {
-                self.writer.write("rl_time_format_time(");
+                self.writer.write("rl_ok(rl_time_format_time(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "format_date_str" => {
-                self.writer.write("rl_time_format_date_str(");
+                self.writer.write("rl_ok(rl_time_format_date_str(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "format_time_str" => {
-                self.writer.write("rl_time_format_time_str(");
+                self.writer.write("rl_ok(rl_time_format_time_str(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "time_parts" => {
-                self.writer.write("rl_time_parts(");
+                self.writer.write("rl_ok(rl_time_parts(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             // ---- io (extended) ----
             "read_file" => {
-                self.writer.write("rl_io_read_file(");
+                self.writer.write("rl_ok(rl_io_read_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "read_lines" => {
-                self.writer.write("rl_io_read_lines(");
+                self.writer.write("rl_ok(rl_io_read_lines(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "read" => {
-                self.writer.write("rl_io_read()");
+                self.writer.write("rl_ok(rl_io_read())");
                 return Ok(());
             }
             "read_int" => {
-                self.writer.write("rl_io_read_int()");
+                self.writer.write("rl_ok(rl_io_read_int())");
                 return Ok(());
             }
             "read_float" => {
-                self.writer.write("rl_io_read_float()");
+                self.writer.write("rl_ok(rl_io_read_float())");
                 return Ok(());
             }
             "write_file" => {
-                self.writer.write("rl_io_write_file(");
+                self.writer.write("rl_ok(rl_io_write_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "append_file" => {
-                self.writer.write("rl_io_append_file(");
+                self.writer.write("rl_ok(rl_io_append_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "delete_file" => {
-                self.writer.write("rl_io_delete_file(");
+                self.writer.write("rl_ok(rl_io_delete_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "eprint" => {
@@ -1286,45 +1306,47 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
-            // ---- types ----
+            // ---- types (all ok()-wrapped) ----
             "to_string" => {
-                self.writer.write("rl_types_to_string(");
+                self.writer.write("rl_ok(rl_types_to_string(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "to_bin" => {
-                self.writer.write("rl_types_to_bin(");
+                self.writer.write("rl_ok(rl_types_to_bin(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "to_hex" => {
-                self.writer.write("rl_types_to_hex(");
+                self.writer.write("rl_ok(rl_types_to_hex(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "to_oct" => {
-                self.writer.write("rl_types_to_oct(");
+                self.writer.write("rl_ok(rl_types_to_oct(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write("))");
+                return Ok(());
+            }
+            "to_int" => {
+                self.writer.write("rl_ok((int64_t)");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
-            "to_int" => {
-                self.writer.write("(int64_t)");
-                if !args.is_empty() { self.compile_expr(args[0])?; }
-                return Ok(());
-            }
             "to_float" => {
-                self.writer.write("(double)");
+                self.writer.write("rl_ok((double)");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "to_bool" => {
-                self.writer.write("((");
+                self.writer.write("rl_ok_bool((");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(") ? 1 : 0)");
+                self.writer.write(") ? true : false)");
                 return Ok(());
             }
             "is_bool" | "is_int" | "is_float" | "is_string" | "is_null" | "is_char" | "is_byte" | "is_error" => {
@@ -1359,68 +1381,68 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "rand_int_range" => {
-                self.writer.write("rl_rand_int_range(");
+                self.writer.write("rl_ok(rl_rand_int_range(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rand_float_range" => {
-                self.writer.write("rl_rand_float_range(");
+                self.writer.write("rl_ok(rl_rand_float_range(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rand_dice" => {
-                self.writer.write("rl_rand_dice(");
+                self.writer.write("rl_ok(rl_rand_dice(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rand_range" => {
-                self.writer.write("rl_rand_range(");
+                self.writer.write("rl_ok(rl_rand_range(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rand_range_step" => {
-                self.writer.write("rl_rand_range_step(");
+                self.writer.write("rl_ok(rl_rand_range_step(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
                 self.writer.write(", ");
                 if args.len() >= 3 { self.compile_expr(args[2])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "rand_string" => {
-                self.writer.write("rl_rand_string(");
+                self.writer.write("rl_ok(rl_rand_string(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             // ---- collections (extended) ----
             "set_add" => {
-                self.writer.write("rl_set_add(");
+                self.writer.write("rl_ok(rl_set_add_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "set_remove" => {
-                self.writer.write("rl_set_remove_i64(");
+                self.writer.write("rl_ok(rl_set_remove_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "set_contains" => {
-                self.writer.write("rl_set_contains_i64(");
+                self.writer.write("rl_set_contains_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1428,9 +1450,9 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "set_to_array" => {
-                self.writer.write("rl_set_to_array(");
+                self.writer.write("rl_ok(rl_set_to_array(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "map_contains" => {
@@ -1442,7 +1464,7 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "map_remove" => {
-                self.writer.write("rl_map_remove_val(");
+                self.writer.write("rl_map_remove_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1458,15 +1480,15 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "map_keys" => {
-                self.writer.write("rl_map_keys(");
+                self.writer.write("rl_ok(rl_map_keys(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "map_values" => {
-                self.writer.write("rl_map_values(");
+                self.writer.write("rl_ok(rl_map_values(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "map_clear" => {
@@ -1484,26 +1506,26 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "map_to_array" => {
-                self.writer.write("rl_map_to_array_s(");
+                self.writer.write("rl_ok(rl_map_to_array_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             // ---- array (extended, non-mutating) ----
             "arr_first" => {
-                self.writer.write("rl_arr_first_i64(");
+                self.writer.write("rl_arr_first(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_last" => {
-                self.writer.write("rl_arr_last_i64(");
+                self.writer.write("rl_arr_last(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_contains" => {
-                self.writer.write("rl_arr_contains_i64(");
+                self.writer.write("rl_arr_contains(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1511,7 +1533,7 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_index_of" => {
-                self.writer.write("rl_arr_index_of_i64(");
+                self.writer.write("rl_arr_index_of(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1519,37 +1541,37 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_reverse" => {
-                self.writer.write("rl_arr_reverse_i64(");
+                self.writer.write("rl_ok(rl_arr_reverse(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_concat" => {
-                self.writer.write("rl_arr_concat_i64(");
+                self.writer.write("rl_ok(rl_arr_concat(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_unique" => {
-                self.writer.write("rl_arr_unique_i64(");
+                self.writer.write("rl_ok(rl_arr_unique(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_slice" => {
-                self.writer.write("rl_arr_slice_i64(");
+                self.writer.write("rl_ok(rl_arr_slice(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
                 self.writer.write(", ");
                 if args.len() >= 3 { self.compile_expr(args[2])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_fill" => {
-                self.writer.write("rl_arr_fill_i64(");
+                self.writer.write("rl_arr_fill(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1557,7 +1579,7 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_range" => {
-                self.writer.write("rl_arr_range_i64(");
+                self.writer.write("rl_arr_range(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1567,43 +1589,43 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_sum" => {
-                self.writer.write("rl_arr_sum_i64(");
+                self.writer.write("rl_arr_sum(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_product" => {
-                self.writer.write("rl_arr_product_i64(");
+                self.writer.write("rl_arr_product(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_max" => {
-                self.writer.write("rl_arr_max_i64(");
+                self.writer.write("rl_arr_max(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_min" => {
-                self.writer.write("rl_arr_min_i64(");
+                self.writer.write("rl_arr_min(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_sort" => {
-                self.writer.write("rl_arr_sort_i64(");
+                self.writer.write("rl_ok(rl_arr_sort(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_flatten" => {
-                self.writer.write("rl_arr_flatten_i64(");
+                self.writer.write("rl_ok(rl_arr_flatten(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(")");
+                self.writer.write("))");
                 return Ok(());
             }
             "arr_push" => {
-                self.writer.write("rl_arr_push_i64(");
+                self.writer.write("rl_arr_push(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1611,13 +1633,13 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_pop" => {
-                self.writer.write("rl_arr_pop_i64(");
+                self.writer.write("rl_arr_pop(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "arr_insert" => {
-                self.writer.write("rl_arr_insert_i64(");
+                self.writer.write("rl_arr_insert(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
@@ -1627,7 +1649,7 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_remove" => {
-                self.writer.write("rl_arr_remove_i64(");
+                self.writer.write("rl_arr_remove(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }

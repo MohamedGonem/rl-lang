@@ -26,18 +26,69 @@ bool rl_str_eq(rl_string a, rl_string b) {
 
 // ---- result type ----
 
-rl_result rl_ok(int64_t value) {
-    rl_result r = { .is_ok = true, .data.ok_value = value, .err_code = 0 };
+rl_result rl_ok_null(void) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_NULL, .err_code = 0 };
     return r;
 }
 
-rl_result rl_err(int64_t value) {
-    rl_result r = { .is_ok = false, .data.err_value = value, .err_code = 0 };
+rl_result rl_ok_i64(int64_t v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_I64, .data.i64 = v, .err_code = 0 };
     return r;
 }
 
-rl_result rl_error(int64_t value) {
-    rl_result r = { .is_ok = false, .data.err_value = value, .err_code = -1 };
+rl_result rl_ok_f64(double v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_F64, .data.f64 = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_ok_bool(bool v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_BOOL, .data.boolean = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_ok_str(rl_string v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_STR, .data.str = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_ok_arr(rl_array v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_ARR, .data.arr = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_ok_map(rl_map v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_MAP, .data.map = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_ok_set(rl_set v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_SET, .data.set = v, .err_code = 0 };
+    return r;
+}
+
+static rl_result rl_make_err(int64_t code, const char *msg) {
+    rl_string s = rl_str_literal(msg, strlen(msg));
+    rl_result r = { .is_ok = false, .tag = RL_TAG_STR, .data.str = s, .err_code = (int32_t)code };
+    return r;
+}
+
+rl_result rl_err_msg(rl_string msg) {
+    rl_result r = { .is_ok = false, .tag = RL_TAG_STR, .data.str = msg, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_err_code(int64_t code, rl_string msg) {
+    rl_result r = { .is_ok = false, .tag = RL_TAG_STR, .data.str = msg, .err_code = (int32_t)code };
+    return r;
+}
+
+rl_result rl_err(int64_t v) {
+    rl_result r = { .is_ok = false, .tag = RL_TAG_I64, .data.i64 = v, .err_code = 0 };
+    return r;
+}
+
+rl_result rl_error(int64_t v) {
+    rl_result r = { .is_ok = false, .tag = RL_TAG_I64, .data.i64 = v, .err_code = -1 };
     return r;
 }
 
@@ -48,12 +99,18 @@ rl_array rl_arr_from_vals(const void *vals, uint64_t count, int32_t elem_size) {
     arr.len = count;
     arr.cap = count;
     arr.elem_size = elem_size;
+    arr.type_tag = RL_TAG_I64;
     if (count == 0) {
         arr.data = NULL;
     } else {
         arr.data = malloc(count * elem_size);
         memcpy(arr.data, vals, count * elem_size);
     }
+    return arr;
+}
+
+rl_array rl_arr_new(int32_t elem_size) {
+    rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = elem_size, .type_tag = RL_TAG_I64 };
     return arr;
 }
 
@@ -158,48 +215,98 @@ void rl_set_remove(rl_set *s, int64_t val) {
 }
 
 // ---- print functions ----
+
+static void rl_print_f64(double v) {
+    if (isnan(v)) { printf("NaN"); return; }
+    if (isinf(v) > 0) { printf("inf"); return; }
+    if (isinf(v) < 0) { printf("-inf"); return; }
+    char buf[64];
+    int best_prec = 17;
+    for (int prec = 1; prec <= 17; prec++) {
+        char tmp[64];
+        snprintf(tmp, sizeof(tmp), "%.*g", prec, v);
+        if (strtod(tmp, NULL) == v) {
+            best_prec = prec;
+            break;
+        }
+    }
+    snprintf(buf, sizeof(buf), "%.*g", best_prec, v);
+    printf("%s", buf);
+}
+
+static void rl_print_i64_val(int64_t v) { printf("%ld", v); }
+static void rl_print_f64_val(double v) { rl_print_f64(v); }
+static void rl_print_bool_val(bool v) { printf(v ? "true" : "false"); }
+static void rl_print_str_val(rl_string v) { printf("%.*s", (int)v.len, v.data); }
+static void rl_print_arr_val(rl_array v) { rl_print_rl_array(v); }
+static void rl_print_map_val(rl_map v) { rl_print_rl_map(v); }
+static void rl_print_set_val(rl_set v) { rl_print_rl_set(v); }
+
 void rl_print_int64(int64_t v) { printf("%ld", v); }
-void rl_print_float64(double v) { printf("%g", v); }
+void rl_print_float64(double v) { rl_print_f64(v); }
 void rl_print_bool(bool v) { printf(v ? "true" : "false"); }
 void rl_print_char(char v) { printf("%c", v); }
 void rl_print_str(rl_string v) { printf("%.*s", (int)v.len, v.data); }
 void rl_print_ptr(void *v) { printf("<ptr:%p>", v); }
+void rl_print_null(void) { printf("null"); }
 
 void rl_println_int64(int64_t v) { printf("%ld\n", v); }
-void rl_println_float64(double v) { printf("%g\n", v); }
+void rl_println_float64(double v) { rl_print_f64(v); printf("\n"); }
 void rl_println_bool(bool v) { printf("%s\n", v ? "true" : "false"); }
 void rl_println_char(char v) { printf("%c\n", v); }
 void rl_println_str(rl_string v) { printf("%.*s\n", (int)v.len, v.data); }
 void rl_println_ptr(void *v) { printf("<ptr:%p>\n", v); }
+void rl_println_null(void) { printf("null\n"); }
 
-void rl_print_result(rl_result v) {
+static void rl_print_result_inner(rl_result v) {
     if (v.is_ok) {
-        printf("ok(%ld)", (long)v.data.ok_value);
+        printf("ok(");
+        switch (v.tag) {
+            case RL_TAG_NULL: printf("null"); break;
+            case RL_TAG_I64: rl_print_i64_val(v.data.i64); break;
+            case RL_TAG_F64: rl_print_f64_val(v.data.f64); break;
+            case RL_TAG_BOOL: rl_print_bool_val(v.data.boolean); break;
+            case RL_TAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
+            case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
+            case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
+            case RL_TAG_SET: rl_print_set_val(v.data.set); break;
+        }
+        printf(")");
     } else {
-        printf("err(%ld)", (long)v.data.err_value);
+        printf("err(");
+        switch (v.tag) {
+            case RL_TAG_NULL: printf("null"); break;
+            case RL_TAG_I64: rl_print_i64_val(v.data.i64); break;
+            case RL_TAG_F64: rl_print_f64_val(v.data.f64); break;
+            case RL_TAG_BOOL: rl_print_bool_val(v.data.boolean); break;
+            case RL_TAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
+            case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
+            case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
+            case RL_TAG_SET: rl_print_set_val(v.data.set); break;
+        }
+        printf(")");
     }
 }
-void rl_println_result(rl_result v) {
-    rl_print_result(v);
-    printf("\n");
-}
+
+void rl_print_result(rl_result v) { rl_print_result_inner(v); }
+void rl_println_result(rl_result v) { rl_print_result_inner(v); printf("\n"); }
 
 void rl_print_rl_array(rl_array v) {
     printf("[");
-    if (v.elem_size == sizeof(int64_t)) {
-        int64_t *data = (int64_t *)v.data;
-        for (uint64_t i = 0; i < v.len; i++) {
-            if (i > 0) printf(", ");
-            printf("%ld", (long)data[i]);
+    for (uint64_t i = 0; i < v.len; i++) {
+        if (i > 0) printf(", ");
+        if (v.elem_size == sizeof(int64_t)) {
+            printf("%ld", (long)((int64_t *)v.data)[i]);
+        } else if (v.elem_size == sizeof(double)) {
+            { double fv = ((double *)v.data)[i]; rl_print_f64(fv); }
+        } else if (v.elem_size == sizeof(rl_string)) {
+            rl_string s = ((rl_string *)v.data)[i];
+            printf("%.*s", (int)s.len, s.data);
+        } else if (v.elem_size == sizeof(bool)) {
+            printf("%s", ((bool *)v.data)[i] ? "true" : "false");
+        } else {
+            printf("...");
         }
-    } else if (v.elem_size == sizeof(rl_string)) {
-        rl_string *data = (rl_string *)v.data;
-        for (uint64_t i = 0; i < v.len; i++) {
-            if (i > 0) printf(", ");
-            printf("\"%.*s\"", (int)data[i].len, data[i].data);
-        }
-    } else {
-        printf("...");
     }
     printf("]");
 }
@@ -213,7 +320,7 @@ void rl_print_rl_map(rl_map v) {
     printf("{");
     for (uint64_t i = 0; i < v.len; i++) {
         if (i > 0) printf(", ");
-        printf("\"%s\": %ld", v.entries[i].key, (long)v.entries[i].value);
+        printf("%s: %ld", v.entries[i].key, (long)v.entries[i].value);
     }
     printf("}");
 }
@@ -292,27 +399,16 @@ int64_t rl_time_now_ms(void) {
 
 // ---- fs ----
 
-int64_t rl_fs_mkdir(rl_string path) {
+rl_result rl_fs_mkdir(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
-    return mkdir(buf, 0755);
+    int rc = mkdir(buf, 0755);
+    if (rc == 0) return rl_ok_i64(0);
+    return rl_make_err(-1, "mkdir failed");
 }
 
 // ---- string ----
-
-static uint64_t rl_str_utf8_len(const char *s, uint64_t byte_len) {
-    uint64_t count = 0;
-    for (uint64_t i = 0; i < byte_len; ) {
-        unsigned char c = (unsigned char)s[i];
-        if (c < 0x80) { i += 1; }
-        else if (c < 0xE0) { i += 2; }
-        else if (c < 0xF0) { i += 3; }
-        else { i += 4; }
-        count++;
-    }
-    return count;
-}
 
 rl_string rl_str_to_upper(rl_string s) {
     char *buf = malloc(s.len + 1);
@@ -405,7 +501,6 @@ rl_string rl_str_replace(rl_string s, rl_string from, rl_string to) {
         rl_string result = { .data = buf, .len = s.len, .rc = 1 };
         return result;
     }
-    // count occurrences
     uint64_t count = 0;
     uint64_t pos = 0;
     while (pos <= s.len) {
@@ -423,10 +518,7 @@ rl_string rl_str_replace(rl_string s, rl_string from, rl_string to) {
         rl_string result = { .data = buf, .len = s.len, .rc = 1 };
         return result;
     }
-    uint64_t new_len = s.len + count * (to.len > from.len ? to.len - from.len : from.len - to.len)
-                       + count * (to.len > from.len ? to.len - from.len : 0);
-    // more precise: new_len = s.len - count * from.len + count * to.len
-    new_len = s.len - count * from.len + count * to.len;
+    uint64_t new_len = s.len - count * from.len + count * to.len;
     char *buf = malloc(new_len + 1);
     uint64_t w = 0;
     pos = 0;
@@ -554,8 +646,6 @@ rl_string rl_str_reverse(rl_string s) {
     return result;
 }
 
-// ---- string (continued) ----
-
 rl_array rl_str_bytes(rl_string s) {
     int64_t *buf = malloc(s.len * sizeof(int64_t));
     for (uint64_t i = 0; i < s.len; i++) {
@@ -626,7 +716,6 @@ rl_string rl_str_join(rl_array arr, rl_string delim) {
         rl_string result = { .data = "", .len = 0, .rc = 1 };
         return result;
     }
-    // estimate: each element ~8 bytes avg + delim between
     uint64_t cap = arr.len * 8 + arr.len * delim.len + 1;
     char *buf = malloc(cap);
     uint64_t w = 0;
@@ -636,7 +725,6 @@ rl_string rl_str_join(rl_array arr, rl_string delim) {
             memcpy(buf + w, delim.data, delim.len);
             w += delim.len;
         }
-        // convert each int64 to string
         char tmp[32];
         int len = snprintf(tmp, sizeof(tmp), "%ld", (long)elems[i]);
         memcpy(buf + w, tmp, len);
@@ -649,11 +737,7 @@ rl_string rl_str_join(rl_array arr, rl_string delim) {
 
 rl_array rl_str_split(rl_string s, rl_string delim) {
     if (delim.len == 0 || s.len == 0) {
-        rl_array arr;
-        arr.data = NULL;
-        arr.len = 0;
-        arr.cap = 0;
-        arr.elem_size = sizeof(rl_string);
+        rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
         return arr;
     }
     uint64_t cap = 16;
@@ -691,6 +775,7 @@ rl_array rl_str_split(rl_string s, rl_string delim) {
     arr.len = count;
     arr.cap = cap;
     arr.elem_size = sizeof(rl_string);
+    arr.type_tag = RL_TAG_STR;
     return arr;
 }
 
@@ -749,7 +834,7 @@ int64_t rl_dbg_int64(int64_t v) {
 }
 
 double rl_dbg_float64(double v) {
-    fprintf(stderr, "[dbg] %f (float)\n", v);
+    fprintf(stderr, "[dbg] %.15g (float)\n", v);
     return v;
 }
 
@@ -766,7 +851,6 @@ rl_string rl_dbg_str(rl_string v) {
 // ---- path ----
 
 rl_string rl_path_extension(rl_string path) {
-    // find last '.'
     int64_t last_dot = -1;
     for (int64_t i = (int64_t)path.len - 1; i >= 0; i--) {
         if (path.data[i] == '.') { last_dot = i; break; }
@@ -876,22 +960,22 @@ rl_string rl_path_set_extension(rl_string path, rl_string ext) {
     return result;
 }
 
-int64_t rl_path_is_dir(rl_string path) {
+bool rl_path_is_dir(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
     struct stat st;
-    if (stat(buf, &st) != 0) return 0;
-    return S_ISDIR(st.st_mode) ? 1 : 0;
+    if (stat(buf, &st) != 0) return false;
+    return S_ISDIR(st.st_mode);
 }
 
-int64_t rl_path_is_file(rl_string path) {
+bool rl_path_is_file(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
     struct stat st;
-    if (stat(buf, &st) != 0) return 0;
-    return S_ISREG(st.st_mode) ? 1 : 0;
+    if (stat(buf, &st) != 0) return false;
+    return S_ISREG(st.st_mode);
 }
 
 // ---- fs ----
@@ -921,12 +1005,10 @@ int64_t rl_fs_copy_file(rl_string src, rl_string dst) {
     char dbuf[dst.len + 1];
     memcpy(dbuf, dst.data, dst.len);
     dbuf[dst.len] = '\0';
-
     FILE *fin = fopen(sbuf, "rb");
     if (!fin) return -1;
     FILE *fout = fopen(dbuf, "wb");
     if (!fout) { fclose(fin); return -1; }
-
     char chunk[8192];
     size_t n;
     while ((n = fread(chunk, 1, sizeof(chunk), fin)) > 0) {
@@ -941,7 +1023,6 @@ int64_t rl_fs_mkdir_all(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
-    // create each component
     for (char *p = buf + 1; *p; p++) {
         if (*p == '/') {
             *p = '\0';
@@ -956,7 +1037,6 @@ int64_t rl_fs_rmdir_all(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
-    // simple: try rmdir (non-recursive for safety)
     return rmdir(buf);
 }
 
@@ -966,11 +1046,7 @@ rl_array rl_fs_list_dir(rl_string path) {
     buf[path.len] = '\0';
     DIR *d = opendir(buf);
     if (!d) {
-        rl_array arr;
-        arr.data = NULL;
-        arr.len = 0;
-        arr.cap = 0;
-        arr.elem_size = sizeof(rl_string);
+        rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
         return arr;
     }
     uint64_t cap = 16;
@@ -983,10 +1059,14 @@ rl_array rl_fs_list_dir(rl_string path) {
             cap *= 2;
             entries = realloc(entries, cap * sizeof(rl_string));
         }
-        uint64_t len = strlen(ent->d_name);
-        char *name = malloc(len + 1);
-        memcpy(name, ent->d_name, len + 1);
-        entries[count] = (rl_string){ .data = name, .len = len, .rc = 1 };
+        uint64_t name_len = strlen(ent->d_name);
+        bool need_sep = path.len > 0 && path.data[path.len - 1] != '/';
+        uint64_t full_len = path.len + (need_sep ? 1 : 0) + name_len;
+        char *name = malloc(full_len + 1);
+        memcpy(name, path.data, path.len);
+        if (need_sep) name[path.len] = '/';
+        memcpy(name + path.len + (need_sep ? 1 : 0), ent->d_name, name_len + 1);
+        entries[count] = (rl_string){ .data = name, .len = full_len, .rc = 1 };
         count++;
     }
     closedir(d);
@@ -995,6 +1075,7 @@ rl_array rl_fs_list_dir(rl_string path) {
     arr.len = count;
     arr.cap = cap;
     arr.elem_size = sizeof(rl_string);
+    arr.type_tag = RL_TAG_STR;
     return arr;
 }
 
@@ -1053,6 +1134,9 @@ rl_string rl_process_exec(rl_string cmd) {
     }
     pclose(fp);
     out[len] = '\0';
+    while (len > 0 && out[len - 1] == '\n') {
+        len--;
+    }
     rl_string result = { .data = out, .len = len, .rc = 1 };
     return result;
 }
@@ -1066,13 +1150,11 @@ int64_t rl_process_exec_code(rl_string cmd) {
 
 rl_array rl_process_exec_lines(rl_string cmd) {
     rl_string output = rl_process_exec(cmd);
-    // split by newline
     rl_string nl = { .data = "\n", .len = 1, .rc = 1 };
     return rl_str_split(output, nl);
 }
 
 rl_string rl_process_with_exec(rl_string env, rl_string cmd) {
-    // combine env and cmd
     uint64_t total = env.len + 1 + cmd.len;
     char buf[total + 1];
     memcpy(buf, env.data, env.len);
@@ -1106,11 +1188,7 @@ rl_array rl_process_with_exec_lines(rl_string env, rl_string cmd) {
 }
 
 rl_array rl_process_args(void) {
-    rl_array arr;
-    arr.data = NULL;
-    arr.len = 0;
-    arr.cap = 0;
-    arr.elem_size = sizeof(rl_string);
+    rl_array arr = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
     return arr;
 }
 
@@ -1155,16 +1233,15 @@ rl_string rl_time_format_time_str(int64_t timestamp) {
 rl_array rl_time_parts(int64_t timestamp) {
     time_t t = (time_t)timestamp;
     struct tm *tm = localtime(&t);
-    int64_t parts[7] = {
+    int64_t parts[6] = {
         tm->tm_year + 1900,
         tm->tm_mon + 1,
         tm->tm_mday,
         tm->tm_hour,
         tm->tm_min,
-        tm->tm_sec,
-        tm->tm_wday
+        tm->tm_sec
     };
-    return rl_arr_from_vals(parts, 7, sizeof(int64_t));
+    return rl_arr_from_vals(parts, 6, sizeof(int64_t));
 }
 
 // ---- io ----
@@ -1406,53 +1483,48 @@ rl_string rl_rand_string(int64_t count) {
     return result;
 }
 
-// ---- collections (thin wrappers) ----
+// ---- collections (rl_string key wrappers) ----
 
-int64_t rl_set_add_i64(rl_set *s, int64_t value) {
+rl_result rl_set_add_s(rl_set *s, int64_t value) {
     rl_set_add(s, value);
-    return 1;
+    return rl_ok_i64(1);
 }
 
-int64_t rl_set_remove_i64(rl_set *s, int64_t value) {
+rl_result rl_set_remove_s(rl_set *s, int64_t value) {
     rl_set_remove(s, value);
-    return 1;
+    return rl_ok_i64(1);
 }
 
-int64_t rl_set_contains_i64(rl_set s, int64_t value) {
-    return rl_set_contains(s, value) ? 1 : 0;
+rl_result rl_set_contains_s(rl_set s, int64_t value) {
+    return rl_ok_bool(rl_set_contains(s, value));
 }
 
-rl_array rl_set_to_array_i64(rl_set s) {
+rl_array rl_set_to_array(rl_set s) {
     int64_t *buf = malloc(s.len * sizeof(int64_t));
     memcpy(buf, s.data, s.len * sizeof(int64_t));
     return rl_arr_from_vals(buf, s.len, sizeof(int64_t));
 }
 
-int64_t rl_map_contains_s(rl_map m, rl_string key) {
+rl_result rl_map_contains_s(rl_map m, rl_string key) {
     char buf[key.len + 1];
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
-    return rl_map_contains(m, buf) ? 1 : 0;
+    return rl_ok_bool(rl_map_contains(m, buf));
 }
 
-int64_t rl_map_remove_s(rl_map *m, rl_string key) {
+rl_result rl_map_remove_s(rl_map m, rl_string key) {
     char buf[key.len + 1];
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
-    rl_map_remove(m, buf);
-    return 1;
+    rl_map_remove(&m, buf);
+    return rl_ok_i64(1);
 }
 
-int64_t rl_map_remove_val(rl_map m, rl_string key) {
-    // non-pointer version for codegen compatibility
-    return rl_map_remove_s(&m, key);
-}
-
-int64_t rl_map_get_s(rl_map m, rl_string key) {
+rl_result rl_map_get_s(rl_map m, rl_string key) {
     char buf[key.len + 1];
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
-    return rl_map_get(m, buf);
+    return rl_ok_i64(rl_map_get(m, buf));
 }
 
 rl_array rl_map_keys_s(rl_map m) {
@@ -1475,7 +1547,6 @@ rl_array rl_map_values_s(rl_map m) {
 }
 
 rl_map rl_map_merge_s(rl_map a, rl_map b) {
-    // merge b into a copy of a
     rl_map result;
     result.len = a.len;
     result.cap = a.cap ? a.cap : 8;
@@ -1510,23 +1581,22 @@ rl_array rl_map_to_array_s(rl_map m) {
     return rl_arr_from_vals(buf, m.len, sizeof(int64_t));
 }
 
-// ---- array (extended) ----
+// ---- array (generic) ----
 
-rl_array rl_arr_push_i64(rl_array a, int64_t v) {
+rl_result rl_arr_push(rl_array a, int64_t v) {
     uint64_t new_len = a.len + 1;
     int64_t *buf = malloc(new_len * sizeof(int64_t));
     if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
     buf[a.len] = v;
-    return rl_arr_from_vals(buf, new_len, sizeof(int64_t));
+    return rl_ok_arr(rl_arr_from_vals(buf, new_len, sizeof(int64_t)));
 }
 
-int64_t rl_arr_pop_i64(rl_array a) {
-    if (a.len == 0) return 0;
-    int64_t *data = (int64_t *)a.data;
-    return data[a.len - 1];
+rl_result rl_arr_pop(rl_array a) {
+    if (a.len == 0) return rl_make_err(-1, "pop from empty array");
+    return rl_ok_i64(((int64_t *)a.data)[a.len - 1]);
 }
 
-rl_array rl_arr_insert_i64(rl_array a, int64_t idx, int64_t v) {
+rl_result rl_arr_insert(rl_array a, int64_t idx, int64_t v) {
     if (idx < 0) idx = 0;
     if ((uint64_t)idx > a.len) idx = (int64_t)a.len;
     uint64_t new_len = a.len + 1;
@@ -1535,20 +1605,20 @@ rl_array rl_arr_insert_i64(rl_array a, int64_t idx, int64_t v) {
     if (idx > 0 && src) memcpy(buf, src, (uint64_t)idx * sizeof(int64_t));
     buf[idx] = v;
     if (src && (uint64_t)idx < a.len) memcpy(buf + idx + 1, src + idx, (a.len - (uint64_t)idx) * sizeof(int64_t));
-    return rl_arr_from_vals(buf, new_len, sizeof(int64_t));
+    return rl_ok_arr(rl_arr_from_vals(buf, new_len, sizeof(int64_t)));
 }
 
-rl_array rl_arr_remove_i64(rl_array a, int64_t idx) {
-    if (idx < 0 || (uint64_t)idx >= a.len) return a;
+rl_result rl_arr_remove(rl_array a, int64_t idx) {
+    if (idx < 0 || (uint64_t)idx >= a.len) return rl_make_err(-1, "index out of bounds");
     int64_t *src = (int64_t *)a.data;
     uint64_t new_len = a.len - 1;
     int64_t *buf = malloc(new_len * sizeof(int64_t));
     if (idx > 0) memcpy(buf, src, (uint64_t)idx * sizeof(int64_t));
     if ((uint64_t)idx < a.len - 1) memcpy(buf + idx, src + idx + 1, (a.len - (uint64_t)idx - 1) * sizeof(int64_t));
-    return rl_arr_from_vals(buf, new_len, sizeof(int64_t));
+    return rl_ok_arr(rl_arr_from_vals(buf, new_len, sizeof(int64_t)));
 }
 
-rl_array rl_arr_reverse_i64(rl_array a) {
+rl_array rl_arr_reverse(rl_array a) {
     int64_t *src = (int64_t *)a.data;
     int64_t *buf = malloc(a.len * sizeof(int64_t));
     for (uint64_t i = 0; i < a.len; i++) {
@@ -1557,7 +1627,7 @@ rl_array rl_arr_reverse_i64(rl_array a) {
     return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
 }
 
-rl_array rl_arr_concat_i64(rl_array a, rl_array b) {
+rl_array rl_arr_concat(rl_array a, rl_array b) {
     uint64_t new_len = a.len + b.len;
     int64_t *buf = malloc(new_len * sizeof(int64_t));
     if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
@@ -1565,17 +1635,17 @@ rl_array rl_arr_concat_i64(rl_array a, rl_array b) {
     return rl_arr_from_vals(buf, new_len, sizeof(int64_t));
 }
 
-int64_t rl_arr_first_i64(rl_array a) {
-    if (a.len == 0) return 0;
-    return ((int64_t *)a.data)[0];
+rl_result rl_arr_first(rl_array a) {
+    if (a.len == 0) return rl_make_err(-1, "first of empty array");
+    return rl_ok_i64(((int64_t *)a.data)[0]);
 }
 
-int64_t rl_arr_last_i64(rl_array a) {
-    if (a.len == 0) return 0;
-    return ((int64_t *)a.data)[a.len - 1];
+rl_result rl_arr_last(rl_array a) {
+    if (a.len == 0) return rl_make_err(-1, "last of empty array");
+    return rl_ok_i64(((int64_t *)a.data)[a.len - 1]);
 }
 
-rl_array rl_arr_unique_i64(rl_array a) {
+rl_array rl_arr_unique(rl_array a) {
     int64_t *src = (int64_t *)a.data;
     int64_t *buf = malloc(a.len * sizeof(int64_t));
     uint64_t w = 0;
@@ -1589,7 +1659,7 @@ rl_array rl_arr_unique_i64(rl_array a) {
     return rl_arr_from_vals(buf, w, sizeof(int64_t));
 }
 
-rl_array rl_arr_slice_i64(rl_array a, int64_t start, int64_t end) {
+rl_array rl_arr_slice(rl_array a, int64_t start, int64_t end) {
     if (start < 0) start = 0;
     if (end > (int64_t)a.len) end = (int64_t)a.len;
     if (start >= end) {
@@ -1601,80 +1671,85 @@ rl_array rl_arr_slice_i64(rl_array a, int64_t start, int64_t end) {
     return rl_arr_from_vals(buf, len, sizeof(int64_t));
 }
 
-int64_t rl_arr_contains_i64(rl_array a, int64_t v) {
+rl_result rl_arr_contains(rl_array a, int64_t v) {
     int64_t *src = (int64_t *)a.data;
     for (uint64_t i = 0; i < a.len; i++) {
-        if (src[i] == v) return 1;
+        if (src[i] == v) return rl_ok_bool(true);
     }
-    return 0;
+    return rl_ok_bool(false);
 }
 
-int64_t rl_arr_index_of_i64(rl_array a, int64_t v) {
+rl_result rl_arr_index_of(rl_array a, int64_t v) {
     int64_t *src = (int64_t *)a.data;
     for (uint64_t i = 0; i < a.len; i++) {
-        if (src[i] == v) return (int64_t)i;
+        if (src[i] == v) return rl_ok_i64((int64_t)i);
     }
-    return -1;
+    return rl_ok_i64(-1);
 }
 
-rl_array rl_arr_fill_i64(int64_t v, int64_t count) {
+rl_array rl_arr_fill(int64_t v, int64_t count) {
     if (count <= 0) return rl_arr_from_vals(NULL, 0, sizeof(int64_t));
     int64_t *buf = malloc((uint64_t)count * sizeof(int64_t));
     for (int64_t i = 0; i < count; i++) buf[i] = v;
     return rl_arr_from_vals(buf, (uint64_t)count, sizeof(int64_t));
 }
 
-rl_array rl_arr_range_i64(int64_t start, int64_t end, int64_t step) {
-    if (step == 0) step = 1;
+rl_result rl_arr_range(int64_t start, int64_t end, int64_t step) {
+    if (step == 0) {
+        return rl_make_err(-1, "arr_range: step must be positive, got 0");
+    }
+    if (step < 0) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "arr_range: step must be positive, got %ld", (long)step);
+        uint64_t len = strlen(msg);
+        char *buf = malloc(len + 1);
+        memcpy(buf, msg, len + 1);
+        rl_string s = { .data = buf, .len = len, .rc = 1 };
+        rl_result r = { .is_ok = false, .tag = RL_TAG_STR, .data.str = s, .err_code = -1 };
+        return r;
+    }
     uint64_t cap = 16;
     int64_t *buf = malloc(cap * sizeof(int64_t));
     uint64_t count = 0;
-    if (step > 0) {
-        for (int64_t i = start; i < end; i += step) {
-            if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
-            buf[count++] = i;
-        }
-    } else {
-        for (int64_t i = start; i > end; i += step) {
-            if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
-            buf[count++] = i;
-        }
+    for (int64_t i = start; i < end; i += step) {
+        if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
+        buf[count++] = i;
     }
-    return rl_arr_from_vals(buf, count, sizeof(int64_t));
+    return rl_ok_arr(rl_arr_from_vals(buf, count, sizeof(int64_t)));
 }
 
-int64_t rl_arr_sum_i64(rl_array a) {
+rl_result rl_arr_sum(rl_array a) {
     int64_t *src = (int64_t *)a.data;
     int64_t sum = 0;
     for (uint64_t i = 0; i < a.len; i++) sum += src[i];
-    return sum;
+    return rl_ok_i64(sum);
 }
 
-int64_t rl_arr_product_i64(rl_array a) {
+rl_result rl_arr_product(rl_array a) {
     int64_t *src = (int64_t *)a.data;
     int64_t prod = 1;
     for (uint64_t i = 0; i < a.len; i++) prod *= src[i];
-    return prod;
+    return rl_ok_i64(prod);
 }
 
-int64_t rl_arr_max_i64(rl_array a) {
-    if (a.len == 0) return 0;
+rl_result rl_arr_max(rl_array a) {
+    if (a.len == 0) return rl_make_err(-1, "max of empty array");
     int64_t *src = (int64_t *)a.data;
     int64_t max = src[0];
     for (uint64_t i = 1; i < a.len; i++) {
         if (src[i] > max) max = src[i];
     }
-    return max;
+    return rl_ok_i64(max);
 }
 
-int64_t rl_arr_min_i64(rl_array a) {
-    if (a.len == 0) return 0;
+rl_result rl_arr_min(rl_array a) {
+    if (a.len == 0) return rl_make_err(-1, "min of empty array");
     int64_t *src = (int64_t *)a.data;
     int64_t min = src[0];
     for (uint64_t i = 1; i < a.len; i++) {
         if (src[i] < min) min = src[i];
     }
-    return min;
+    return rl_ok_i64(min);
 }
 
 static int rl_arr_cmp_i64(const void *a, const void *b) {
@@ -1683,17 +1758,14 @@ static int rl_arr_cmp_i64(const void *a, const void *b) {
     return (va > vb) - (va < vb);
 }
 
-rl_array rl_arr_sort_i64(rl_array a) {
+rl_array rl_arr_sort(rl_array a) {
     int64_t *buf = malloc(a.len * sizeof(int64_t));
     if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
     qsort(buf, a.len, sizeof(int64_t), rl_arr_cmp_i64);
     return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
 }
 
-rl_array rl_arr_flatten_i64(rl_array a) {
-    // a is array of rl_array (each elem_size == sizeof(rl_array))
-    // but since we use int64_t arrays, flatten is a no-op for simple arrays
-    // return a copy
+rl_array rl_arr_flatten(rl_array a) {
     int64_t *buf = malloc(a.len * sizeof(int64_t));
     if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
     return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
