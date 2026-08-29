@@ -282,6 +282,10 @@ impl<'a> CCodegen<'a> {
                     .write(&format!("rl_map {} = rl_map_new();\n", c_name));
                 let map_expr = self.ast.exprs.get(*value);
                 if let ExpressionKind::MapLiteral(entries) = &map_expr.kind {
+                    let val_type = match type_annotation {
+                        TypeAnnotation::Map(_, vt) | TypeAnnotation::CMap(_, vt) => (**vt).clone(),
+                        _ => TypeAnnotation::Int,
+                    };
                     for (key_id, val_id) in entries {
                         let key_expr = self.ast.exprs.get(*key_id);
                         if let ExpressionKind::String(key_str) = &key_expr.kind {
@@ -290,7 +294,7 @@ impl<'a> CCodegen<'a> {
                                 "rl_map_set(&{}, \"{}\", ",
                                 c_name, key_str
                             ));
-                            self.compile_expr(*val_id)?;
+                            self.emit_value_wrapping(&val_type, *val_id)?;
                             self.writer.write(");\n");
                         }
                     }
@@ -312,6 +316,10 @@ impl<'a> CCodegen<'a> {
                 ));
                 let map_expr = self.ast.exprs.get(*value);
                 if let ExpressionKind::MapLiteral(entries) = &map_expr.kind {
+                    let val_type = match type_annotation {
+                        TypeAnnotation::Map(_, vt) | TypeAnnotation::CMap(_, vt) => (**vt).clone(),
+                        _ => TypeAnnotation::Int,
+                    };
                     for (key_id, val_id) in entries {
                         let key_expr = self.ast.exprs.get(*key_id);
                         if let ExpressionKind::String(key_str) = &key_expr.kind {
@@ -320,7 +328,7 @@ impl<'a> CCodegen<'a> {
                                 "rl_map_set((rl_map*)&{}, \"{}\", ",
                                 c_name, key_str
                             ));
-                            self.compile_expr(*val_id)?;
+                            self.emit_value_wrapping(&val_type, *val_id)?;
                             self.writer.write(");\n");
                         }
                     }
@@ -340,11 +348,15 @@ impl<'a> CCodegen<'a> {
                     .write(&format!("rl_set {} = rl_set_new();\n", c_name));
                 let set_expr = self.ast.exprs.get(*value);
                 if let ExpressionKind::SetLiteral(items) = &set_expr.kind {
+                    let elem_type = match type_annotation {
+                        TypeAnnotation::Set(et) | TypeAnnotation::CSet(et) => (**et).clone(),
+                        _ => TypeAnnotation::Int,
+                    };
                     for item_id in items {
                         self.writer.write_indent();
                         self.writer
                             .write(&format!("rl_set_add(&{}, ", c_name));
-                        self.compile_expr(*item_id)?;
+                        self.emit_value_wrapping(&elem_type, *item_id)?;
                         self.writer.write(");\n");
                     }
                 }
@@ -365,13 +377,17 @@ impl<'a> CCodegen<'a> {
                 ));
                 let set_expr = self.ast.exprs.get(*value);
                 if let ExpressionKind::SetLiteral(items) = &set_expr.kind {
+                    let elem_type = match type_annotation {
+                        TypeAnnotation::Set(et) | TypeAnnotation::CSet(et) => (**et).clone(),
+                        _ => TypeAnnotation::Int,
+                    };
                     for item_id in items {
                         self.writer.write_indent();
                         self.writer.write(&format!(
                             "rl_set_add((rl_set*)&{}, ",
                             c_name
                         ));
-                        self.compile_expr(*item_id)?;
+                        self.emit_value_wrapping(&elem_type, *item_id)?;
                         self.writer.write(");\n");
                     }
                 }

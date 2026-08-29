@@ -24,6 +24,110 @@ bool rl_str_eq(rl_string a, rl_string b) {
     return memcmp(a.data, b.data, a.len) == 0;
 }
 
+static void _rl_result_to_str(rl_result v, char **out, uint64_t *out_len) {
+    char buf[128];
+    int n = 0;
+    if (!v.is_ok) { n = snprintf(buf, sizeof(buf), "err(%d)", v.err_code); }
+    else switch (v.tag) {
+        case RL_TAG_NULL: n = snprintf(buf, sizeof(buf), "null"); break;
+        case RL_TAG_I64: n = snprintf(buf, sizeof(buf), "%ld", (long)v.data.i64); break;
+        case RL_TAG_F64: n = snprintf(buf, sizeof(buf), "%g", v.data.f64); break;
+        case RL_TAG_BOOL: n = snprintf(buf, sizeof(buf), "%s", v.data.boolean ? "true" : "false"); break;
+        case RL_TAG_CHAR: n = snprintf(buf, sizeof(buf), "%c", (char)(unsigned char)v.data.i64); break;
+        case RL_TAG_STR: { char *d = malloc(v.data.str.len + 1); memcpy(d, v.data.str.data, v.data.str.len); d[v.data.str.len] = '\0'; *out = d; *out_len = v.data.str.len; return; }
+        default: n = snprintf(buf, sizeof(buf), "<value>"); break;
+    }
+    char *dup = malloc(n + 1);
+    memcpy(dup, buf, n + 1);
+    *out = dup;
+    *out_len = n;
+}
+
+rl_string rl_str_concat_variadic(rl_result *args, uint64_t argc) {
+    uint64_t total = 0;
+    char **parts = malloc(argc * sizeof(char *));
+    uint64_t *part_lens = malloc(argc * sizeof(uint64_t));
+    for (uint64_t i = 0; i < argc; i++) {
+        _rl_result_to_str(args[i], &parts[i], &part_lens[i]);
+        total += part_lens[i];
+    }
+    char *buf = malloc(total + 1);
+    uint64_t pos = 0;
+    for (uint64_t i = 0; i < argc; i++) {
+        memcpy(buf + pos, parts[i], part_lens[i]);
+        pos += part_lens[i];
+        if (parts[i] != args[i].data.str.data) free(parts[i]);
+    }
+    buf[total] = '\0';
+    free(parts);
+    free(part_lens);
+    return (rl_string){ .data = buf, .len = total, .rc = 1 };
+}
+
+rl_result rl_str_format(rl_string tmpl, rl_result *args, uint64_t argc) {
+    uint64_t total = 0;
+    char **parts = malloc((argc + 1) * sizeof(char *));
+    uint64_t *part_lens = malloc((argc + 1) * sizeof(uint64_t));
+    uint64_t part_count = 0;
+    uint64_t arg_idx = 0;
+    uint64_t i = 0;
+    while (i < tmpl.len) {
+        if (tmpl.data[i] == '{' && i + 1 < tmpl.len && tmpl.data[i + 1] == '}') {
+            if (arg_idx >= argc) {
+                for (uint64_t j = 0; j < part_count; j++) if (parts[j] != tmpl.data + 0) free(parts[j]);
+                free(parts); free(part_lens);
+                return rl_err_msg(rl_str_literal("format: not enough arguments for placeholders", 47));
+            }
+            _rl_result_to_str(args[arg_idx], &parts[part_count], &part_lens[part_count]);
+            total += part_lens[part_count];
+            part_count++;
+            arg_idx++;
+            i += 2;
+        } else {
+            uint64_t start = i;
+            while (i < tmpl.len && !(tmpl.data[i] == '{' && i + 1 < tmpl.len && tmpl.data[i + 1] == '}')) i++;
+            uint64_t seg_len = i - start;
+            parts[part_count] = malloc(seg_len + 1);
+            memcpy(parts[part_count], tmpl.data + start, seg_len);
+            parts[part_count][seg_len] = '\0';
+            part_lens[part_count] = seg_len;
+            total += seg_len;
+            part_count++;
+        }
+    }
+    if (arg_idx < argc) {
+        for (uint64_t j = 0; j < part_count; j++) if (parts[j] != tmpl.data + 0) free(parts[j]);
+        free(parts); free(part_lens);
+        return rl_err_msg(rl_str_literal("format: too many arguments for placeholders", 42));
+    }
+    char *buf = malloc(total + 1);
+    uint64_t pos = 0;
+    for (uint64_t j = 0; j < part_count; j++) {
+        memcpy(buf + pos, parts[j], part_lens[j]);
+        pos += part_lens[j];
+        free(parts[j]);
+    }
+    buf[total] = '\0';
+    free(parts);
+    free(part_lens);
+    return rl_ok_str((rl_string){ .data = buf, .len = total, .rc = 1 });
+}
+
+rl_result rl_arr_zip(rl_array a, rl_array b) {
+    uint64_t min_len = a.len < b.len ? a.len : b.len;
+    int64_t *a_elems = (int64_t *)a.data;
+    int64_t *b_elems = (int64_t *)b.data;
+    uint64_t cap = 16;
+    int64_t *buf = malloc(cap * sizeof(int64_t));
+    uint64_t count = 0;
+    for (uint64_t i = 0; i < min_len; i++) {
+        if (count + 2 > cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
+        buf[count++] = a_elems[i];
+        buf[count++] = b_elems[i];
+    }
+    return rl_ok_arr(rl_arr_from_vals(buf, count, sizeof(int64_t)));
+}
+
 // ---- result type ----
 
 rl_result rl_ok_null(void) {
@@ -129,7 +233,7 @@ static void rl_map_grow(rl_map *m, uint64_t needed) {
     m->cap = new_cap;
 }
 
-void rl_map_set(rl_map *m, const char *key, int64_t val) {
+void rl_map_set(rl_map *m, const char *key, rl_value val) {
     for (uint64_t i = 0; i < m->len; i++) {
         if (strcmp(m->entries[i].key, key) == 0) {
             m->entries[i].value = val;
@@ -142,7 +246,7 @@ void rl_map_set(rl_map *m, const char *key, int64_t val) {
     m->len++;
 }
 
-int64_t rl_map_get(rl_map m, const char *key) {
+rl_value rl_map_get(rl_map m, const char *key) {
     for (uint64_t i = 0; i < m.len; i++) {
         if (strcmp(m.entries[i].key, key) == 0) {
             return m.entries[i].value;
@@ -183,30 +287,43 @@ static void rl_set_grow(rl_set *s, uint64_t needed) {
     if (s->cap >= needed) return;
     uint64_t new_cap = s->cap == 0 ? 8 : s->cap * 2;
     while (new_cap < needed) new_cap *= 2;
-    s->data = realloc(s->data, new_cap * sizeof(int64_t));
+    s->data = realloc(s->data, new_cap * sizeof(rl_value));
     s->cap = new_cap;
 }
 
-void rl_set_add(rl_set *s, int64_t val) {
+static bool rl_value_eq(rl_value a, rl_value b) {
+    if (a.tag != b.tag) return false;
+    switch (a.tag) {
+        case RL_VTAG_NULL: return true;
+        case RL_VTAG_I64: return a.data.i64 == b.data.i64;
+        case RL_VTAG_F64: return a.data.f64 == b.data.f64;
+        case RL_VTAG_BOOL: return a.data.boolean == b.data.boolean;
+        case RL_VTAG_CHAR: return a.data.i64 == b.data.i64;
+        case RL_VTAG_STR: return rl_str_eq(a.data.str, b.data.str);
+        default: return false;
+    }
+}
+
+void rl_set_add(rl_set *s, rl_value val) {
     for (uint64_t i = 0; i < s->len; i++) {
-        if (s->data[i] == val) return;
+        if (rl_value_eq(s->data[i], val)) return;
     }
     rl_set_grow(s, s->len + 1);
     s->data[s->len++] = val;
 }
 
-bool rl_set_contains(rl_set s, int64_t val) {
+bool rl_set_contains(rl_set s, rl_value val) {
     for (uint64_t i = 0; i < s.len; i++) {
-        if (s.data[i] == val) return true;
+        if (rl_value_eq(s.data[i], val)) return true;
     }
     return false;
 }
 
 uint64_t rl_set_len(rl_set s) { return s.len; }
 
-void rl_set_remove(rl_set *s, int64_t val) {
+void rl_set_remove(rl_set *s, rl_value val) {
     for (uint64_t i = 0; i < s->len; i++) {
-        if (s->data[i] == val) {
+        if (rl_value_eq(s->data[i], val)) {
             s->data[i] = s->data[s->len - 1];
             s->len--;
             return;
@@ -322,11 +439,26 @@ void rl_println_rl_array(rl_array v) {
     printf("\n");
 }
 
+static void _rl_print_value(rl_value v) {
+    switch (v.tag) {
+        case RL_VTAG_NULL: printf("null"); break;
+        case RL_VTAG_I64: printf("%ld", (long)v.data.i64); break;
+        case RL_VTAG_F64: printf("%g", v.data.f64); break;
+        case RL_VTAG_BOOL: printf("%s", v.data.boolean ? "true" : "false"); break;
+        case RL_VTAG_CHAR: printf("%c", (char)(unsigned char)v.data.i64); break;
+        case RL_VTAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
+        case RL_VTAG_ARR: rl_print_rl_array(v.data.arr); break;
+        case RL_VTAG_CLOSURE: printf("<fn>"); break;
+        default: printf("<value>"); break;
+    }
+}
+
 void rl_print_rl_map(rl_map v) {
     printf("{");
     for (uint64_t i = 0; i < v.len; i++) {
         if (i > 0) printf(", ");
-        printf("%s: %ld", v.entries[i].key, (long)v.entries[i].value);
+        printf("%s: ", v.entries[i].key);
+        _rl_print_value(v.entries[i].value);
     }
     printf("}");
 }
@@ -340,7 +472,7 @@ void rl_print_rl_set(rl_set v) {
     printf("{");
     for (uint64_t i = 0; i < v.len; i++) {
         if (i > 0) printf(", ");
-        printf("%ld", (long)v.data[i]);
+        _rl_print_value(v.data[i]);
     }
     printf("}");
 }
@@ -1527,24 +1659,25 @@ rl_string rl_rand_string(int64_t count) {
 
 // ---- collections (rl_string key wrappers) ----
 
-rl_result rl_set_add_s(rl_set *s, int64_t value) {
+rl_result rl_set_add_s(rl_set *s, rl_value value) {
     rl_set_add(s, value);
     return rl_ok_i64(1);
 }
 
-rl_result rl_set_remove_s(rl_set *s, int64_t value) {
+rl_result rl_set_remove_s(rl_set *s, rl_value value) {
     rl_set_remove(s, value);
     return rl_ok_i64(1);
 }
 
-rl_result rl_set_contains_s(rl_set s, int64_t value) {
+rl_result rl_set_contains_s(rl_set s, rl_value value) {
     return rl_ok_bool(rl_set_contains(s, value));
 }
 
 rl_array rl_set_to_array(rl_set s) {
-    int64_t *buf = malloc(s.len * sizeof(int64_t));
-    memcpy(buf, s.data, s.len * sizeof(int64_t));
-    return rl_arr_from_vals(buf, s.len, sizeof(int64_t));
+    rl_value *buf = malloc(s.len * sizeof(rl_value));
+    memcpy(buf, s.data, s.len * sizeof(rl_value));
+    rl_array arr = { .data = buf, .len = s.len, .cap = s.len, .elem_size = sizeof(rl_value), .type_tag = RL_TAG_I64 };
+    return arr;
 }
 
 rl_result rl_map_contains_s(rl_map m, rl_string key) {
@@ -1566,7 +1699,20 @@ rl_result rl_map_get_s(rl_map m, rl_string key) {
     char buf[key.len + 1];
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
-    return rl_ok_i64(rl_map_get(m, buf));
+    rl_value v = rl_map_get(m, buf);
+    switch (v.tag) {
+        case RL_VTAG_NULL: return rl_ok_null();
+        case RL_VTAG_I64: return rl_ok_i64(v.data.i64);
+        case RL_VTAG_F64: return rl_ok_f64(v.data.f64);
+        case RL_VTAG_BOOL: return rl_ok_bool(v.data.boolean);
+        case RL_VTAG_STR: return rl_ok_str(v.data.str);
+        case RL_VTAG_ARR: return rl_ok_arr(v.data.arr);
+        case RL_VTAG_CLOSURE: {
+            rl_result r = { .is_ok = true, .tag = RL_TAG_CLOSURE, .data.closure = v.data.closure, .err_code = 0 };
+            return r;
+        }
+        default: return rl_ok_i64(v.data.i64);
+    }
 }
 
 rl_array rl_map_keys_s(rl_map m) {
@@ -1581,11 +1727,12 @@ rl_array rl_map_keys_s(rl_map m) {
 }
 
 rl_array rl_map_values_s(rl_map m) {
-    int64_t *buf = malloc(m.len * sizeof(int64_t));
+    rl_value *buf = malloc(m.len * sizeof(rl_value));
     for (uint64_t i = 0; i < m.len; i++) {
         buf[i] = m.entries[i].value;
     }
-    return rl_arr_from_vals(buf, m.len, sizeof(int64_t));
+    rl_array arr = { .data = buf, .len = m.len, .cap = m.len, .elem_size = sizeof(rl_value), .type_tag = RL_TAG_I64 };
+    return arr;
 }
 
 rl_map rl_map_merge_s(rl_map a, rl_map b) {
@@ -1616,11 +1763,12 @@ rl_map rl_map_merge_s(rl_map a, rl_map b) {
 }
 
 rl_array rl_map_to_array_s(rl_map m) {
-    int64_t *buf = malloc(m.len * sizeof(int64_t));
+    rl_value *buf = malloc(m.len * sizeof(rl_value));
     for (uint64_t i = 0; i < m.len; i++) {
         buf[i] = m.entries[i].value;
     }
-    return rl_arr_from_vals(buf, m.len, sizeof(int64_t));
+    rl_array arr = { .data = buf, .len = m.len, .cap = m.len, .elem_size = sizeof(rl_value), .type_tag = RL_TAG_I64 };
+    return arr;
 }
 
 // ---- array (generic) ----

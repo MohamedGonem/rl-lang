@@ -192,12 +192,21 @@ impl<'a> CCodegen<'a> {
                 for (key_id, val_id) in entries {
                     let key_expr = self.ast.exprs.get(*key_id);
                     if let ExpressionKind::String(key_str) = &key_expr.kind {
+                        let val_expr = self.ast.exprs.get(*val_id);
+                        let val_type = match &val_expr.kind {
+                            ExpressionKind::Integer(_) => TypeAnnotation::Int,
+                            ExpressionKind::Float(_) => TypeAnnotation::Float,
+                            ExpressionKind::Bool(_) => TypeAnnotation::Bool,
+                            ExpressionKind::String(_) => TypeAnnotation::String,
+                            ExpressionKind::ArrayLiteral(e) if !e.is_empty() => TypeAnnotation::Array(Box::new(TypeAnnotation::Infer)),
+                            _ => TypeAnnotation::Int,
+                        };
                         self.writer.write_indent();
                         self.writer.write(&format!(
                             "rl_map_set(&{}, \"{}\", ",
                             temp, key_str
                         ));
-                        self.compile_expr(*val_id)?;
+                        self.emit_value_wrapping(&val_type, *val_id)?;
                         self.writer.write(");\n");
                     }
                 }
@@ -209,9 +218,17 @@ impl<'a> CCodegen<'a> {
                 self.writer
                     .write(&format!("rl_set {} = rl_set_new();\n", temp));
                 for item_id in items {
+                    let val_expr = self.ast.exprs.get(*item_id);
+                    let val_type = match &val_expr.kind {
+                        ExpressionKind::Integer(_) => TypeAnnotation::Int,
+                        ExpressionKind::Float(_) => TypeAnnotation::Float,
+                        ExpressionKind::Bool(_) => TypeAnnotation::Bool,
+                        ExpressionKind::String(_) => TypeAnnotation::String,
+                        _ => TypeAnnotation::Int,
+                    };
                     self.writer.write_indent();
                     self.writer.write(&format!("rl_set_add(&{}, ", temp));
-                    self.compile_expr(*item_id)?;
+                    self.emit_value_wrapping(&val_type, *item_id)?;
                     self.writer.write(");\n");
                 }
                 self.writer.write(&temp);
@@ -981,6 +998,31 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
+            "concat" => {
+                self.writer.write("rl_str_concat_variadic((rl_result[]){ ");
+                for (i, arg) in args.iter().enumerate() {
+                    if i > 0 { self.writer.write(", "); }
+                    self.write_arg_as_result(*arg)?;
+                }
+                self.writer.write(&format!(" }}, {})", args.len()));
+                return Ok(());
+            }
+            "format" => {
+                self.writer.write("rl_str_format(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                if args.len() > 1 {
+                    self.writer.write(", (rl_result[]){ ");
+                    for (i, arg) in args[1..].iter().enumerate() {
+                        if i > 0 { self.writer.write(", "); }
+                        self.write_arg_as_result(*arg)?;
+                    }
+                    self.writer.write(&format!(" }}, {})", args.len() - 1));
+                } else {
+                    self.writer.write(", NULL, 0");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
             // ---- is_empty (works for both string and collections) ----
             "is_empty" => {
                 self.writer.write("(");
@@ -1471,7 +1513,11 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_ok(rl_set_add_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
-                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                if args.len() >= 2 {
+                    let val_expr = self.ast.exprs.get(args[1]);
+                    let val_type = self.infer_expr_type(&val_expr.kind);
+                    self.emit_value_wrapping(&val_type, args[1])?;
+                }
                 self.writer.write("))");
                 return Ok(());
             }
@@ -1479,7 +1525,11 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_ok(rl_set_remove_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
-                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                if args.len() >= 2 {
+                    let val_expr = self.ast.exprs.get(args[1]);
+                    let val_type = self.infer_expr_type(&val_expr.kind);
+                    self.emit_value_wrapping(&val_type, args[1])?;
+                }
                 self.writer.write("))");
                 return Ok(());
             }
@@ -1487,7 +1537,11 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_set_contains_s(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
-                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                if args.len() >= 2 {
+                    let val_expr = self.ast.exprs.get(args[1]);
+                    let val_type = self.infer_expr_type(&val_expr.kind);
+                    self.emit_value_wrapping(&val_type, args[1])?;
+                }
                 self.writer.write(")");
                 return Ok(());
             }
@@ -1664,6 +1718,14 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_ok(rl_arr_flatten(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write("))");
+                return Ok(());
+            }
+            "arr_zip" => {
+                self.writer.write("rl_arr_zip(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "arr_push" => {
@@ -2411,5 +2473,20 @@ impl<'a> CCodegen<'a> {
             }
         }
         Ok(())
+    }
+
+    fn infer_expr_type(&self, kind: &ExpressionKind) -> TypeAnnotation {
+        match kind {
+            ExpressionKind::Integer(_) => TypeAnnotation::Int,
+            ExpressionKind::Float(_) => TypeAnnotation::Float,
+            ExpressionKind::Bool(_) => TypeAnnotation::Bool,
+            ExpressionKind::String(_) => TypeAnnotation::String,
+            ExpressionKind::Character(_) => TypeAnnotation::Char,
+            ExpressionKind::ArrayLiteral(elems) if !elems.is_empty() => TypeAnnotation::Array(Box::new(TypeAnnotation::Infer)),
+            ExpressionKind::ResolvedIdentifier { name, .. } => {
+                self.var_types.get(name).cloned().unwrap_or(TypeAnnotation::Int)
+            }
+            _ => TypeAnnotation::Int,
+        }
     }
 }

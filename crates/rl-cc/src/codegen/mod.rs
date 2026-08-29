@@ -138,32 +138,16 @@ impl<'a> CCodegen<'a> {
             self.writer.write(&format!("}} rl_Record_{};\n", name));
             // Generate print function
             self.writer.write(&format!("void rl_print_rl_Record_{}(rl_Record_{} v) {{ ", name, name));
-            self.writer.write("printf(\"Record(");
-            for (i, (field_name, _)) in fields.iter().enumerate() {
-                if i > 0 { self.writer.write(", "); }
-                self.writer.write(&format!("{}: ", field_name));
-                match fields[i].1 {
-                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write("%ld"),
-                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write("%g"),
-                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write("%s"),
-                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write("%.*s"),
-                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write("%c"),
-                    _ => self.writer.write("?"),
-                }
-            }
-            self.writer.write(")\", ");
+            self.writer.writeln("printf(\"Record(\");");
             for (i, (field_name, field_type)) in fields.iter().enumerate() {
-                if i > 0 { self.writer.write(", "); }
-                match field_type {
-                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write(&format!("(long)v.{}", field_name)),
-                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write(&format!("v.{}", field_name)),
-                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write(&format!("v.{} ? \"true\" : \"false\"", field_name)),
-                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write(&format!("(int)v.{}.len, v.{}.data", field_name, field_name)),
-                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write(&format!("v.{}", field_name)),
-                    _ => self.writer.write("\"?\""),
+                if i > 0 {
+                    self.writer.writeln("printf(\", \");");
                 }
+                self.writer.write_indent();
+                self.writer.write(&format!("printf(\"{}: \");\n", field_name));
+                self.emit_field_print(field_type, &format!("v.{}", field_name));
             }
-            self.writer.writeln(");");
+            self.writer.writeln("printf(\")\");");
             self.writer.writeln("}");
             self.writer.write(&format!("void rl_println_rl_Record_{}(rl_Record_{} v) {{ rl_print_rl_Record_{}(v); printf(\"\\n\"); }}\n", name, name, name));
         }
@@ -203,31 +187,14 @@ impl<'a> CCodegen<'a> {
             // Generate print function for tuple
             let arity = fields.len();
             self.writer.write(&format!("void rl_print_rl_tuple_{}(rl_tuple_{} v) {{ ", arity, arity));
-            self.writer.write("printf(\"(");
+            self.writer.writeln("printf(\"(\");");
             for (i, field_type) in fields.iter().enumerate() {
-                if i > 0 { self.writer.write(", "); }
-                match field_type {
-                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write("%ld"),
-                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write("%g"),
-                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write("%s"),
-                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write("%.*s"),
-                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write("%c"),
-                    _ => self.writer.write("?"),
+                if i > 0 {
+                    self.writer.writeln("printf(\", \");");
                 }
+                self.emit_field_print(field_type, &format!("v.field_{}", i));
             }
-            self.writer.write(")\", ");
-            for (i, field_type) in fields.iter().enumerate() {
-                if i > 0 { self.writer.write(", "); }
-                match field_type {
-                    TypeAnnotation::Int | TypeAnnotation::CInt => self.writer.write(&format!("(long)v.field_{}", i)),
-                    TypeAnnotation::Float | TypeAnnotation::CFloat => self.writer.write(&format!("v.field_{}", i)),
-                    TypeAnnotation::Bool | TypeAnnotation::CBool => self.writer.write(&format!("v.field_{} ? \"true\" : \"false\"", i)),
-                    TypeAnnotation::String | TypeAnnotation::CString => self.writer.write(&format!("(int)v.field_{}.len, v.field_{}.data", i, i)),
-                    TypeAnnotation::Char | TypeAnnotation::CChar => self.writer.write(&format!("v.field_{}", i)),
-                    _ => self.writer.write("\"?\""),
-                }
-            }
-            self.writer.writeln(");");
+            self.writer.writeln("printf(\")\");");
             self.writer.writeln("}");
             self.writer.write(&format!("void rl_println_rl_tuple_{}(rl_tuple_{} v) {{ rl_print_rl_tuple_{}(v); printf(\"\\n\"); }}\n", arity, arity, arity));
         }
@@ -262,6 +229,139 @@ impl<'a> CCodegen<'a> {
                     self.collect_tuple_types(body, types);
                 }
                 _ => {}
+            }
+        }
+    }
+
+    pub fn emit_value_wrapping(&mut self, ta: &TypeAnnotation, expr_id: rl_ast::ExprId) -> Result<(), rl_utils::errors::Error> {
+        match ta {
+            TypeAnnotation::Int | TypeAnnotation::CInt
+            | TypeAnnotation::UInt | TypeAnnotation::CUInt
+            | TypeAnnotation::SInt | TypeAnnotation::CSInt
+            | TypeAnnotation::SUInt | TypeAnnotation::CSUInt
+            | TypeAnnotation::Byte | TypeAnnotation::CByte
+            | TypeAnnotation::SByte | TypeAnnotation::CSByte
+            | TypeAnnotation::BByte | TypeAnnotation::CBByte
+            | TypeAnnotation::BSByte | TypeAnnotation::CBSByte => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_I64, .data.i64 = ");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Float | TypeAnnotation::CFloat
+            | TypeAnnotation::SFloat | TypeAnnotation::CSFloat => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_F64, .data.f64 = ");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Bool | TypeAnnotation::CBool => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_BOOL, .data.boolean = ");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::String | TypeAnnotation::CString => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_STR, .data.str = ");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Char | TypeAnnotation::CChar => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)(unsigned char)");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Array(_) | TypeAnnotation::CArray(_) => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_ARR, .data.arr = ");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Map(_, _) | TypeAnnotation::CMap(_, _) => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_MAP, .data.map = &");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Set(_) | TypeAnnotation::CSet(_) => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_SET, .data.set = &");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            TypeAnnotation::Fn | TypeAnnotation::Callback(_, _) => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_CLOSURE, .data.closure = &");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+            _ => {
+                self.writer.write("(rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)");
+                self.compile_expr(expr_id)?;
+                self.writer.write(" }");
+            }
+        }
+        Ok(())
+    }
+
+    fn emit_field_print(&mut self, field_type: &TypeAnnotation, accessor: &str) {
+        match field_type {
+            TypeAnnotation::Int | TypeAnnotation::CInt
+            | TypeAnnotation::UInt | TypeAnnotation::CUInt
+            | TypeAnnotation::SInt | TypeAnnotation::CSInt
+            | TypeAnnotation::SUInt | TypeAnnotation::CSUInt
+            | TypeAnnotation::Byte | TypeAnnotation::CByte
+            | TypeAnnotation::SByte | TypeAnnotation::CSByte
+            | TypeAnnotation::BByte | TypeAnnotation::CBByte
+            | TypeAnnotation::BSByte | TypeAnnotation::CBSByte => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%ld\", (long){});", accessor));
+            }
+            TypeAnnotation::Float | TypeAnnotation::CFloat
+            | TypeAnnotation::SFloat | TypeAnnotation::CSFloat => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%g\", (double){});", accessor));
+            }
+            TypeAnnotation::Bool | TypeAnnotation::CBool => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%s\", {} ? \"true\" : \"false\");", accessor));
+            }
+            TypeAnnotation::String | TypeAnnotation::CString => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%.*s\", (int){}.len, {}.data);", accessor, accessor));
+            }
+            TypeAnnotation::Char | TypeAnnotation::CChar => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%c\", (int){});", accessor));
+            }
+            TypeAnnotation::Array(_) | TypeAnnotation::CArray(_) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_rl_array({});", accessor));
+            }
+            TypeAnnotation::Map(_, _) | TypeAnnotation::CMap(_, _) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_rl_map({});", accessor));
+            }
+            TypeAnnotation::Set(_) | TypeAnnotation::CSet(_) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_rl_set({});", accessor));
+            }
+            TypeAnnotation::Result(_) | TypeAnnotation::CResult(_) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_result({});", accessor));
+            }
+            TypeAnnotation::Fn | TypeAnnotation::Callback(_, _) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_closure({});", accessor));
+            }
+            TypeAnnotation::Record(rname) | TypeAnnotation::CRecord(rname) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_rl_Record_{}({});", rname, accessor));
+            }
+            TypeAnnotation::Tuple(elems) | TypeAnnotation::CTuple(elems) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("rl_print_rl_tuple_{}({});", elems.len(), accessor));
+            }
+            TypeAnnotation::Enum(_) | TypeAnnotation::CEnum(_) => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"%ld\", (long){});", accessor));
+            }
+            _ => {
+                self.writer.write_indent();
+                self.writer.writeln(&format!("printf(\"?\");"));
             }
         }
     }

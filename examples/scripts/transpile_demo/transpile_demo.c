@@ -72,7 +72,13 @@ static rl_result _rl_lambda_9(rl_closure *_self, rl_result *_args, uint64_t _arg
 
 
 typedef struct { int64_t x; int64_t y; } rl_Record_Point;
-void rl_print_rl_Record_Point(rl_Record_Point v) { printf("Record(x: %ld, y: %ld)", (long)v.x, (long)v.y);
+void rl_print_rl_Record_Point(rl_Record_Point v) { printf("Record(");
+printf("x: ");
+printf("%ld", (long)v.x);
+printf(", ");
+printf("y: ");
+printf("%ld", (long)v.y);
+printf(")");
 }
 void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v); printf("\n"); }
 
@@ -81,11 +87,21 @@ void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v)
 #define RL_TAG_COLOR_BLUE ((int64_t)2)
 
 typedef struct { int64_t field_0; rl_string field_1; } rl_tuple_2;
-void rl_print_rl_tuple_2(rl_tuple_2 v) { printf("(%ld, %.*s)", (long)v.field_0, (int)v.field_1.len, v.field_1.data);
+void rl_print_rl_tuple_2(rl_tuple_2 v) { printf("(");
+printf("%ld", (long)v.field_0);
+printf(", ");
+printf("%.*s", (int)v.field_1.len, v.field_1.data);
+printf(")");
 }
 void rl_println_rl_tuple_2(rl_tuple_2 v) { rl_print_rl_tuple_2(v); printf("\n"); }
 typedef struct { int64_t field_0; int64_t field_1; rl_string field_2; } rl_tuple_3;
-void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(%ld, %ld, %.*s)", (long)v.field_0, (long)v.field_1, (int)v.field_2.len, v.field_2.data);
+void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(");
+printf("%ld", (long)v.field_0);
+printf(", ");
+printf("%ld", (long)v.field_1);
+printf(", ");
+printf("%.*s", (int)v.field_2.len, v.field_2.data);
+printf(")");
 }
 void rl_println_rl_tuple_3(rl_tuple_3 v) { rl_print_rl_tuple_3(v); printf("\n"); }
 
@@ -292,16 +308,16 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Maps ===", 12));
     rl_map ages = rl_map_new();
-    rl_map_set(&ages, "alice", (int64_t)30);
-    rl_map_set(&ages, "bob", (int64_t)25);
+    rl_map_set(&ages, "alice", (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)30 });
+    rl_map_set(&ages, "bob", (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)25 });
     rl_println(ages);
     rl_println(rl_ok((int64_t)rl_map_len(ages)));
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Sets ===", 12));
     rl_set s = rl_set_new();
-    rl_set_add(&s, (int64_t)1);
-    rl_set_add(&s, (int64_t)2);
-    rl_set_add(&s, (int64_t)3);
+    rl_set_add(&s, (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)1 });
+    rl_set_add(&s, (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)2 });
+    rl_set_add(&s, (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)3 });
     rl_println(s);
     rl_println(rl_ok((int64_t)rl_set_len(s)));
     rl_println(rl_str_literal("", 0));
@@ -455,8 +471,8 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Collections Extended ===", 28));
     rl_map ages2 = rl_map_new();
-    rl_map_set(&ages2, "alice", (int64_t)30);
-    rl_map_set(&ages2, "bob", (int64_t)25);
+    rl_map_set(&ages2, "alice", (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)30 });
+    rl_map_set(&ages2, "bob", (rl_value){ .tag = RL_VTAG_I64, .data.i64 = (int64_t)25 });
     rl_println(rl_map_get_s(ages2, rl_str_literal("alice", 5)));
     rl_println(rl_map_contains_s(ages2, rl_str_literal("bob", 3)));
     rl_println(rl_map_contains_s(ages2, rl_str_literal("eve", 3)));

@@ -36,10 +36,42 @@ bool rl_str_eq(rl_string a, rl_string b);
 // ---- forward declarations ----
 
 typedef struct { void *data; uint64_t len; uint64_t cap; int32_t elem_size; int32_t type_tag; } rl_array;
-typedef struct { char *key; int64_t value; } rl_map_entry;
-typedef struct { rl_map_entry *entries; uint64_t len; uint64_t cap; } rl_map;
-typedef struct { int64_t *data; uint64_t len; uint64_t cap; } rl_set;
 typedef struct rl_closure rl_closure;
+typedef struct rl_map rl_map;
+typedef struct rl_set rl_set;
+
+// ---- value type (tagged union for map/set storage) ----
+
+enum rl_value_tag {
+    RL_VTAG_NULL = 0,
+    RL_VTAG_I64,
+    RL_VTAG_F64,
+    RL_VTAG_BOOL,
+    RL_VTAG_CHAR,
+    RL_VTAG_STR,
+    RL_VTAG_ARR,
+    RL_VTAG_MAP,
+    RL_VTAG_SET,
+    RL_VTAG_CLOSURE,
+};
+
+typedef struct rl_value {
+    enum rl_value_tag tag;
+    union {
+        int64_t i64;
+        double f64;
+        bool boolean;
+        rl_string str;
+        rl_array arr;
+        rl_map *map;
+        rl_set *set;
+        rl_closure *closure;
+    } data;
+} rl_value;
+
+typedef struct { char *key; rl_value value; } rl_map_entry;
+struct rl_map { rl_map_entry *entries; uint64_t len; uint64_t cap; };
+struct rl_set { rl_value *data; uint64_t len; uint64_t cap; };
 
 // ---- result type (tagged union) ----
 
@@ -84,6 +116,9 @@ rl_result rl_err_msg(rl_string msg);
 rl_result rl_err_code(int64_t code, rl_string msg);
 rl_result rl_err(int64_t v);
 rl_result rl_error(int64_t v);
+
+rl_string rl_str_concat_variadic(rl_result *args, uint64_t argc);
+rl_result rl_str_format(rl_string tmpl, rl_result *args, uint64_t argc);
 
 // ---- closure type ----
 
@@ -192,8 +227,8 @@ rl_array rl_arr_new(int32_t elem_size);
 // ---- map type ----
 
 rl_map rl_map_new(void);
-void rl_map_set(rl_map *m, const char *key, int64_t val);
-int64_t rl_map_get(rl_map m, const char *key);
+void rl_map_set(rl_map *m, const char *key, rl_value val);
+rl_value rl_map_get(rl_map m, const char *key);
 bool rl_map_contains(rl_map m, const char *key);
 uint64_t rl_map_len(rl_map m);
 void rl_map_remove(rl_map *m, const char *key);
@@ -201,10 +236,10 @@ void rl_map_remove(rl_map *m, const char *key);
 // ---- set type ----
 
 rl_set rl_set_new(void);
-void rl_set_add(rl_set *s, int64_t val);
-bool rl_set_contains(rl_set s, int64_t val);
+void rl_set_add(rl_set *s, rl_value val);
+bool rl_set_contains(rl_set s, rl_value val);
 uint64_t rl_set_len(rl_set s);
-void rl_set_remove(rl_set *s, int64_t val);
+void rl_set_remove(rl_set *s, rl_value val);
 
 // ---- print functions ----
 
@@ -403,9 +438,9 @@ int64_t rl_rand_range_step(int64_t start, int64_t stop, int64_t step);
 rl_string rl_rand_string(int64_t count);
 
 // ---- collections (rl_string key wrappers) ----
-rl_result rl_set_add_s(rl_set *s, int64_t value);
-rl_result rl_set_remove_s(rl_set *s, int64_t value);
-rl_result rl_set_contains_s(rl_set s, int64_t value);
+rl_result rl_set_add_s(rl_set *s, rl_value value);
+rl_result rl_set_remove_s(rl_set *s, rl_value value);
+rl_result rl_set_contains_s(rl_set s, rl_value value);
 rl_array rl_set_to_array(rl_set s);
 rl_result rl_map_contains_s(rl_map m, rl_string key);
 rl_result rl_map_remove_s(rl_map m, rl_string key);
@@ -436,6 +471,7 @@ rl_result rl_arr_max(rl_array a);
 rl_result rl_arr_min(rl_array a);
 rl_array rl_arr_sort(rl_array a);
 rl_array rl_arr_flatten(rl_array a);
+rl_result rl_arr_zip(rl_array a, rl_array b);
 
 // ---- closure-consuming array functions ----
 rl_result rl_arr_filter_closure(rl_array arr, rl_closure pred);
