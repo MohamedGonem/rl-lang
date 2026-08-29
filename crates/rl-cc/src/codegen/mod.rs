@@ -18,6 +18,10 @@ pub struct CCodegen<'a> {
     pub emitted_includes: bool,
     pub is_script_mode: bool,
     pub temp_counter: usize,
+    pub lambda_counter: usize,
+    pub static_funcs: Vec<String>,
+    pub closure_params: Vec<String>,
+    pub closure_return_types: HashMap<String, TypeAnnotation>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -31,6 +35,10 @@ impl<'a> CCodegen<'a> {
             emitted_includes: false,
             is_script_mode: false,
             temp_counter: 0,
+            lambda_counter: 0,
+            static_funcs: Vec::new(),
+            closure_params: Vec::new(),
+            closure_return_types: HashMap::new(),
         }
     }
 
@@ -81,7 +89,26 @@ impl<'a> CCodegen<'a> {
             self.writer.writeln("}");
         }
 
-        Ok(self.writer.source().to_string())
+        // Combine: insert static lambda functions at file scope
+        let mut output = self.writer.source().to_string();
+        if !self.static_funcs.is_empty() {
+            let static_funcs_str: String = self.static_funcs.iter().cloned().collect();
+            // Insert right after the #include "rl_runtime.h" line
+            if let Some(pos) = output.find("#include \"rl_runtime.h\"") {
+                let insert_pos = pos + "#include \"rl_runtime.h\"".len();
+                // Skip past the newline after the include
+                let insert_pos = if output.as_bytes().get(insert_pos) == Some(&b'\n') {
+                    insert_pos + 1
+                } else {
+                    insert_pos
+                };
+                output.insert_str(insert_pos, &format!("\n{}\n", static_funcs_str));
+            } else {
+                output.push_str(&static_funcs_str);
+            }
+        }
+
+        Ok(output)
     }
 
     fn emit_header(&mut self, statements: &[Statement]) {

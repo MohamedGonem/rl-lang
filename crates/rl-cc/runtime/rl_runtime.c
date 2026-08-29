@@ -271,6 +271,7 @@ static void rl_print_result_inner(rl_result v) {
             case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
             case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
             case RL_TAG_SET: rl_print_set_val(v.data.set); break;
+            case RL_TAG_CLOSURE: printf("<fn>"); break;
         }
         printf(")");
     } else {
@@ -285,6 +286,7 @@ static void rl_print_result_inner(rl_result v) {
             case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
             case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
             case RL_TAG_SET: rl_print_set_val(v.data.set); break;
+            case RL_TAG_CLOSURE: printf("<fn>"); break;
         }
         printf(")");
     }
@@ -345,6 +347,15 @@ void rl_print_rl_set(rl_set v) {
 
 void rl_println_rl_set(rl_set v) {
     rl_print_rl_set(v);
+    printf("\n");
+}
+
+void rl_print_closure(rl_closure v) {
+    printf("<fn>");
+}
+
+void rl_println_closure(rl_closure v) {
+    rl_print_closure(v);
     printf("\n");
 }
 
@@ -1779,6 +1790,76 @@ rl_array rl_arr_flatten(rl_array a) {
     int64_t *buf = malloc(a.len * sizeof(int64_t));
     if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
     return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
+}
+
+// ---- closure-consuming array functions ----
+
+rl_result rl_arr_filter_closure(rl_array arr, rl_closure pred) {
+    uint64_t cap = 16;
+    int64_t *buf = malloc(cap * sizeof(int64_t));
+    uint64_t count = 0;
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result keep = rl_closure_call(pred, &arg, 1);
+        bool truth = false;
+        if (keep.is_ok) {
+            if (keep.tag == RL_TAG_BOOL) truth = keep.data.boolean;
+            else if (keep.tag == RL_TAG_I64) truth = (keep.data.i64 != 0);
+            else if (keep.tag == RL_TAG_NULL) truth = false;
+        }
+        if (truth) {
+            if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
+            buf[count++] = elems[i];
+        }
+    }
+    return rl_ok_arr(rl_arr_from_vals(buf, count, sizeof(int64_t)));
+}
+
+rl_result rl_arr_map_closure(rl_array arr, rl_closure fn) {
+    uint64_t cap = arr.len > 0 ? arr.len : 16;
+    int64_t *buf = malloc(cap * sizeof(int64_t));
+    uint64_t count = 0;
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result mapped = rl_closure_call(fn, &arg, 1);
+        if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
+        if (mapped.is_ok) {
+            switch (mapped.tag) {
+                case RL_TAG_I64: buf[count++] = mapped.data.i64; break;
+                case RL_TAG_F64: { double d = mapped.data.f64; int64_t v; memcpy(&v, &d, sizeof(v)); buf[count++] = v; break; }
+                case RL_TAG_BOOL: buf[count++] = mapped.data.boolean ? 1 : 0; break;
+                case RL_TAG_CHAR: buf[count++] = mapped.data.i64; break;
+                default: buf[count++] = 0; break;
+            }
+        } else {
+            buf[count++] = 0;
+        }
+    }
+    return rl_ok_arr(rl_arr_from_vals(buf, count, sizeof(int64_t)));
+}
+
+rl_result rl_arr_find_closure(rl_array arr, rl_closure pred) {
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result found = rl_closure_call(pred, &arg, 1);
+        if (found.is_ok && found.tag == RL_TAG_BOOL && found.data.boolean) {
+            return rl_ok_i64(elems[i]);
+        }
+    }
+    return rl_err_msg(rl_str_literal("not found", 9));
+}
+
+rl_result rl_arr_reduce_closure(rl_array arr, rl_closure fn, rl_result init) {
+    int64_t *elems = (int64_t *)arr.data;
+    rl_result acc = init;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result args[2] = { acc, rl_ok_i64(elems[i]) };
+        acc = rl_closure_call(fn, args, 2);
+    }
+    return acc;
 }
 
 rl_never rl_never_fn(void) {

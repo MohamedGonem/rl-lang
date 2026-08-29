@@ -39,6 +39,7 @@ typedef struct { void *data; uint64_t len; uint64_t cap; int32_t elem_size; int3
 typedef struct { char *key; int64_t value; } rl_map_entry;
 typedef struct { rl_map_entry *entries; uint64_t len; uint64_t cap; } rl_map;
 typedef struct { int64_t *data; uint64_t len; uint64_t cap; } rl_set;
+typedef struct rl_closure rl_closure;
 
 // ---- result type (tagged union) ----
 
@@ -52,6 +53,7 @@ enum rl_type_tag {
     RL_TAG_ARR,
     RL_TAG_MAP,
     RL_TAG_SET,
+    RL_TAG_CLOSURE,
 };
 
 typedef struct {
@@ -65,6 +67,7 @@ typedef struct {
         rl_array arr;
         rl_map map;
         rl_set set;
+        rl_closure *closure;
     } data;
     int32_t err_code;
 } rl_result;
@@ -81,6 +84,37 @@ rl_result rl_err_msg(rl_string msg);
 rl_result rl_err_code(int64_t code, rl_string msg);
 rl_result rl_err(int64_t v);
 rl_result rl_error(int64_t v);
+
+// ---- closure type ----
+
+// Closure function pointer type:
+//   self  = pointer to the closure itself (for accessing captures)
+//   args  = array of rl_result arguments
+//   argc  = number of arguments
+typedef rl_result (*rl_closure_fn)(rl_closure *self, rl_result *args, uint64_t argc);
+
+struct rl_closure {
+    rl_closure_fn fn;
+    rl_result *captures;
+    uint64_t capture_count;
+};
+
+static inline rl_closure rl_closure_new(rl_closure_fn fn, rl_result *captures, uint64_t capture_count) {
+    rl_closure c = { .fn = fn, .captures = captures, .capture_count = capture_count };
+    return c;
+}
+
+static inline rl_result rl_closure_call(rl_closure c, rl_result *args, uint64_t argc) {
+    return c.fn(&c, args, argc);
+}
+
+static inline rl_result rl_ok_closure(rl_closure v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_CLOSURE, .err_code = 0 };
+    rl_closure *heap = (rl_closure *)malloc(sizeof(rl_closure));
+    *heap = v;
+    r.data.closure = heap;
+    return r;
+}
 
 static inline rl_result _rl_identity_result(rl_result v) { return v; }
 static inline rl_result _rl_ok_null(void) { return rl_ok_null(); }
@@ -198,6 +232,8 @@ void rl_print_rl_map(rl_map v);
 void rl_println_rl_map(rl_map v);
 void rl_print_rl_set(rl_set v);
 void rl_println_rl_set(rl_set v);
+void rl_print_closure(rl_closure v);
+void rl_println_closure(rl_closure v);
 
 #define rl_print(x) _Generic((x), \
     int64_t:  rl_print_int64, \
@@ -217,6 +253,7 @@ void rl_println_rl_set(rl_set v);
     rl_array:  rl_print_rl_array, \
     rl_map:   rl_print_rl_map, \
     rl_set:   rl_print_rl_set, \
+    rl_closure: rl_print_closure, \
     default:  rl_print_ptr \
 )(x)
 
@@ -238,6 +275,7 @@ void rl_println_rl_set(rl_set v);
     rl_array:  rl_println_rl_array, \
     rl_map:   rl_println_rl_map, \
     rl_set:   rl_println_rl_set, \
+    rl_closure: rl_println_closure, \
     default:  rl_println_ptr \
 )(x)
 
@@ -397,5 +435,11 @@ rl_result rl_arr_max(rl_array a);
 rl_result rl_arr_min(rl_array a);
 rl_array rl_arr_sort(rl_array a);
 rl_array rl_arr_flatten(rl_array a);
+
+// ---- closure-consuming array functions ----
+rl_result rl_arr_filter_closure(rl_array arr, rl_closure pred);
+rl_result rl_arr_map_closure(rl_array arr, rl_closure fn);
+rl_result rl_arr_find_closure(rl_array arr, rl_closure pred);
+rl_result rl_arr_reduce_closure(rl_array arr, rl_closure fn, rl_result init);
 
 #endif

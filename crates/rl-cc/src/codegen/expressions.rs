@@ -2,6 +2,7 @@ use crate::codegen::CCodegen;
 use crate::codegen::ops::token_to_c_op;
 use crate::name_mangle::{escape_c_char, escape_c_string, mangle};
 use crate::types::type_to_c;
+use crate::writer::CWriter;
 use rl_ast::{ExprId, nodes::ExpressionKind};
 use rl_ast::statements::TypeAnnotation;
 use rl_lexer::tokentypes::TokenType;
@@ -87,15 +88,53 @@ impl<'a> CCodegen<'a> {
                 self.compile_func_call(path, args)?;
             }
             ExpressionKind::CallExpr { callee, args } => {
-                self.compile_expr(*callee)?;
-                self.writer.write("(");
-                for (i, arg) in args.iter().enumerate() {
-                    if i > 0 {
-                        self.writer.write(", ");
+                // Check if this is a closure call
+                let callee_expr = self.ast.exprs.get(*callee);
+                let (is_closure, callee_name) = if let ExpressionKind::ResolvedIdentifier { name, .. } = &callee_expr.kind {
+                    let is_fn = matches!(self.var_types.get(name), Some(TypeAnnotation::Fn) | Some(TypeAnnotation::Callback(_, _)));
+                    (is_fn, Some(name.clone()))
+                } else {
+                    (false, None)
+                };
+
+                if is_closure {
+                    // Look up the closure's return type for unwrapping
+                    let return_type = callee_name.as_ref().and_then(|n| self.closure_return_types.get(n));
+
+                    // Build inline: rl_unwrap_XX(rl_closure_call(name, (rl_result[]){ args }, argc))
+                    let need_unwrap = !matches!(return_type, None | Some(TypeAnnotation::Result(_)));
+                    if need_unwrap {
+                        match return_type {
+                            Some(TypeAnnotation::Int) | Some(TypeAnnotation::CInt) => self.writer.write("rl_unwrap_i64("),
+                            Some(TypeAnnotation::Float) | Some(TypeAnnotation::CFloat) => self.writer.write("rl_unwrap_f64("),
+                            Some(TypeAnnotation::Bool) | Some(TypeAnnotation::CBool) => self.writer.write("rl_unwrap_bool("),
+                            Some(TypeAnnotation::String) | Some(TypeAnnotation::CString) => self.writer.write("rl_unwrap_str("),
+                            Some(TypeAnnotation::Array(_)) | Some(TypeAnnotation::CArray(_)) => self.writer.write("rl_unwrap_arr("),
+                            _ => {}
+                        }
                     }
-                    self.compile_expr(*arg)?;
+
+                    self.writer.write("rl_closure_call(");
+                    self.compile_expr(*callee)?;
+                    self.writer.write(", (rl_result[]){ ");
+                    for (i, arg) in args.iter().enumerate() {
+                        if i > 0 { self.writer.write(", "); }
+                        self.write_arg_as_result(*arg)?;
+                    }
+                    self.writer.write(&format!(" }}, {})", args.len()));
+
+                    if need_unwrap {
+                        self.writer.write(")");
+                    }
+                } else {
+                    self.compile_expr(*callee)?;
+                    self.writer.write("(");
+                    for (i, arg) in args.iter().enumerate() {
+                        if i > 0 { self.writer.write(", "); }
+                        self.compile_expr(*arg)?;
+                    }
+                    self.writer.write(")");
                 }
-                self.writer.write(")");
             }
             ExpressionKind::MethodCall {
                 caller,
@@ -271,6 +310,9 @@ impl<'a> CCodegen<'a> {
                 let c_type = type_to_c(target_type);
                 self.writer.write(&format!("({})", c_type));
                 self.compile_expr(*value)?;
+            }
+            ExpressionKind::ResolvedLambda { params, return_type, body, .. } => {
+                self.compile_lambda(params, return_type, body)?;
             }
             _ => {
                 self.writer.write("/* unhandled expr */");
@@ -1656,6 +1698,62 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
+            "arr_filter" => {
+                // Check if second arg is a closure
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_filter_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+                // Fallback to regular call
+            }
+            "arr_map" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_map_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_find" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_find_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_reduce" => {
+                if args.len() >= 3 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_reduce_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[2])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
             _ => {}
         }
 
@@ -1725,6 +1823,476 @@ impl<'a> CCodegen<'a> {
             self.compile_expr(*arg)?;
         }
         self.writer.write(")");
+        Ok(())
+    }
+
+    fn compile_lambda(
+        &mut self,
+        params: &[rl_ast::statements::Param],
+        return_type: &Option<rl_ast::statements::TypeAnnotation>,
+        body: &[rl_ast::statements::Statement],
+    ) -> Result<(), Error> {
+        let lambda_id = self.lambda_counter;
+        self.lambda_counter += 1;
+        let fn_name = format!("_rl_lambda_{}", lambda_id);
+
+        // Collect captured variables from enclosing scopes
+        let mut captured_names: Vec<String> = Vec::new();
+        let param_names: std::collections::HashSet<String> =
+            params.iter().map(|p| p.param_name.clone()).collect();
+        self.collect_captures_from_statements(body, &param_names, &mut captured_names);
+        captured_names.sort();
+        captured_names.dedup();
+
+        // Build the static function
+        let c_ret = match return_type {
+            Some(ta) => type_to_c(ta),
+            None => "rl_result".to_string(),
+        };
+
+        let mut func_code = String::new();
+        func_code.push_str(&format!("static rl_result {}(rl_closure *_self, rl_result *_args, uint64_t _argc) {{\n", fn_name));
+
+        // Declare parameters from _args
+        for (i, p) in params.iter().enumerate() {
+            let c_type = type_to_c(&p.param_type);
+            let c_name = mangle(&p.param_name);
+            func_code.push_str(&format!("    {} {} = ", c_type, c_name));
+            // Unwrap from rl_result based on type
+            match &p.param_type {
+                TypeAnnotation::Int | TypeAnnotation::CInt => {
+                    func_code.push_str(&format!("rl_unwrap_i64(_args[{}]);\n", i));
+                }
+                TypeAnnotation::Float | TypeAnnotation::CFloat => {
+                    func_code.push_str(&format!("rl_unwrap_f64(_args[{}]);\n", i));
+                }
+                TypeAnnotation::Bool | TypeAnnotation::CBool => {
+                    func_code.push_str(&format!("rl_unwrap_bool(_args[{}]);\n", i));
+                }
+                TypeAnnotation::String | TypeAnnotation::CString => {
+                    func_code.push_str(&format!("rl_unwrap_str(_args[{}]);\n", i));
+                }
+                _ => {
+                    // Default: unwrap as rl_result and extract
+                    func_code.push_str(&format!("rl_unwrap_i64(_args[{}]);\n", i));
+                }
+            }
+        }
+
+        // Declare captured variables from _self->captures
+        for (i, name) in captured_names.iter().enumerate() {
+            let c_name = mangle(name);
+            let c_type = self.var_types.get(name).map(|ta| type_to_c(ta)).unwrap_or_else(|| "int64_t".to_string());
+            func_code.push_str(&format!("    {} {} = ", c_type, c_name));
+            match self.var_types.get(name) {
+                Some(TypeAnnotation::Int) | Some(TypeAnnotation::CInt) => {
+                    func_code.push_str(&format!("rl_unwrap_i64(_self->captures[{}]);\n", i));
+                }
+                Some(TypeAnnotation::Float) | Some(TypeAnnotation::CFloat) => {
+                    func_code.push_str(&format!("rl_unwrap_f64(_self->captures[{}]);\n", i));
+                }
+                Some(TypeAnnotation::Bool) | Some(TypeAnnotation::CBool) => {
+                    func_code.push_str(&format!("rl_unwrap_bool(_self->captures[{}]);\n", i));
+                }
+                Some(TypeAnnotation::String) | Some(TypeAnnotation::CString) => {
+                    func_code.push_str(&format!("rl_unwrap_str(_self->captures[{}]);\n", i));
+                }
+                Some(TypeAnnotation::Array(_)) | Some(TypeAnnotation::CArray(_)) => {
+                    func_code.push_str(&format!("rl_unwrap_arr(_self->captures[{}]);\n", i));
+                }
+                _ => {
+                    func_code.push_str(&format!("rl_unwrap_i64(_self->captures[{}]);\n", i));
+                }
+            }
+        }
+
+        // Compile the body into the function
+        for s in body {
+            self.compile_lambda_statement(s, &mut func_code)?;
+        }
+
+        func_code.push_str("    return rl_ok_null();\n");
+        func_code.push_str("}\n\n");
+
+        self.static_funcs.push(func_code);
+
+        // Emit closure creation at the call site
+        let mut captures_code = String::new();
+        for (i, name) in captured_names.iter().enumerate() {
+            if i > 0 { captures_code.push_str(", "); }
+            let c_name = self.lookup(name);
+            let c_type = self.var_types.get(name).cloned().unwrap_or(TypeAnnotation::Int);
+            match c_type {
+                TypeAnnotation::Int | TypeAnnotation::CInt => {
+                    captures_code.push_str(&format!("rl_ok_i64({})", c_name));
+                }
+                TypeAnnotation::Float | TypeAnnotation::CFloat => {
+                    captures_code.push_str(&format!("rl_ok_f64({})", c_name));
+                }
+                TypeAnnotation::Bool | TypeAnnotation::CBool => {
+                    captures_code.push_str(&format!("rl_ok_bool({})", c_name));
+                }
+                TypeAnnotation::String | TypeAnnotation::CString => {
+                    captures_code.push_str(&format!("rl_ok_str({})", c_name));
+                }
+                TypeAnnotation::Array(_) | TypeAnnotation::CArray(_) => {
+                    captures_code.push_str(&format!("rl_ok_arr({})", c_name));
+                }
+                _ => {
+                    captures_code.push_str(&format!("rl_ok_i64({})", c_name));
+                }
+            }
+        }
+
+        let capture_count = captured_names.len();
+        self.writer.write(&format!(
+            "rl_closure_new({}, (rl_result[]){{ {} }}, {})",
+            fn_name, captures_code, capture_count
+        ));
+
+        Ok(())
+    }
+
+    fn compile_lambda_statement(
+        &mut self,
+        stmt: &rl_ast::statements::Statement,
+        func_code: &mut String,
+    ) -> Result<(), Error> {
+        use rl_ast::statements::StatementKind;
+        match &stmt.kind {
+            StatementKind::Return(Some(expr_id)) => {
+                let expr = self.ast.exprs.get(*expr_id);
+                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                    let temp = self.temp_var();
+                    func_code.push_str(&format!("    rl_result {} = ", temp));
+                    self.compile_expr_to_string(*inner, func_code)?;
+                    func_code.push_str(";\n");
+                    func_code.push_str(&format!("    if (!{}.is_ok) {{ return {}; }}\n", temp, temp));
+                    func_code.push_str(&format!("    return {};\n", temp));
+                } else {
+                    func_code.push_str("    return rl_ok(");
+                    self.compile_expr_to_string(*expr_id, func_code)?;
+                    func_code.push_str(");\n");
+                }
+            }
+            StatementKind::ResolvedVariableDeclaration {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_type = type_to_c(type_annotation);
+                let c_name = mangle(name);
+                func_code.push_str(&format!("    {} {} = ", c_type, c_name));
+                self.compile_expr_to_string(*value, func_code)?;
+                func_code.push_str(";\n");
+            }
+            StatementKind::ResolvedConstantDeclaration {
+                name,
+                type_annotation,
+                value,
+                ..
+            } => {
+                let c_type = type_to_c(type_annotation);
+                let c_name = mangle(name);
+                func_code.push_str(&format!("    const {} {} = ", c_type, c_name));
+                self.compile_expr_to_string(*value, func_code)?;
+                func_code.push_str(";\n");
+            }
+            StatementKind::Expression(expr_id) => {
+                func_code.push_str("    ");
+                self.compile_expr_to_string(*expr_id, func_code)?;
+                func_code.push_str(";\n");
+            }
+            StatementKind::Conditional { if_branch, else_branch } => {
+                // if_branch is a ConditionalBranch with condition and body
+                if let StatementKind::ConditionalBranch { condition, body, .. } = &if_branch.kind {
+                    func_code.push_str("    if (");
+                    if let Some(cond) = condition {
+                        self.compile_expr_to_string(*cond, func_code)?;
+                    } else {
+                        func_code.push_str("1");
+                    }
+                    func_code.push_str(") {\n");
+                    for s in body {
+                        self.compile_lambda_statement(s, func_code)?;
+                    }
+                }
+                if let Some(else_b) = else_branch {
+                    if let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
+                        if condition.is_some() {
+                            // else-if chain
+                            func_code.push_str("    } else if (");
+                            self.compile_expr_to_string(condition.unwrap(), func_code)?;
+                            func_code.push_str(") {\n");
+                        } else {
+                            func_code.push_str("    } else {\n");
+                        }
+                        for s in body {
+                            self.compile_lambda_statement(s, func_code)?;
+                        }
+                    }
+                }
+                func_code.push_str("    }\n");
+            }
+            StatementKind::ResolvedForRange {
+                variable,
+                range,
+                body,
+                ..
+            } => {
+                let items = match &range.kind {
+                    StatementKind::Range(items) => items.clone(),
+                    _ => vec![],
+                };
+                if !items.is_empty() {
+                    let first = items[0];
+                    let last = items[items.len() - 1];
+                    let c_name = mangle(variable);
+                    func_code.push_str(&format!(
+                        "    for (int64_t {} = {}; {} < {}; {}++) {{\n",
+                        c_name, first, c_name, last + 1, c_name
+                    ));
+                    for s in body {
+                        self.compile_lambda_statement(s, func_code)?;
+                    }
+                    func_code.push_str("    }\n");
+                }
+            }
+            StatementKind::Loop(body) => {
+                func_code.push_str("    while (1) {\n");
+                for s in body {
+                    self.compile_lambda_statement(s, func_code)?;
+                }
+                func_code.push_str("    }\n");
+            }
+            _ => {
+                func_code.push_str("    /* unhandled statement in lambda */\n");
+            }
+        }
+        Ok(())
+    }
+
+    fn compile_expr_to_string(&mut self, id: ExprId, output: &mut String) -> Result<(), Error> {
+        // Temporarily swap writer to capture output
+        let old_source = std::mem::take(&mut self.writer);
+        self.writer = CWriter::new();
+        self.compile_expr(id)?;
+        let generated = self.writer.source().to_string();
+        self.writer = old_source;
+        output.push_str(&generated);
+        Ok(())
+    }
+
+    fn collect_captures_from_statements(
+        &self,
+        stmts: &[rl_ast::statements::Statement],
+        param_names: &std::collections::HashSet<String>,
+        captured: &mut Vec<String>,
+    ) {
+        use rl_ast::statements::StatementKind;
+        for stmt in stmts {
+            match &stmt.kind {
+                StatementKind::ResolvedVariableDeclaration { name, value, .. } => {
+                    self.collect_captures_from_expr(*value, param_names, captured);
+                }
+                StatementKind::ResolvedConstantDeclaration { name, value, .. } => {
+                    self.collect_captures_from_expr(*value, param_names, captured);
+                }
+                StatementKind::Expression(expr_id) => {
+                    self.collect_captures_from_expr(*expr_id, param_names, captured);
+                }
+                StatementKind::Return(Some(expr_id)) => {
+                    self.collect_captures_from_expr(*expr_id, param_names, captured);
+                }
+                StatementKind::Conditional { if_branch, else_branch } => {
+                    if let StatementKind::ConditionalBranch { condition, body, .. } = &if_branch.kind {
+                        if let Some(cond) = condition {
+                            self.collect_captures_from_expr(*cond, param_names, captured);
+                        }
+                        self.collect_captures_from_statements(body, param_names, captured);
+                    }
+                    if let Some(else_b) = else_branch {
+                        if let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
+                            if let Some(cond) = condition {
+                                self.collect_captures_from_expr(*cond, param_names, captured);
+                            }
+                            self.collect_captures_from_statements(body, param_names, captured);
+                        }
+                    }
+                }
+                StatementKind::ResolvedForRange { body, range, .. } => {
+                    self.collect_captures_from_statements(body, param_names, captured);
+                    if let StatementKind::Range(items) = &range.kind {
+                        // Range items are integer literals, no captures
+                    }
+                }
+                StatementKind::Loop(body) => {
+                    self.collect_captures_from_statements(body, param_names, captured);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn collect_captures_from_expr(
+        &self,
+        id: ExprId,
+        param_names: &std::collections::HashSet<String>,
+        captured: &mut Vec<String>,
+    ) {
+        let kind = self.ast.exprs.get(id).kind.clone();
+        match &kind {
+            ExpressionKind::ResolvedIdentifier { name, .. } => {
+                // Only capture if it's NOT a parameter and NOT declared locally in the lambda
+                // We check if it's in the outer scope by seeing if it's NOT in param_names
+                // and NOT a local declaration (we track this via var_types which only has outer scope)
+                if !param_names.contains(name) {
+                    // Check if this variable exists in the type checker's scope (outer scope)
+                    if self.var_types.contains_key(name) || self.scopes.iter().rev().any(|s| s.contains_key(name)) {
+                        if !captured.contains(name) {
+                            captured.push(name.clone());
+                        }
+                    }
+                }
+            }
+            ExpressionKind::Binary { left, right, .. } => {
+                self.collect_captures_from_expr(*left, param_names, captured);
+                self.collect_captures_from_expr(*right, param_names, captured);
+            }
+            ExpressionKind::Unary { operand, .. } => {
+                self.collect_captures_from_expr(*operand, param_names, captured);
+            }
+            ExpressionKind::Call { args, .. } => {
+                for arg in args {
+                    self.collect_captures_from_expr(*arg, param_names, captured);
+                }
+            }
+            ExpressionKind::CallExpr { callee, args } => {
+                self.collect_captures_from_expr(*callee, param_names, captured);
+                for arg in args {
+                    self.collect_captures_from_expr(*arg, param_names, captured);
+                }
+            }
+            ExpressionKind::MethodCall { caller, args, .. } => {
+                self.collect_captures_from_expr(*caller, param_names, captured);
+                for arg in args {
+                    self.collect_captures_from_expr(*arg, param_names, captured);
+                }
+            }
+            ExpressionKind::ArrayLiteral(elems) => {
+                for elem in elems {
+                    self.collect_captures_from_expr(*elem, param_names, captured);
+                }
+            }
+            ExpressionKind::MapLiteral(entries) => {
+                for (_, v) in entries {
+                    self.collect_captures_from_expr(*v, param_names, captured);
+                }
+            }
+            ExpressionKind::SetLiteral(items) => {
+                for item in items {
+                    self.collect_captures_from_expr(*item, param_names, captured);
+                }
+            }
+            ExpressionKind::TupleLiteral(elems) => {
+                for elem in elems {
+                    self.collect_captures_from_expr(*elem, param_names, captured);
+                }
+            }
+            ExpressionKind::StructLiteral { fields, .. } => {
+                for (_, v) in fields {
+                    self.collect_captures_from_expr(*v, param_names, captured);
+                }
+            }
+            ExpressionKind::Index { target, index } => {
+                self.collect_captures_from_expr(*target, param_names, captured);
+                self.collect_captures_from_expr(*index, param_names, captured);
+            }
+            ExpressionKind::IndexAssign { target, index, value } => {
+                self.collect_captures_from_expr(*target, param_names, captured);
+                self.collect_captures_from_expr(*index, param_names, captured);
+                self.collect_captures_from_expr(*value, param_names, captured);
+            }
+            ExpressionKind::FieldAccess { target, .. } => {
+                self.collect_captures_from_expr(*target, param_names, captured);
+            }
+            ExpressionKind::FieldAssign { target, field, value } => {
+                self.collect_captures_from_expr(*target, param_names, captured);
+                self.collect_captures_from_expr(*value, param_names, captured);
+            }
+            ExpressionKind::Grouping(inner) => {
+                self.collect_captures_from_expr(*inner, param_names, captured);
+            }
+            ExpressionKind::OkLiteral(inner) | ExpressionKind::ErrLiteral(inner) | ExpressionKind::ErrorLiteral(inner) => {
+                self.collect_captures_from_expr(*inner, param_names, captured);
+            }
+            ExpressionKind::Propagate(inner) => {
+                self.collect_captures_from_expr(*inner, param_names, captured);
+            }
+            ExpressionKind::Cast { value, .. } => {
+                self.collect_captures_from_expr(*value, param_names, captured);
+            }
+            ExpressionKind::ResolvedAssign { value, .. } => {
+                self.collect_captures_from_expr(*value, param_names, captured);
+            }
+            _ => {}
+        }
+    }
+
+    fn write_arg_as_result(&mut self, id: ExprId) -> Result<(), Error> {
+        let kind = self.ast.exprs.get(id).kind.clone();
+        // Try to determine the type and wrap appropriately
+        match &kind {
+            ExpressionKind::Integer(v) => {
+                self.writer.write(&format!("rl_ok_i64((int64_t){})", v));
+            }
+            ExpressionKind::Float(v) => {
+                self.writer.write(&format!("rl_ok_f64((double){})", v));
+            }
+            ExpressionKind::Bool(v) => {
+                self.writer.write(if *v { "rl_ok_bool(true)" } else { "rl_ok_bool(false)" });
+            }
+            ExpressionKind::String(v) => {
+                let escaped = escape_c_string(v);
+                self.writer.write(&format!("rl_ok_str(rl_str_literal(\"{}\", {}))", escaped, escaped.len()));
+            }
+            ExpressionKind::ResolvedIdentifier { name, .. } => {
+                // Look up the type and wrap accordingly
+                if let Some(ta) = self.var_types.get(name) {
+                    let c_name = self.lookup(name);
+                    match ta {
+                        TypeAnnotation::Int | TypeAnnotation::CInt => {
+                            self.writer.write(&format!("rl_ok_i64({})", c_name));
+                        }
+                        TypeAnnotation::Float | TypeAnnotation::CFloat => {
+                            self.writer.write(&format!("rl_ok_f64({})", c_name));
+                        }
+                        TypeAnnotation::Bool | TypeAnnotation::CBool => {
+                            self.writer.write(&format!("rl_ok_bool({})", c_name));
+                        }
+                        TypeAnnotation::String | TypeAnnotation::CString => {
+                            self.writer.write(&format!("rl_ok_str({})", c_name));
+                        }
+                        TypeAnnotation::Array(_) | TypeAnnotation::CArray(_) => {
+                            self.writer.write(&format!("rl_ok_arr({})", c_name));
+                        }
+                        _ => {
+                            self.writer.write(&format!("rl_ok_i64({})", c_name));
+                        }
+                    }
+                } else {
+                    // Default: just pass as is, hope for the best
+                    self.compile_expr(id)?;
+                }
+            }
+            _ => {
+                // For complex expressions, wrap in rl_ok
+                self.writer.write("rl_ok(");
+                self.compile_expr(id)?;
+                self.writer.write(")");
+            }
+        }
         Ok(())
     }
 }

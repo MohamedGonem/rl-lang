@@ -473,3 +473,32 @@ println(std::array::arr_unique([1, 2, 2, 3, 3, 3]))
 println(std::array::arr_concat([1, 2], [3, 4]))
 println(std::array::arr_slice(nums2, 1, 4))
 println(std::array::arr_push(nums2, 99))
+
+// --- 42. Closures and lambdas ---
+println("")
+println("=== Closures ===")
+
+// Basic lambda
+dec fn square = fn (int x) -> int {
+    return x * x
+}
+println(square(5))
+
+// Closure capturing outer variable
+dec int factor = 3
+dec fn triple = fn (int x) -> int {
+    return x * factor
+}
+println(triple(4))
+
+// arr_map with closure
+dec arr[int] doubled = std::array::arr_map(nums, fn (int x) -> int {
+    return x * 2
+})?
+println(doubled)
+
+// arr_filter with closure
+dec arr[int] large = std::array::arr_filter(nums, fn (int x) -> bool {
+    return x > 3
+})?
+println(large)

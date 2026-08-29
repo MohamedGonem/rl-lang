@@ -18,6 +18,12 @@ impl<'a> CCodegen<'a> {
                 self.declare(name, &c_name);
                 self.var_types.insert(name.clone(), type_annotation.clone());
                 let expr = self.ast.exprs.get(*value);
+                // Track closure return types for unwrapping at call sites
+                if let ExpressionKind::ResolvedLambda { return_type, .. } = &expr.kind {
+                    if let Some(rt) = return_type {
+                        self.closure_return_types.insert(name.clone(), rt.clone());
+                    }
+                }
                 if let ExpressionKind::Propagate(inner) = &expr.kind {
                     let temp = self.temp_var();
                     self.writer.write_indent();
@@ -28,12 +34,18 @@ impl<'a> CCodegen<'a> {
                     self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
                     self.writer.indent();
                     self.writer.write_indent();
-                    self.writer.write(&format!("return {};\n", temp));
+                    if self.is_script_mode {
+                        self.writer.write(&format!("rl_println_result({});\n", temp));
+                        self.writer.write_indent();
+                        self.writer.write("return 1;\n");
+                    } else {
+                        self.writer.write(&format!("return {};\n", temp));
+                    }
                     self.writer.dedent();
                     self.writer.write_indent();
                     self.writer.write("}\n");
                     self.writer.write_indent();
-                    self.writer.write(&format!("{} {} = {}.data.ok_value;\n", c_type, c_name, temp));
+                    self.writer.write(&format!("{} {} = {};\n", c_type, c_name, Self::result_field_access(&c_type, &temp)));
                 } else {
                     self.writer.write_indent();
                     self.writer.write(&format!("{} {} = ", c_type, c_name));
@@ -61,13 +73,19 @@ impl<'a> CCodegen<'a> {
                     self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
                     self.writer.indent();
                     self.writer.write_indent();
-                    self.writer.write(&format!("return {};\n", temp));
+                    if self.is_script_mode {
+                        self.writer.write(&format!("rl_println_result({});\n", temp));
+                        self.writer.write_indent();
+                        self.writer.write("return 1;\n");
+                    } else {
+                        self.writer.write(&format!("return {};\n", temp));
+                    }
                     self.writer.dedent();
                     self.writer.write_indent();
                     self.writer.write("}\n");
                     self.writer.write_indent();
                     self.writer
-                        .write(&format!("const {} {} = {}.data.ok_value;\n", c_type, c_name, temp));
+                        .write(&format!("const {} {} = {};\n", c_type, c_name, Self::result_field_access(&c_type, &temp)));
                 } else {
                     self.writer.write_indent();
                     self.writer
@@ -134,7 +152,7 @@ impl<'a> CCodegen<'a> {
                     self.writer.write_indent();
                     self.writer.write("}\n");
                     self.writer.write_indent();
-                    self.writer.write(&format!("return {}.data.ok_value;\n", temp));
+                    self.writer.write(&format!("return {};\n", Self::result_field_access("rl_result", &temp)));
                 } else {
                     self.writer.write_indent();
                     self.writer.write("return ");
@@ -643,5 +661,19 @@ impl<'a> CCodegen<'a> {
             }
         }
         Ok(())
+    }
+
+    fn result_field_access(c_type: &str, temp: &str) -> String {
+        match c_type {
+            "int64_t" | "uint64_t" | "int32_t" | "uint32_t" | "int16_t" | "uint16_t" | "int8_t" | "uint8_t" | "char" => format!("{}.data.i64", temp),
+            "double" | "float" => format!("{}.data.f64", temp),
+            "bool" => format!("{}.data.boolean", temp),
+            "rl_string" => format!("{}.data.str", temp),
+            "rl_array" => format!("{}.data.arr", temp),
+            "rl_map" => format!("{}.data.map", temp),
+            "rl_set" => format!("{}.data.set", temp),
+            "rl_result" => temp.to_string(),
+            _ => format!("{}.data.i64", temp),
+        }
     }
 }
