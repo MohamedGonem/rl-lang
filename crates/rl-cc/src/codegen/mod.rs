@@ -90,6 +90,8 @@ impl<'a> CCodegen<'a> {
         }
         self.emitted_includes = true;
 
+        self.writer.writeln("#define _GNU_SOURCE");
+        self.writer.writeln("#define _POSIX_C_SOURCE 200809L");
         self.writer.writeln("#include <stdint.h>");
         self.writer.writeln("#include <stdbool.h>");
         self.writer.writeln("#include <stdio.h>");
