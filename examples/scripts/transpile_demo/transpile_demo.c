@@ -32,6 +32,43 @@ static rl_result _rl_lambda_3(rl_closure *_self, rl_result *_args, uint64_t _arg
     return rl_ok_null();
 }
 
+static rl_result _rl_lambda_4(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t x = rl_unwrap_i64(_args[0]);
+    return rl_ok(x == (int64_t)3);
+    return rl_ok_null();
+}
+
+static rl_result _rl_lambda_5(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t x = rl_unwrap_i64(_args[0]);
+    return rl_ok(x > (int64_t)0);
+    return rl_ok_null();
+}
+
+static rl_result _rl_lambda_6(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t x = rl_unwrap_i64(_args[0]);
+    return rl_ok(x > (int64_t)5);
+    return rl_ok_null();
+}
+
+static rl_result _rl_lambda_7(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t x = rl_unwrap_i64(_args[0]);
+    rl_println(x);
+    return rl_ok_null();
+}
+
+static rl_result _rl_lambda_8(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t a = rl_unwrap_i64(_args[0]);
+    int64_t b = rl_unwrap_i64(_args[1]);
+    return rl_ok(a - b);
+    return rl_ok_null();
+}
+
+static rl_result _rl_lambda_9(rl_closure *_self, rl_result *_args, uint64_t _argc) {
+    int64_t x = rl_unwrap_i64(_args[0]);
+    return rl_ok(rl_arr_from_vals(&(int64_t[]){x, x * (int64_t)10}, 2, (int32_t)sizeof(int64_t)));
+    return rl_ok_null();
+}
+
 
 
 typedef struct { int64_t x; int64_t y; } rl_Record_Point;
@@ -466,5 +503,46 @@ int main(int argc, char **argv) {
     }
     rl_array large = _r_4.data.arr;
     rl_println(large);
+    rl_result _r_5 = rl_arr_find_index_closure(nums, rl_closure_new(_rl_lambda_4, (rl_result[]){  }, 0));
+    if (!_r_5.is_ok) {
+        rl_println_result(_r_5);
+        return 1;
+    }
+    int64_t idx = _r_5.data.i64;
+    rl_println(idx);
+    rl_result _r_6 = rl_arr_all_closure(nums, rl_closure_new(_rl_lambda_5, (rl_result[]){  }, 0));
+    if (!_r_6.is_ok) {
+        rl_println_result(_r_6);
+        return 1;
+    }
+    bool all_pos = _r_6.data.boolean;
+    rl_println(all_pos);
+    rl_result _r_7 = rl_arr_any_closure(nums, rl_closure_new(_rl_lambda_6, (rl_result[]){  }, 0));
+    if (!_r_7.is_ok) {
+        rl_println_result(_r_7);
+        return 1;
+    }
+    bool any_big = _r_7.data.boolean;
+    rl_println(any_big);
+    rl_result _r_8 = rl_arr_for_each_closure(rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t)), rl_closure_new(_rl_lambda_7, (rl_result[]){  }, 0));
+    if (!_r_8.is_ok) {
+        rl_println_result(_r_8);
+        return 1;
+    }
+    rl_result _r_9 = rl_arr_sort_by_closure(nums, rl_closure_new(_rl_lambda_8, (rl_result[]){  }, 0));
+    if (!_r_9.is_ok) {
+        rl_println_result(_r_9);
+        return 1;
+    }
+    rl_array sorted = _r_9.data.arr;
+    rl_println(sorted);
+    rl_array nums3 = rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20}, 2, (int32_t)sizeof(int64_t));
+    rl_result _r_10 = rl_arr_flat_map_closure(nums, rl_closure_new(_rl_lambda_9, (rl_result[]){  }, 0));
+    if (!_r_10.is_ok) {
+        rl_println_result(_r_10);
+        return 1;
+    }
+    rl_array flat = _r_10.data.arr;
+    rl_println(flat);
     return 0;
 }

@@ -131,9 +131,32 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("}\n\n");
             }
             StatementKind::Expression(expr_id) => {
-                self.writer.write_indent();
-                self.compile_expr(*expr_id)?;
-                self.writer.write(";\n");
+                let expr = self.ast.exprs.get(*expr_id);
+                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                    let temp = self.temp_var();
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_result {} = ", temp));
+                    self.compile_expr(*inner)?;
+                    self.writer.write(";\n");
+                    self.writer.write_indent();
+                    self.writer.write(&format!("if (!{}.is_ok) {{\n", temp));
+                    self.writer.indent();
+                    self.writer.write_indent();
+                    if self.is_script_mode {
+                        self.writer.write(&format!("rl_println_result({});\n", temp));
+                        self.writer.write_indent();
+                        self.writer.write("return 1;\n");
+                    } else {
+                        self.writer.write(&format!("return {};\n", temp));
+                    }
+                    self.writer.dedent();
+                    self.writer.write_indent();
+                    self.writer.write("}\n");
+                } else {
+                    self.writer.write_indent();
+                    self.compile_expr(*expr_id)?;
+                    self.writer.write(";\n");
+                }
             }
             StatementKind::Return(Some(expr_id)) => {
                 let expr = self.ast.exprs.get(*expr_id);

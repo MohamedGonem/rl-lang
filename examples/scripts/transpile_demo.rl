@@ -502,3 +502,39 @@ dec arr[int] large = std::array::arr_filter(nums, fn (int x) -> bool {
     return x > 3
 })?
 println(large)
+
+// arr_find_index
+dec int idx = std::array::arr_find_index(nums, fn (int x) -> bool {
+    return x == 3
+})?
+println(idx)
+
+// arr_all
+dec bool all_pos = std::array::arr_all(nums, fn (int x) -> bool {
+    return x > 0
+})?
+println(all_pos)
+
+// arr_any
+dec bool any_big = std::array::arr_any(nums, fn (int x) -> bool {
+    return x > 5
+})?
+println(any_big)
+
+// arr_for_each
+std::array::arr_for_each([10, 20, 30], fn (int x) {
+    println(x)
+})?
+
+// arr_sort_by
+dec arr[int] sorted = std::array::arr_sort_by(nums, fn (int a, int b) -> int {
+    return a - b
+})?
+println(sorted)
+
+// arr_flat_map
+dec arr[int] nums3 = [10, 20]
+dec arr[int] flat = std::array::arr_flat_map(nums, fn (int x) -> arr[int] {
+    return [x, x * 10]
+})?
+println(flat)

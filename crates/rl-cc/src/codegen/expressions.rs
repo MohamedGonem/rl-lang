@@ -172,7 +172,7 @@ impl<'a> CCodegen<'a> {
                 self.writer.dedent();
                 self.writer.write_indent();
                 self.writer.write("}\n");
-                self.writer.write(&format!("{}.data.ok_value", temp));
+                self.writer.write(&format!("{}.data.i64", temp));
             }
             ExpressionKind::ArrayLiteral(elems) => {
                 self.writer.write("rl_arr_from_vals(&(int64_t[]){");
@@ -1749,6 +1749,123 @@ impl<'a> CCodegen<'a> {
                         self.compile_expr(args[1])?;
                         self.writer.write(", ");
                         self.compile_expr(args[2])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_find_index" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_find_index_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_all" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_all_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_any" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_any_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_for_each" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_for_each_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_flat_map" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_flat_map_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "arr_sort_by" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_arr_sort_by_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "result_map" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_result_map_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "result_map_err" => {
+                if args.len() >= 2 {
+                    let second_expr = self.ast.exprs.get(args[1]);
+                    if matches!(&second_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_result_map_err_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
+                        self.writer.write(")");
+                        return Ok(());
+                    }
+                }
+            }
+            "bench" => {
+                if args.len() >= 2 {
+                    let first_expr = self.ast.exprs.get(args[0]);
+                    if matches!(&first_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
+                        self.writer.write("rl_bench_closure(");
+                        self.compile_expr(args[0])?;
+                        self.writer.write(", ");
+                        self.compile_expr(args[1])?;
                         self.writer.write(")");
                         return Ok(());
                     }

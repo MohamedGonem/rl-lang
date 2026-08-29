@@ -441,5 +441,18 @@ rl_result rl_arr_filter_closure(rl_array arr, rl_closure pred);
 rl_result rl_arr_map_closure(rl_array arr, rl_closure fn);
 rl_result rl_arr_find_closure(rl_array arr, rl_closure pred);
 rl_result rl_arr_reduce_closure(rl_array arr, rl_closure fn, rl_result init);
+rl_result rl_arr_find_index_closure(rl_array arr, rl_closure pred);
+rl_result rl_arr_all_closure(rl_array arr, rl_closure pred);
+rl_result rl_arr_any_closure(rl_array arr, rl_closure pred);
+rl_result rl_arr_for_each_closure(rl_array arr, rl_closure fn);
+rl_result rl_arr_flat_map_closure(rl_array arr, rl_closure fn);
+rl_result rl_arr_sort_by_closure(rl_array arr, rl_closure cmp);
+
+// ---- closure-consuming result functions ----
+rl_result rl_result_map_closure(rl_result val, rl_closure fn);
+rl_result rl_result_map_err_closure(rl_result val, rl_closure fn);
+
+// ---- closure-consuming debug ----
+rl_result rl_bench_closure(rl_closure fn, int64_t iterations);
 
 #endif

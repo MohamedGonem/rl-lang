@@ -1862,6 +1862,163 @@ rl_result rl_arr_reduce_closure(rl_array arr, rl_closure fn, rl_result init) {
     return acc;
 }
 
+rl_result rl_arr_find_index_closure(rl_array arr, rl_closure pred) {
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result found = rl_closure_call(pred, &arg, 1);
+        if (found.is_ok && ((found.tag == RL_TAG_BOOL && found.data.boolean) || (found.tag == RL_TAG_I64 && found.data.i64 != 0))) {
+            return rl_ok_i64((int64_t)i);
+        }
+    }
+    return rl_ok_i64((int64_t)-1);
+}
+
+rl_result rl_arr_all_closure(rl_array arr, rl_closure pred) {
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result ok = rl_closure_call(pred, &arg, 1);
+        bool truth = false;
+        if (ok.is_ok) {
+            if (ok.tag == RL_TAG_BOOL) truth = ok.data.boolean;
+            else if (ok.tag == RL_TAG_I64) truth = (ok.data.i64 != 0);
+        }
+        if (!truth) return rl_ok_bool(false);
+    }
+    return rl_ok_bool(true);
+}
+
+rl_result rl_arr_any_closure(rl_array arr, rl_closure pred) {
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result ok = rl_closure_call(pred, &arg, 1);
+        bool truth = false;
+        if (ok.is_ok) {
+            if (ok.tag == RL_TAG_BOOL) truth = ok.data.boolean;
+            else if (ok.tag == RL_TAG_I64) truth = (ok.data.i64 != 0);
+        }
+        if (truth) return rl_ok_bool(true);
+    }
+    return rl_ok_bool(false);
+}
+
+rl_result rl_arr_for_each_closure(rl_array arr, rl_closure fn) {
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_closure_call(fn, &arg, 1);
+    }
+    return rl_ok_null();
+}
+
+rl_result rl_arr_flat_map_closure(rl_array arr, rl_closure fn) {
+    uint64_t cap = 16;
+    int64_t *buf = malloc(cap * sizeof(int64_t));
+    uint64_t count = 0;
+    int64_t *elems = (int64_t *)arr.data;
+    for (uint64_t i = 0; i < arr.len; i++) {
+        rl_result arg = rl_ok_i64(elems[i]);
+        rl_result mapped = rl_closure_call(fn, &arg, 1);
+        if (mapped.is_ok && mapped.tag == RL_TAG_ARR) {
+            rl_array inner = mapped.data.arr;
+            int64_t *inner_elems = (int64_t *)inner.data;
+            for (uint64_t j = 0; j < inner.len; j++) {
+                if (count >= cap) { cap *= 2; buf = realloc(buf, cap * sizeof(int64_t)); }
+                buf[count++] = inner_elems[j];
+            }
+        }
+    }
+    return rl_ok_arr(rl_arr_from_vals(buf, count, sizeof(int64_t)));
+}
+
+rl_result rl_arr_sort_by_closure(rl_array arr, rl_closure cmp) {
+    // Copy the array data for sorting
+    int64_t *elems = (int64_t *)arr.data;
+    uint64_t len = arr.len;
+    int64_t *buf = malloc(len * sizeof(int64_t));
+    if (len > 0 && elems) memcpy(buf, elems, len * sizeof(int64_t));
+
+    // Simple insertion sort using the comparator closure
+    for (uint64_t i = 1; i < len; i++) {
+        int64_t key = buf[i];
+        int64_t j = (int64_t)i - 1;
+        while (j >= 0) {
+            rl_result args[2] = { rl_ok_i64(buf[j]), rl_ok_i64(key) };
+            rl_result cmp_result = rl_closure_call(cmp, args, 2);
+            // If cmp(a, b) > 0, swap (ascending order)
+            if (cmp_result.is_ok && cmp_result.tag == RL_TAG_I64 && cmp_result.data.i64 > 0) {
+                buf[j + 1] = buf[j];
+                j--;
+            } else {
+                break;
+            }
+        }
+        buf[j + 1] = key;
+    }
+    return rl_ok_arr(rl_arr_from_vals(buf, len, sizeof(int64_t)));
+}
+
+rl_result rl_result_map_closure(rl_result val, rl_closure fn) {
+    if (!val.is_ok) return val;
+    switch (val.tag) {
+        case RL_TAG_I64: {
+            rl_result arg = rl_ok_i64(val.data.i64);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        case RL_TAG_F64: {
+            rl_result arg = rl_ok_f64(val.data.f64);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        case RL_TAG_BOOL: {
+            rl_result arg = rl_ok_bool(val.data.boolean);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        case RL_TAG_STR: {
+            rl_result arg = rl_ok_str(val.data.str);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        case RL_TAG_ARR: {
+            rl_result arg = rl_ok_arr(val.data.arr);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        default: {
+            rl_result arg = rl_ok_null();
+            return rl_closure_call(fn, &arg, 1);
+        }
+    }
+}
+
+rl_result rl_result_map_err_closure(rl_result val, rl_closure fn) {
+    if (val.is_ok) return val;
+    switch (val.tag) {
+        case RL_TAG_I64: {
+            rl_result arg = rl_ok_i64(val.data.i64);
+            return rl_err(rl_unwrap_i64(rl_closure_call(fn, &arg, 1)));
+        }
+        case RL_TAG_STR: {
+            rl_result arg = rl_ok_str(val.data.str);
+            return rl_closure_call(fn, &arg, 1);
+        }
+        default: {
+            rl_result arg = rl_ok_i64(val.err_code);
+            return rl_err(rl_unwrap_i64(rl_closure_call(fn, &arg, 1)));
+        }
+    }
+}
+
+rl_result rl_bench_closure(rl_closure fn, int64_t iterations) {
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    for (int64_t i = 0; i < iterations; i++) {
+        rl_closure_call(fn, NULL, 0);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    return rl_ok_f64(elapsed / (double)iterations);
+}
+
 rl_never rl_never_fn(void) {
     fprintf(stderr, "error: reached unreachable code\n");
     abort();
