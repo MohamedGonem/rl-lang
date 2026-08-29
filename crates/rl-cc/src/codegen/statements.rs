@@ -19,11 +19,10 @@ impl<'a> CCodegen<'a> {
                 self.var_types.insert(name.clone(), type_annotation.clone());
                 let expr = self.ast.exprs.get(*value);
                 // Track closure return types for unwrapping at call sites
-                if let ExpressionKind::ResolvedLambda { return_type, .. } = &expr.kind {
-                    if let Some(rt) = return_type {
+                if let ExpressionKind::ResolvedLambda { return_type, .. } = &expr.kind
+                    && let Some(rt) = return_type {
                         self.closure_return_types.insert(name.clone(), rt.clone());
                     }
-                }
                 if let ExpressionKind::Propagate(inner) = &expr.kind {
                     let temp = self.temp_var();
                     self.writer.write_indent();

@@ -361,7 +361,7 @@ impl<'a> CCodegen<'a> {
             }
             _ => {
                 self.writer.write_indent();
-                self.writer.writeln(&format!("printf(\"?\");"));
+                self.writer.writeln("printf(\"?\");");
             }
         }
     }

@@ -1508,6 +1508,167 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("))");
                 return Ok(());
             }
+            // ---- terminal ----
+            "term_enter" => { self.writer.write("rl_term_enter()"); return Ok(()); }
+            "term_leave" => { self.writer.write("rl_term_leave()"); return Ok(()); }
+            "term_clear" => { self.writer.write("rl_term_clear()"); return Ok(()); }
+            "term_clear_line" => { self.writer.write("rl_term_clear_line()"); return Ok(()); }
+            "term_move" => {
+                self.writer.write("rl_term_move(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_to_col" => {
+                self.writer.write("rl_term_move_to_col(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_to_row" => {
+                self.writer.write("rl_term_move_to_row(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_up" => {
+                self.writer.write("rl_term_move_up(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_down" => {
+                self.writer.write("rl_term_move_down(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_left" => {
+                self.writer.write("rl_term_move_left(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_move_right" => {
+                self.writer.write("rl_term_move_right(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_next_line" => {
+                self.writer.write("rl_term_next_line(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_prev_line" => {
+                self.writer.write("rl_term_prev_line(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_save_cursor" => { self.writer.write("rl_term_save_cursor()"); return Ok(()); }
+            "term_restore_cursor" => { self.writer.write("rl_term_restore_cursor()"); return Ok(()); }
+            "term_hide_cursor" => { self.writer.write("rl_term_hide_cursor()"); return Ok(()); }
+            "term_show_cursor" => { self.writer.write("rl_term_show_cursor()"); return Ok(()); }
+            "term_get_size" => {
+                let c = self.temp_var();
+                let r = self.temp_var();
+                self.writer.write(&format!("{{ int64_t {0}, {1}; rl_term_get_size(&{0}, &{1}); rl_ok_arr(rl_arr_from_vals(&(int64_t[]){{{0}, {1}}}, 2, sizeof(int64_t))) }}", c, r));
+                return Ok(());
+            }
+            "term_set_size" => {
+                self.writer.write("rl_term_set_size(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_set_title" => {
+                self.writer.write("rl_term_set_title(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_scroll_up" => {
+                self.writer.write("rl_term_scroll_up(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_scroll_down" => {
+                self.writer.write("rl_term_scroll_down(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_flush" => { self.writer.write("rl_term_flush()"); return Ok(()); }
+            "term_set_fg" => {
+                self.writer.write("rl_term_set_fg(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(", ");
+                if args.len() >= 3 { self.compile_expr(args[2])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_set_bg" => {
+                self.writer.write("rl_term_set_bg(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(", ");
+                if args.len() >= 3 { self.compile_expr(args[2])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_reset_color" => { self.writer.write("rl_term_reset_color()"); return Ok(()); }
+            "term_fg" => {
+                self.writer.write("rl_term_fg(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_bg" => {
+                self.writer.write("rl_term_bg(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_bold" => { self.writer.write("rl_term_bold()"); return Ok(()); }
+            "term_dim" => { self.writer.write("rl_term_dim()"); return Ok(()); }
+            "term_italic" => { self.writer.write("rl_term_italic()"); return Ok(()); }
+            "term_underline" => { self.writer.write("rl_term_underline()"); return Ok(()); }
+            "term_blink" => { self.writer.write("rl_term_blink()"); return Ok(()); }
+            "term_reverse" => { self.writer.write("rl_term_reverse()"); return Ok(()); }
+            "term_crossed_out" => { self.writer.write("rl_term_crossed_out()"); return Ok(()); }
+            "term_reset_attr" => { self.writer.write("rl_term_reset_attr()"); return Ok(()); }
+            "term_enable_wrap" => { self.writer.write("rl_term_enable_wrap()"); return Ok(()); }
+            "term_disable_wrap" => { self.writer.write("rl_term_disable_wrap()"); return Ok(()); }
+            "term_begin_sync" => { self.writer.write("rl_term_begin_sync()"); return Ok(()); }
+            "term_end_sync" => { self.writer.write("rl_term_end_sync()"); return Ok(()); }
+            "term_enable_mouse" => { self.writer.write("rl_term_enable_mouse()"); return Ok(()); }
+            "term_disable_mouse" => { self.writer.write("rl_term_disable_mouse()"); return Ok(()); }
+            "term_print" => {
+                self.writer.write("rl_term_print_inline(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "term_read_key" => {
+                self.writer.write("rl_term_read_key()");
+                return Ok(());
+            }
+            "term_poll" => {
+                self.writer.write("rl_ok(rl_term_poll(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write("))");
+                return Ok(());
+            }
             // ---- collections (extended) ----
             "set_add" => {
                 self.writer.write("rl_ok(rl_set_add_s(");
@@ -1920,8 +2081,8 @@ impl<'a> CCodegen<'a> {
                     }
                 }
             }
-            "bench" => {
-                if args.len() >= 2 {
+            "bench"
+                if args.len() >= 2 => {
                     let first_expr = self.ast.exprs.get(args[0]);
                     if matches!(&first_expr.kind, ExpressionKind::ResolvedLambda { .. }) {
                         self.writer.write("rl_bench_closure(");
@@ -1932,7 +2093,6 @@ impl<'a> CCodegen<'a> {
                         return Ok(());
                     }
                 }
-            }
             _ => {}
         }
 
@@ -2024,7 +2184,7 @@ impl<'a> CCodegen<'a> {
         captured_names.dedup();
 
         // Build the static function
-        let c_ret = match return_type {
+        let _c_ret = match return_type {
             Some(ta) => type_to_c(ta),
             None => "rl_result".to_string(),
         };
@@ -2061,7 +2221,7 @@ impl<'a> CCodegen<'a> {
         // Declare captured variables from _self->captures
         for (i, name) in captured_names.iter().enumerate() {
             let c_name = mangle(name);
-            let c_type = self.var_types.get(name).map(|ta| type_to_c(ta)).unwrap_or_else(|| "int64_t".to_string());
+            let c_type = self.var_types.get(name).map(type_to_c).unwrap_or_else(|| "int64_t".to_string());
             func_code.push_str(&format!("    {} {} = ", c_type, c_name));
             match self.var_types.get(name) {
                 Some(TypeAnnotation::Int) | Some(TypeAnnotation::CInt) => {
@@ -2190,15 +2350,15 @@ impl<'a> CCodegen<'a> {
                     if let Some(cond) = condition {
                         self.compile_expr_to_string(*cond, func_code)?;
                     } else {
-                        func_code.push_str("1");
+                        func_code.push('1');
                     }
                     func_code.push_str(") {\n");
                     for s in body {
                         self.compile_lambda_statement(s, func_code)?;
                     }
                 }
-                if let Some(else_b) = else_branch {
-                    if let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
+                if let Some(else_b) = else_branch
+                    && let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
                         if condition.is_some() {
                             // else-if chain
                             func_code.push_str("    } else if (");
@@ -2211,7 +2371,6 @@ impl<'a> CCodegen<'a> {
                             self.compile_lambda_statement(s, func_code)?;
                         }
                     }
-                }
                 func_code.push_str("    }\n");
             }
             StatementKind::ResolvedForRange {
@@ -2272,10 +2431,10 @@ impl<'a> CCodegen<'a> {
         use rl_ast::statements::StatementKind;
         for stmt in stmts {
             match &stmt.kind {
-                StatementKind::ResolvedVariableDeclaration { name, value, .. } => {
+                StatementKind::ResolvedVariableDeclaration { name: _, value, .. } => {
                     self.collect_captures_from_expr(*value, param_names, captured);
                 }
-                StatementKind::ResolvedConstantDeclaration { name, value, .. } => {
+                StatementKind::ResolvedConstantDeclaration { name: _, value, .. } => {
                     self.collect_captures_from_expr(*value, param_names, captured);
                 }
                 StatementKind::Expression(expr_id) => {
@@ -2291,18 +2450,17 @@ impl<'a> CCodegen<'a> {
                         }
                         self.collect_captures_from_statements(body, param_names, captured);
                     }
-                    if let Some(else_b) = else_branch {
-                        if let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
+                    if let Some(else_b) = else_branch
+                        && let StatementKind::ConditionalBranch { condition, body, .. } = &else_b.kind {
                             if let Some(cond) = condition {
                                 self.collect_captures_from_expr(*cond, param_names, captured);
                             }
                             self.collect_captures_from_statements(body, param_names, captured);
                         }
-                    }
                 }
                 StatementKind::ResolvedForRange { body, range, .. } => {
                     self.collect_captures_from_statements(body, param_names, captured);
-                    if let StatementKind::Range(items) = &range.kind {
+                    if let StatementKind::Range(_items) = &range.kind {
                         // Range items are integer literals, no captures
                     }
                 }
@@ -2328,11 +2486,10 @@ impl<'a> CCodegen<'a> {
                 // and NOT a local declaration (we track this via var_types which only has outer scope)
                 if !param_names.contains(name) {
                     // Check if this variable exists in the type checker's scope (outer scope)
-                    if self.var_types.contains_key(name) || self.scopes.iter().rev().any(|s| s.contains_key(name)) {
-                        if !captured.contains(name) {
+                    if (self.var_types.contains_key(name) || self.scopes.iter().rev().any(|s| s.contains_key(name)))
+                        && !captured.contains(name) {
                             captured.push(name.clone());
                         }
-                    }
                 }
             }
             ExpressionKind::Binary { left, right, .. } => {
@@ -2396,7 +2553,7 @@ impl<'a> CCodegen<'a> {
             ExpressionKind::FieldAccess { target, .. } => {
                 self.collect_captures_from_expr(*target, param_names, captured);
             }
-            ExpressionKind::FieldAssign { target, field, value } => {
+            ExpressionKind::FieldAssign { target, field: _, value } => {
                 self.collect_captures_from_expr(*target, param_names, captured);
                 self.collect_captures_from_expr(*value, param_names, captured);
             }
