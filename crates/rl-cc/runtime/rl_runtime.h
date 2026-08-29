@@ -47,6 +47,7 @@ enum rl_type_tag {
     RL_TAG_I64,
     RL_TAG_F64,
     RL_TAG_BOOL,
+    RL_TAG_CHAR,
     RL_TAG_STR,
     RL_TAG_ARR,
     RL_TAG_MAP,
@@ -143,7 +144,11 @@ static inline rl_result _rl_ok_u16(uint16_t v) { return rl_ok_i64(v); }
 static inline rl_result _rl_ok_i8(int8_t v) { return rl_ok_i64(v); }
 static inline rl_result _rl_ok_u8(uint8_t v) { return rl_ok_i64(v); }
 static inline rl_result _rl_ok_f32(float v) { return rl_ok_f64(v); }
-static inline rl_result _rl_ok_char(char v) { return rl_ok_i64((int64_t)v); }
+static inline rl_result _rl_ok_char(char v) {
+    rl_result r = { .is_ok = true, .tag = RL_TAG_CHAR, .err_code = 0 };
+    r.data.i64 = (int64_t)(unsigned char)v;
+    return r;
+}
 
 // ---- array type ----
 
@@ -272,7 +277,7 @@ rl_string rl_str_slice(rl_string s, int64_t start, int64_t end);
 rl_string rl_str_reverse(rl_string s);
 rl_array rl_str_bytes(rl_string s);
 rl_array rl_str_chars(rl_string s);
-int64_t rl_str_char_at(rl_string s, int64_t index);
+char rl_str_char_at(rl_string s, int64_t index);
 rl_string rl_str_join(rl_array arr, rl_string delim);
 rl_array rl_str_split(rl_string s, rl_string delim);
 

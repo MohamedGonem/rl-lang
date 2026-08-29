@@ -262,10 +262,11 @@ static void rl_print_result_inner(rl_result v) {
     if (v.is_ok) {
         printf("ok(");
         switch (v.tag) {
-            case RL_TAG_NULL: printf("null"); break;
+             case RL_TAG_NULL: printf("null"); break;
             case RL_TAG_I64: rl_print_i64_val(v.data.i64); break;
             case RL_TAG_F64: rl_print_f64_val(v.data.f64); break;
             case RL_TAG_BOOL: rl_print_bool_val(v.data.boolean); break;
+            case RL_TAG_CHAR: printf("%c", (char)(unsigned char)v.data.i64); break;
             case RL_TAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
             case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
             case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
@@ -279,6 +280,7 @@ static void rl_print_result_inner(rl_result v) {
             case RL_TAG_I64: rl_print_i64_val(v.data.i64); break;
             case RL_TAG_F64: rl_print_f64_val(v.data.f64); break;
             case RL_TAG_BOOL: rl_print_bool_val(v.data.boolean); break;
+            case RL_TAG_CHAR: printf("%c", (char)(unsigned char)v.data.i64); break;
             case RL_TAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
             case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
             case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
@@ -295,7 +297,9 @@ void rl_print_rl_array(rl_array v) {
     printf("[");
     for (uint64_t i = 0; i < v.len; i++) {
         if (i > 0) printf(", ");
-        if (v.elem_size == sizeof(int64_t)) {
+        if (v.type_tag == RL_TAG_CHAR) {
+            printf("%c", ((char *)v.data)[i]);
+        } else if (v.elem_size == sizeof(int64_t)) {
             printf("%ld", (long)((int64_t *)v.data)[i]);
         } else if (v.elem_size == sizeof(double)) {
             { double fv = ((double *)v.data)[i]; rl_print_f64(fv); }
@@ -656,41 +660,47 @@ rl_array rl_str_bytes(rl_string s) {
 
 rl_array rl_str_chars(rl_string s) {
     uint64_t cap = 16;
-    int64_t *buf = malloc(cap * sizeof(int64_t));
+    char *buf = malloc(cap);
     uint64_t count = 0;
     uint64_t i = 0;
     while (i < s.len) {
         unsigned char c = (unsigned char)s.data[i];
         uint64_t char_len;
-        int64_t codepoint;
+        char ch;
         if (c < 0x80) {
             char_len = 1;
-            codepoint = c;
+            ch = (char)c;
         } else if (c < 0xE0) {
             char_len = 2;
-            codepoint = c & 0x1F;
+            ch = (char)(c & 0x1F);
         } else if (c < 0xF0) {
             char_len = 3;
-            codepoint = c & 0x0F;
+            ch = (char)(c & 0x0F);
         } else {
             char_len = 4;
-            codepoint = c & 0x07;
+            ch = (char)(c & 0x07);
         }
         for (uint64_t j = 1; j < char_len && i + j < s.len; j++) {
-            codepoint = (codepoint << 6) | ((unsigned char)s.data[i + j] & 0x3F);
+            ch = (ch << 6) | ((unsigned char)s.data[i + j] & 0x3F);
         }
         if (count >= cap) {
             cap *= 2;
-            buf = realloc(buf, cap * sizeof(int64_t));
+            buf = realloc(buf, cap);
         }
-        buf[count++] = codepoint;
+        buf[count++] = ch;
         i += char_len;
     }
-    return rl_arr_from_vals(buf, count, sizeof(int64_t));
+    rl_array arr;
+    arr.data = buf;
+    arr.len = count;
+    arr.cap = cap;
+    arr.elem_size = sizeof(char);
+    arr.type_tag = RL_TAG_CHAR;
+    return arr;
 }
 
-int64_t rl_str_char_at(rl_string s, int64_t index) {
-    if (index < 0) return -1;
+char rl_str_char_at(rl_string s, int64_t index) {
+    if (index < 0) return '\0';
     uint64_t pos = 0;
     int64_t char_idx = 0;
     while (pos < s.len) {
@@ -704,11 +714,11 @@ int64_t rl_str_char_at(rl_string s, int64_t index) {
         for (uint64_t j = 1; j < char_len && pos + j < s.len; j++) {
             codepoint = (codepoint << 6) | ((unsigned char)s.data[pos + j] & 0x3F);
         }
-        if (char_idx == index) return codepoint;
+        if (char_idx == index) return (char)codepoint;
         pos += char_len;
         char_idx++;
     }
-    return -1;
+    return '\0';
 }
 
 rl_string rl_str_join(rl_array arr, rl_string delim) {
