@@ -42,7 +42,7 @@ impl<'a> CCodegen<'a> {
                     .write(&format!("rl_str_literal(\"{}\", {})", escaped, escaped.len()));
             }
             ExpressionKind::Null => {
-                self.writer.write("0");
+                self.writer.write("rl_ok_null()");
             }
             ExpressionKind::Byte(v) => {
                 self.writer.write(&format!("(uint8_t){}", v));
@@ -78,7 +78,30 @@ impl<'a> CCodegen<'a> {
             }
             ExpressionKind::ResolvedIdentifier { name, .. } => {
                 let c_name = self.lookup(name);
-                self.writer.write(&c_name);
+                if self.nullable_vars.contains(name) {
+                    match self.var_types.get(name) {
+                        Some(TypeAnnotation::Int) | Some(TypeAnnotation::CInt) => {
+                            self.writer.write(&format!("rl_unwrap_i64({})", c_name));
+                        }
+                        Some(TypeAnnotation::Float) | Some(TypeAnnotation::CFloat) => {
+                            self.writer.write(&format!("rl_unwrap_f64({})", c_name));
+                        }
+                        Some(TypeAnnotation::Bool) | Some(TypeAnnotation::CBool) => {
+                            self.writer.write(&format!("rl_unwrap_bool({})", c_name));
+                        }
+                        Some(TypeAnnotation::String) | Some(TypeAnnotation::CString) => {
+                            self.writer.write(&format!("rl_unwrap_str({})", c_name));
+                        }
+                        Some(TypeAnnotation::Array(_)) | Some(TypeAnnotation::CArray(_)) => {
+                            self.writer.write(&format!("rl_unwrap_arr({})", c_name));
+                        }
+                        _ => {
+                            self.writer.write(&format!("rl_unwrap_i64({})", c_name));
+                        }
+                    }
+                } else {
+                    self.writer.write(&c_name);
+                }
             }
             ExpressionKind::Identifier(name) => {
                 let c_name = self.lookup(name);
@@ -294,8 +317,43 @@ impl<'a> CCodegen<'a> {
             }
             ExpressionKind::ResolvedAssign { name, value, .. } => {
                 let c_name = self.lookup(name);
-                self.writer.write(&format!("{} = ", c_name));
-                self.compile_expr(*value)?;
+                if self.nullable_vars.contains(name) {
+                    let value_expr = self.ast.exprs.get(*value);
+                    if let ExpressionKind::Null = &value_expr.kind {
+                        self.writer.write(&format!("{} = rl_ok_null()", c_name));
+                    } else {
+                        match self.var_types.get(name) {
+                            Some(TypeAnnotation::Int) | Some(TypeAnnotation::CInt) => {
+                                self.writer.write(&format!("{} = rl_ok_i64(", c_name));
+                                self.compile_expr(*value)?;
+                                self.writer.write(")");
+                            }
+                            Some(TypeAnnotation::Float) | Some(TypeAnnotation::CFloat) => {
+                                self.writer.write(&format!("{} = rl_ok_f64(", c_name));
+                                self.compile_expr(*value)?;
+                                self.writer.write(")");
+                            }
+                            Some(TypeAnnotation::Bool) | Some(TypeAnnotation::CBool) => {
+                                self.writer.write(&format!("{} = rl_ok_bool(", c_name));
+                                self.compile_expr(*value)?;
+                                self.writer.write(")");
+                            }
+                            Some(TypeAnnotation::String) | Some(TypeAnnotation::CString) => {
+                                self.writer.write(&format!("{} = rl_ok_str(", c_name));
+                                self.compile_expr(*value)?;
+                                self.writer.write(")");
+                            }
+                            _ => {
+                                self.writer.write(&format!("{} = rl_ok(", c_name));
+                                self.compile_expr(*value)?;
+                                self.writer.write(")");
+                            }
+                        }
+                    }
+                } else {
+                    self.writer.write(&format!("{} = ", c_name));
+                    self.compile_expr(*value)?;
+                }
             }
             ExpressionKind::Index { target, index } => {
                 let target_expr = self.ast.exprs.get(*target);
@@ -386,6 +444,11 @@ impl<'a> CCodegen<'a> {
                                     let c_name = self.lookup(name);
                                     let print_fn = if is_ln { "rl_println" } else { "rl_print" };
                                     self.writer.write(&format!("{}_Enum_{}({})", print_fn, ename, c_name));
+                                }
+                                _ if self.nullable_vars.contains(name) => {
+                                    let c_fn = if is_ln { "rl_println_raw" } else { "rl_print_raw" };
+                                    let c_name = self.lookup(name);
+                                    self.writer.write(&format!("{}({})", c_fn, c_name));
                                 }
                                 _ => {
                                     let c_fn = if is_ln { "rl_println" } else { "rl_print" };

@@ -72,7 +72,7 @@ fn transpile_demo_compiles_and_runs() {
     assert!(out.contains("=== Floats ===\n3.14159"));
     assert!(out.contains("=== Strings ===\nHello, world!"));
     assert!(out.contains("=== Constants ===\n100"));
-    assert!(out.contains("=== Null ===\n0"));
+    assert!(out.contains("=== Null ===\nnull"));
     assert!(out.contains("=== Conditionals ===\nx is big"));
     assert!(out.contains("=== While Loop ===\n0\n1\n2"));
     assert!(out.contains("=== For Loop ===\n0\n1\n3"));

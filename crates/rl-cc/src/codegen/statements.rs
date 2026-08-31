@@ -23,7 +23,12 @@ impl<'a> CCodegen<'a> {
                     && let Some(rt) = return_type {
                         self.closure_return_types.insert(name.clone(), rt.clone());
                     }
-                if let ExpressionKind::Propagate(inner) = &expr.kind {
+                if let ExpressionKind::Null = &expr.kind {
+                    // Nullable vars stored as rl_result to preserve null tag
+                    self.nullable_vars.insert(name.clone());
+                    self.writer.write_indent();
+                    self.writer.write(&format!("rl_result {} = rl_ok_null();\n", c_name));
+                } else if let ExpressionKind::Propagate(inner) = &expr.kind {
                     let temp = self.temp_var();
                     self.writer.write_indent();
                     self.writer.write(&format!("rl_result {} = ", temp));

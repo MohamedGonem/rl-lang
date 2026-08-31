@@ -412,6 +412,23 @@ static void rl_print_result_inner(rl_result v) {
 void rl_print_result(rl_result v) { rl_print_result_inner(v); }
 void rl_println_result(rl_result v) { rl_print_result_inner(v); printf("\n"); }
 
+static void rl_print_raw_inner(rl_result v) {
+    switch (v.tag) {
+        case RL_TAG_NULL: printf("null"); break;
+        case RL_TAG_I64: rl_print_i64_val(v.data.i64); break;
+        case RL_TAG_F64: rl_print_f64_val(v.data.f64); break;
+        case RL_TAG_BOOL: printf("%s", v.data.boolean ? "true" : "false"); break;
+        case RL_TAG_CHAR: printf("%c", (char)(unsigned char)v.data.i64); break;
+        case RL_TAG_STR: printf("%.*s", (int)v.data.str.len, v.data.str.data); break;
+        case RL_TAG_ARR: rl_print_arr_val(v.data.arr); break;
+        case RL_TAG_MAP: rl_print_map_val(v.data.map); break;
+        case RL_TAG_SET: rl_print_set_val(v.data.set); break;
+        case RL_TAG_CLOSURE: printf("<fn>"); break;
+    }
+}
+void rl_print_raw(rl_result v) { rl_print_raw_inner(v); }
+void rl_println_raw(rl_result v) { rl_print_raw_inner(v); printf("\n"); }
+
 void rl_print_rl_array(rl_array v) {
     printf("[");
     for (uint64_t i = 0; i < v.len; i++) {

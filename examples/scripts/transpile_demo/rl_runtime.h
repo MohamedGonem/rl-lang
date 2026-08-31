@@ -261,6 +261,8 @@ void rl_println_null(void);
 
 void rl_print_result(rl_result v);
 void rl_println_result(rl_result v);
+void rl_print_raw(rl_result v);
+void rl_println_raw(rl_result v);
 void rl_print_rl_array(rl_array v);
 void rl_println_rl_array(rl_array v);
 void rl_print_rl_map(rl_map v);

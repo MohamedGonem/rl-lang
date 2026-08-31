@@ -195,10 +195,10 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("=== Constants ===", 17));
     rl_println(MAX);
     rl_println(MSG);
-    int64_t nothing = 0;
+    rl_result nothing = rl_ok_null();
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Null ===", 12));
-    rl_println(nothing);
+    rl_println_raw(nothing);
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Conditionals ===", 20));
     if (x > (int64_t)5) {

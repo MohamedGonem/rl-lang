@@ -2,7 +2,7 @@ use crate::writer::CWriter;
 use crate::types::type_to_c;
 use rl_ast::{Ast, statements::*};
 use rl_checker::structs::TypeChecker;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub mod expressions;
 pub mod ops;
@@ -23,6 +23,7 @@ pub struct CCodegen<'a> {
     pub closure_params: Vec<String>,
     pub closure_return_types: HashMap<String, TypeAnnotation>,
     pub tuple_names: Vec<(Vec<TypeAnnotation>, String)>,
+    pub nullable_vars: HashSet<String>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -41,6 +42,7 @@ impl<'a> CCodegen<'a> {
             closure_params: Vec::new(),
             closure_return_types: HashMap::new(),
             tuple_names: Vec::new(),
+            nullable_vars: HashSet::new(),
         }
     }
 
