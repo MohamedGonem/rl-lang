@@ -35,6 +35,9 @@ impl Tokenizer {
     /// Drives [`Tokenizer::scan_tokens`] in a loop until the source is exhausted,
     /// then appends a [`TokenType::Eof`] so the parser always has a clean terminator.
     ///
+    /// If the source starts with `#!` (a shebang line), it is stripped before
+    /// tokenizing so that `.rl` scripts with shebang headers work transparently.
+    ///
     /// # Errors
     ///
     /// Returns [`Error`] if the source contains an unrecognized character,

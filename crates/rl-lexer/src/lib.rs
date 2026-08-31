@@ -5,6 +5,11 @@
 //! source -> Lexer -> [Token] -> Parser -> [Statement] -> Checker -> Evaluator
 //! ```
 //!
+//! # Shebang support
+//! If the source starts with `#!`, the entire first line is stripped before
+//! tokenizing. This lets `.rl` scripts carry a shebang header (e.g.
+//! `#!/path/to/rl run`) that the lexer transparently ignores.
+//!
 //! # Module layout
 //! - [`tokenizer`] - the [`Tokenizer`] struct and its main scanning loop
 //! - [`tokentypes`] - the [`Token`] and [`TokenType`] definitions

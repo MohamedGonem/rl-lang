@@ -71,6 +71,8 @@ rl-lang
 |   +-- [TODO] #338 - std functions tests
 +-- rl-commons        (shared utilities)
 +-- rl-cli            (CLI binary: run, dev, repl, transpile)
+|   +-- [DONE] `rl print` command (token/parser/ast tree output)
+|   +-- [DONE] `rl run -c` flag (inline code execution)
 |   +-- [TODO] #426 - add support for more OS
 +-- rl-repl           (interactive REPL)
 +-- rl-lsp            (language server)
@@ -78,6 +80,8 @@ rl-lang
 +-- rl-docs           (documentation generator)
 |   +-- [TODO] #188 - update notes/
 +-- rl-tooling        (packaging, install helpers)
+|   +-- [DONE] shebang scripts (`rl new --script`)
+|   +-- [DONE] tree print module (box-drawing output for tokens/statements)
 +-- rl-tests          (integration tests)
 |   +-- [TODO] #333 - test units
 |   +-- [TODO] #337 - test edge cases coverage
@@ -102,12 +106,16 @@ rl-lang
 |   +-- [DONE] record/struct literals, field access, and field assignment
 |   +-- [DONE] enum/tag literals and match
 |   +-- [DONE] result type, ok/err/error literals, and ? propagation
-|   +-- [DONE] rl_result, rl_array, rl_map, rl_set runtime structs
-|   +-- [DONE] per-program record/tuple print functions
+|   +-- [DONE] rl_result tagged union, rl_value, rl_closure runtime structs
+|   +-- [DONE] per-program record/tuple/enum print functions
 |   +-- [DONE] map/set declarations, literals, and len
 |   +-- [DONE] impl methods on records
 |   +-- [DONE] foreach, forrange, and loop
-|   +-- [TODO] closures / function pointers
+|   +-- [DONE] closures / function pointers
+|   +-- [DONE] null printing (nullable_vars tracking, rl_print_raw/rl_println_raw)
+|   +-- [DONE] 10 missing stdlib functions (io::read_bytes, types::error_unwrap, random::*)
+|   +-- [DONE] enum display (rl_print_Enum_{name} with string table)
+|   +-- [DONE] 9 closure-consuming runtime functions (arr_for_each, arr_all, arr_any, etc.)
 |   +-- [TODO] tagged union dispatch for match on enums
 |   +-- [TODO] multi-file / module transpilation
 +-- (language)
