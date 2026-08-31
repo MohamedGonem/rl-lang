@@ -85,6 +85,11 @@ void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v)
 #define RL_TAG_COLOR_RED ((int64_t)0)
 #define RL_TAG_COLOR_GREEN ((int64_t)1)
 #define RL_TAG_COLOR_BLUE ((int64_t)2)
+static const char* _enum_Color_names[] = {"Red", "Green", "Blue"};
+void rl_print_Enum_Color(int64_t v) { if (v >= 0 && v < (int64_t)3) printf("%s.%s", "Color", _enum_Color_names[v]);
+else printf("Color(%ld)", (long)v);
+}
+void rl_println_Enum_Color(int64_t v) { rl_print_Enum_Color(v); printf("\n"); }
 
 typedef struct { int64_t field_0; int64_t field_1; rl_string field_2; } rl_tuple_3;
 void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(");
@@ -285,7 +290,7 @@ int main(int argc, char **argv) {
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Enums ===", 13));
     int64_t /* Color */ c = RL_TAG_COLOR_RED;
-    rl_println(c);
+    rl_println_Enum_Color(c);
     rl_println(rl_str_literal("", 0));
     rl_println(rl_str_literal("=== Match ===", 13));
     if (c == RL_TAG_COLOR_RED) {
@@ -561,5 +566,24 @@ int main(int argc, char **argv) {
     }
     rl_array flat = _r_10.data.arr;
     rl_println(flat);
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Types Extended ===", 22));
+    rl_println(rl_types_to_byte(rl_ok((int64_t)256)));
+    rl_println(rl_types_to_char(rl_ok((int64_t)65)));
+    rl_result err_val = rl_err((int64_t)99);
+    rl_println(rl_types_error_unwrap(err_val));
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== Random Extended ===", 23));
+    rl_println(rl_rand_dices((int64_t)3, (int64_t)6));
+    rl_println(rl_rand_bytes((int64_t)4));
+    rl_println(rl_rand_choice(rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t))));
+    rl_println(rl_rand_choices(rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30}, 3, (int32_t)sizeof(int64_t)), (int64_t)4));
+    rl_println(rl_rand_sample(rl_arr_from_vals(&(int64_t[]){(int64_t)10, (int64_t)20, (int64_t)30, (int64_t)40, (int64_t)50}, 5, (int32_t)sizeof(int64_t)), (int64_t)3));
+    rl_println(rl_rand_shuffle(rl_arr_from_vals(&(int64_t[]){(int64_t)1, (int64_t)2, (int64_t)3, (int64_t)4, (int64_t)5}, 5, (int32_t)sizeof(int64_t))));
+    rl_println(rl_str_literal("", 0));
+    rl_println(rl_str_literal("=== IO Extended 2 ===", 21));
+    rl_io_write_file(rl_str_literal("/tmp/rl_test_io/bytes.bin", 25), rl_str_literal("binary data", 11));
+    rl_println(rl_io_read_bytes(rl_str_literal("/tmp/rl_test_io/bytes.bin", 25)));
+    rl_ok(rl_io_delete_file(rl_str_literal("/tmp/rl_test_io/bytes.bin", 25)));
     return 0;
 }

@@ -538,3 +538,28 @@ dec arr[int] flat = std::array::arr_flat_map(nums, fn (int x) -> arr[int] {
     return [x, x * 10]
 })?
 println(flat)
+
+// --- 43. Missing stdlib: types ---
+println("")
+println("=== Types Extended ===")
+println(std::types::to_byte(256))
+println(std::types::to_char(65))
+dec result[int] err_val = err(99)
+println(std::types::error_unwrap(err_val))
+
+// --- 44. Missing stdlib: random ---
+println("")
+println("=== Random Extended ===")
+println(std::random::rand_dices(3, 6))
+println(std::random::rand_bytes(4))
+println(std::random::rand_choice([10, 20, 30]))
+println(std::random::rand_choices([10, 20, 30], 4))
+println(std::random::rand_sample([10, 20, 30, 40, 50], 3))
+println(std::random::rand_shuffle([1, 2, 3, 4, 5]))
+
+// --- 45. Missing stdlib: io ---
+println("")
+println("=== IO Extended 2 ===")
+std::io::write_file("/tmp/rl_test_io/bytes.bin", "binary data")
+println(std::io::read_bytes("/tmp/rl_test_io/bytes.bin"))
+std::io::delete_file("/tmp/rl_test_io/bytes.bin")

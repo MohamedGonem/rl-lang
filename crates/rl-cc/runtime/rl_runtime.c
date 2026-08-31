@@ -1516,6 +1516,32 @@ void rl_io_eprintln(rl_string msg) {
     fprintf(stderr, "%.*s\n", (int)msg.len, msg.data);
 }
 
+rl_result rl_io_read_bytes(rl_string path) {
+    char buf[path.len + 1];
+    memcpy(buf, path.data, path.len);
+    buf[path.len] = '\0';
+    FILE *f = fopen(buf, "rb");
+    if (!f) return rl_err_msg(rl_str_literal("failed to open file for reading", 31));
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (size <= 0) {
+        fclose(f);
+        rl_array empty = { .data = NULL, .len = 0, .cap = 0, .elem_size = sizeof(int64_t), .type_tag = RL_TAG_I64 };
+        return rl_ok_arr(empty);
+    }
+    char *raw = malloc((uint64_t)size);
+    size_t n = fread(raw, 1, (uint64_t)size, f);
+    fclose(f);
+    int64_t *bytes = malloc(n * sizeof(int64_t));
+    for (uint64_t i = 0; i < n; i++) {
+        bytes[i] = (int64_t)(unsigned char)raw[i];
+    }
+    free(raw);
+    rl_array result = { .data = bytes, .len = n, .cap = n, .elem_size = sizeof(int64_t), .type_tag = RL_TAG_I64 };
+    return rl_ok_arr(result);
+}
+
 // ---- types ----
 
 rl_string rl_types_to_string(int64_t v) {
@@ -1563,6 +1589,45 @@ rl_string rl_types_to_oct(int64_t v) {
     memcpy(out, buf, len + 1);
     rl_string result = { .data = out, .len = (uint64_t)len, .rc = 1 };
     return result;
+}
+
+rl_result rl_types_error_unwrap(rl_result x) {
+    if (x.is_ok) {
+        return rl_err_msg(rl_str_literal("error_unwrap: expected error, got ok", 36));
+    }
+    return x;
+}
+
+rl_result rl_types_to_byte(rl_result x) {
+    switch (x.tag) {
+        case RL_TAG_I64: return rl_ok_i64((int64_t)(unsigned char)x.data.i64);
+        case RL_TAG_F64: return rl_ok_i64((int64_t)(unsigned char)(int64_t)x.data.f64);
+        case RL_TAG_BOOL: return rl_ok_i64(x.data.boolean ? 1 : 0);
+        case RL_TAG_CHAR: return rl_ok_i64((int64_t)(unsigned char)x.data.i64);
+        case RL_TAG_STR: {
+            char buf[x.data.str.len + 1];
+            memcpy(buf, x.data.str.data, x.data.str.len);
+            buf[x.data.str.len] = '\0';
+            char *end;
+            long v = strtol(buf, &end, 0);
+            return rl_ok_i64((int64_t)(unsigned char)v);
+        }
+        default: return rl_err_msg(rl_str_literal("cannot convert to byte", 22));
+    }
+}
+
+rl_result rl_types_to_char(rl_result x) {
+    switch (x.tag) {
+        case RL_TAG_I64: return rl_ok_i64(x.data.i64);
+        case RL_TAG_CHAR: return rl_ok_i64(x.data.i64);
+        case RL_TAG_STR: {
+            if (x.data.str.len > 0) {
+                return rl_ok_i64((int64_t)(unsigned char)x.data.str.data[0]);
+            }
+            return rl_err_msg(rl_str_literal("cannot convert empty string to char", 34));
+        }
+        default: return rl_err_msg(rl_str_literal("cannot convert to char", 22));
+    }
 }
 
 // ---- random ----
@@ -1655,6 +1720,84 @@ rl_string rl_rand_string(int64_t count) {
     buf[count] = '\0';
     rl_string result = { .data = buf, .len = (uint64_t)count, .rc = 1 };
     return result;
+}
+
+rl_result rl_rand_dices(int64_t count, int64_t sides) {
+    rl_rand_ensure_init();
+    if (count <= 0) return rl_err_msg(rl_str_literal("count should be 1 or higher", 27));
+    if (sides <= 0) return rl_err_msg(rl_str_literal("sides should be 1 or higher", 27));
+    int64_t *buf = malloc(count * sizeof(int64_t));
+    for (int64_t i = 0; i < count; i++) {
+        buf[i] = 1 + rand() % (int)sides;
+    }
+    rl_array result = { .data = buf, .len = (uint64_t)count, .cap = (uint64_t)count, .elem_size = sizeof(int64_t), .type_tag = RL_TAG_I64 };
+    return rl_ok_arr(result);
+}
+
+rl_result rl_rand_bytes(int64_t count) {
+    rl_rand_ensure_init();
+    if (count <= 0) return rl_err_msg(rl_str_literal("count cannot be less than zero", 29));
+    int64_t *buf = malloc(count * sizeof(int64_t));
+    for (int64_t i = 0; i < count; i++) {
+        buf[i] = (int64_t)(unsigned char)(rand() % 256);
+    }
+    rl_array result = { .data = buf, .len = (uint64_t)count, .cap = (uint64_t)count, .elem_size = sizeof(int64_t), .type_tag = RL_TAG_I64 };
+    return rl_ok_arr(result);
+}
+
+rl_result rl_rand_choice(rl_array arr) {
+    if (arr.len == 0) return rl_err_msg(rl_str_literal("array is empty", 14));
+    rl_rand_ensure_init();
+    uint64_t idx = (uint64_t)(rand() % (int)arr.len);
+    int64_t *elems = (int64_t *)arr.data;
+    return rl_ok_i64(elems[idx]);
+}
+
+rl_result rl_rand_choices(rl_array arr, int64_t count) {
+    if (arr.len == 0) return rl_err_msg(rl_str_literal("array is empty", 14));
+    if (count <= 0) return rl_err_msg(rl_str_literal("count should be 1 or higher", 27));
+    rl_rand_ensure_init();
+    int64_t *buf = malloc(count * sizeof(int64_t));
+    int64_t *elems = (int64_t *)arr.data;
+    for (int64_t i = 0; i < count; i++) {
+        buf[i] = elems[rand() % (int)arr.len];
+    }
+    rl_array result = { .data = buf, .len = (uint64_t)count, .cap = (uint64_t)count, .elem_size = sizeof(int64_t), .type_tag = arr.type_tag };
+    return rl_ok_arr(result);
+}
+
+rl_result rl_rand_sample(rl_array arr, int64_t count) {
+    if (arr.len == 0) return rl_err_msg(rl_str_literal("array is empty", 14));
+    if (count <= 0) return rl_err_msg(rl_str_literal("count should be 1 or higher", 27));
+    if ((uint64_t)count > arr.len) return rl_err_msg(rl_str_literal("count larger than array", 23));
+    rl_rand_ensure_init();
+    int64_t *indices = malloc(arr.len * sizeof(int64_t));
+    for (uint64_t i = 0; i < arr.len; i++) indices[i] = (int64_t)i;
+    for (uint64_t i = arr.len - 1; i > 0; i--) {
+        uint64_t j = (uint64_t)(rand() % ((int)i + 1));
+        int64_t tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
+    }
+    int64_t *elems = (int64_t *)arr.data;
+    int64_t *buf = malloc(count * sizeof(int64_t));
+    for (int64_t i = 0; i < count; i++) {
+        buf[i] = elems[indices[i]];
+    }
+    free(indices);
+    rl_array result = { .data = buf, .len = (uint64_t)count, .cap = (uint64_t)count, .elem_size = sizeof(int64_t), .type_tag = arr.type_tag };
+    return rl_ok_arr(result);
+}
+
+rl_result rl_rand_shuffle(rl_array arr) {
+    if (arr.len == 0) return rl_err_msg(rl_str_literal("array is empty", 14));
+    rl_rand_ensure_init();
+    int64_t *buf = malloc(arr.len * sizeof(int64_t));
+    memcpy(buf, arr.data, arr.len * sizeof(int64_t));
+    for (uint64_t i = arr.len - 1; i > 0; i--) {
+        uint64_t j = (uint64_t)(rand() % ((int)i + 1));
+        int64_t tmp = buf[i]; buf[i] = buf[j]; buf[j] = tmp;
+    }
+    rl_array result = { .data = buf, .len = arr.len, .cap = arr.cap, .elem_size = sizeof(int64_t), .type_tag = arr.type_tag };
+    return rl_ok_arr(result);
 }
 
 // ---- collections (rl_string key wrappers) ----

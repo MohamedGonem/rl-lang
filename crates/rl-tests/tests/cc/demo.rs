@@ -86,7 +86,7 @@ fn transpile_demo_compiles_and_runs() {
     assert!(out.contains("=== Arrays ===\n10\n99"));
     assert!(out.contains("=== Records ===\n10\n30"));
     assert!(out.contains("=== Impl Methods ===\n50"));
-    assert!(out.contains("=== Enums ===\n0"));
+    assert!(out.contains("=== Enums ===\nColor.Red"));
     assert!(out.contains("=== Match ===\nred"));
     assert!(out.contains("=== Results ===\nok(42)\nerr(1)\nok(5)"));
     assert!(out.contains("=== Maps ==="));

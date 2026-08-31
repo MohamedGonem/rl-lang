@@ -559,4 +559,20 @@ rl_result rl_is_char(rl_result x);
 rl_result rl_is_byte(rl_result x);
 rl_result rl_is_error(rl_result x);
 
+// ---- io ----
+rl_result rl_io_read_bytes(rl_string path);
+
+// ---- types ----
+rl_result rl_types_error_unwrap(rl_result x);
+rl_result rl_types_to_byte(rl_result x);
+rl_result rl_types_to_char(rl_result x);
+
+// ---- random (extended) ----
+rl_result rl_rand_dices(int64_t count, int64_t sides);
+rl_result rl_rand_bytes(int64_t count);
+rl_result rl_rand_choice(rl_array arr);
+rl_result rl_rand_choices(rl_array arr, int64_t count);
+rl_result rl_rand_sample(rl_array arr, int64_t count);
+rl_result rl_rand_shuffle(rl_array arr);
+
 #endif

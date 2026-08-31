@@ -168,6 +168,19 @@ impl<'a> CCodegen<'a> {
                 self.writer
                     .writeln(&format!("#define {} ((int64_t){})", macro_name, i));
             }
+            // Generate string table and print function for this enum
+            let count = variants.len();
+            self.writer.write(&format!("static const char* _enum_{}_names[] = {{", name));
+            for (i, variant) in variants.iter().enumerate() {
+                if i > 0 { self.writer.write(", "); }
+                self.writer.write(&format!("\"{}\"", variant));
+            }
+            self.writer.writeln("};");
+            self.writer.write(&format!("void rl_print_Enum_{}(int64_t v) {{ ", name));
+            self.writer.writeln(&format!("if (v >= 0 && v < (int64_t){}) printf(\"%s.%s\", \"{}\", _enum_{}_names[v]);", count, name, name));
+            self.writer.writeln(&format!("else printf(\"{}(%ld)\", (long)v);", name));
+            self.writer.writeln("}");
+            self.writer.write(&format!("void rl_println_Enum_{}(int64_t v) {{ rl_print_Enum_{}(v); printf(\"\\n\"); }}\n", name, name));
         }
         if !self.checker.tags.is_empty() {
             self.writer.blank_line();
@@ -382,9 +395,9 @@ impl<'a> CCodegen<'a> {
                 self.writer.write_indent();
                 self.writer.writeln(&format!("rl_print_{}({});", tuple_name, accessor));
             }
-            TypeAnnotation::Enum(_) | TypeAnnotation::CEnum(_) => {
+            TypeAnnotation::Enum(ename) | TypeAnnotation::CEnum(ename) => {
                 self.writer.write_indent();
-                self.writer.writeln(&format!("printf(\"%ld\", (long){});", accessor));
+                self.writer.writeln(&format!("rl_print_Enum_{}({});", ename, accessor));
             }
             _ => {
                 self.writer.write_indent();

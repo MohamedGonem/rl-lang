@@ -382,6 +382,11 @@ impl<'a> CCodegen<'a> {
                                     let print_fn = if is_ln { "rl_println" } else { "rl_print" };
                                     self.writer.write(&format!("{}_rl_Record_{}({})", print_fn, rname, c_name));
                                 }
+                                TypeAnnotation::Enum(ename) | TypeAnnotation::CEnum(ename) => {
+                                    let c_name = self.lookup(name);
+                                    let print_fn = if is_ln { "rl_println" } else { "rl_print" };
+                                    self.writer.write(&format!("{}_Enum_{}({})", print_fn, ename, c_name));
+                                }
                                 _ => {
                                     let c_fn = if is_ln { "rl_println" } else { "rl_print" };
                                     self.writer.write(&format!("{}(", c_fn));
@@ -1367,6 +1372,12 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
+            "read_bytes" => {
+                self.writer.write("rl_io_read_bytes(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
             "read" => {
                 self.writer.write("rl_ok(rl_io_read())");
                 return Ok(());
@@ -1454,6 +1465,32 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_ok_bool((");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(") ? true : false)");
+                return Ok(());
+            }
+            "to_byte" => {
+                self.writer.write("rl_types_to_byte(");
+                if !args.is_empty() {
+                    self.writer.write("rl_ok(");
+                    self.compile_expr(args[0])?;
+                    self.writer.write(")");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "to_char" => {
+                self.writer.write("rl_types_to_char(");
+                if !args.is_empty() {
+                    self.writer.write("rl_ok(");
+                    self.compile_expr(args[0])?;
+                    self.writer.write(")");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "error_unwrap" => {
+                self.writer.write("rl_types_error_unwrap(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             "is_bool" => {
@@ -1573,6 +1610,48 @@ impl<'a> CCodegen<'a> {
                 self.writer.write("rl_ok(rl_rand_string(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write("))");
+                return Ok(());
+            }
+            "rand_dices" => {
+                self.writer.write("rl_rand_dices(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "rand_bytes" => {
+                self.writer.write("rl_rand_bytes(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "rand_choice" => {
+                self.writer.write("rl_rand_choice(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "rand_choices" => {
+                self.writer.write("rl_rand_choices(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "rand_sample" => {
+                self.writer.write("rl_rand_sample(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(", ");
+                if args.len() >= 2 { self.compile_expr(args[1])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "rand_shuffle" => {
+                self.writer.write("rl_rand_shuffle(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             // ---- terminal ----
