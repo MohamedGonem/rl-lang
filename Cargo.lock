@@ -3922,6 +3922,7 @@ dependencies = [
 name = "rl-tooling"
 version = "2.0.0"
 dependencies = [
+ "rl-ast",
  "rl-lexer",
  "serde",
  "tiny_http",

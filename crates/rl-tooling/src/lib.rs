@@ -7,4 +7,5 @@ pub mod format;
 pub mod generate_docs;
 pub mod new;
 pub mod package;
+pub mod tree_print;
 pub mod workflows;

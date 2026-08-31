@@ -8,6 +8,7 @@ description = "Developer tooling for the rl-lang toolchain"
 repository.workspace = true
 
 [dependencies]
+rl-ast.workspace = true
 rl-lexer.workspace = true
 serde.workspace = true
 toml.workspace = true

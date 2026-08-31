@@ -55,8 +55,12 @@ enum Commands {
     )]
     Run {
         /// Path to the .rl file to run
-        #[arg(value_name = "FILE")]
-        file: PathBuf,
+        #[arg(value_name = "FILE", required_unless_present = "code")]
+        file: Option<PathBuf>,
+
+        /// Execute inline rl code instead of a file
+        #[arg(short = 'c', long = "code", value_name = "CODE")]
+        code: Option<String>,
 
         /// Run through the bytecode VM
         /// (this is highly experimental)
@@ -269,6 +273,33 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Print debug info for a .rl source file (tokens, parser, or AST)
+    #[command(
+        long_about = "Print debug information for a single .rl source file.\n\n\
+                       Exactly one of --tokens, --parser, or --ast must be given.",
+        after_help = "EXAMPLES:\n    \
+                       rl print script.rl --tokens\n    \
+                       rl print script.rl --parser\n    \
+                       rl print script.rl --ast"
+    )]
+    Print {
+        /// Path to the .rl file to inspect
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+
+        /// Print the token stream
+        #[arg(short = 't', long)]
+        tokens: bool,
+
+        /// Print the parsed AST (pre-type-check)
+        #[arg(short = 'p', long)]
+        parser: bool,
+
+        /// Print the type-checked AST
+        #[arg(short = 'a', long)]
+        ast: bool,
+    },
+
     /// Transpile a .rl source file to C
     #[command(
         long_about = "Lex, parse, resolve, type-check, and transpile a .rl source file to C99.\n\n\
@@ -354,10 +385,65 @@ fn main() {
     match cli.command {
         Commands::Run {
             file,
+            code,
             vm,
             cranelift,
             ..
         } => {
+            // Inline code mode: rl run -c "code here"
+            if let Some(code_str) = code {
+                let source = SourceFile::new("<eval>", code_str);
+                let tokens = lex(source.clone());
+                let (ast, statements) = parse(source.clone(), tokens);
+                {
+                    let tokens = lex(source.clone());
+                    let (checker_ast, checker_statements) = parse(source.clone(), tokens);
+                    use rl_checker::TypeChecker;
+                    let mut checker = TypeChecker::new()
+                        .with_source_file(source.clone())
+                        .with_ast_arena(checker_ast)
+                        .with_base_dir(std::path::PathBuf::from("."));
+                    let errors = checker.check(&checker_statements);
+                    if !errors.is_empty() {
+                        for e in errors {
+                            e.report_to_stderr();
+                        }
+                        std::process::exit(1);
+                    }
+                }
+                if vm {
+                    #[cfg(feature = "vm")]
+                    crate::pipeline::vm::vm_loop(source, ast, statements);
+                    #[cfg(not(feature = "vm"))]
+                    {
+                        eprintln!("error: --vm requires the `vm` feature");
+                        std::process::exit(1)
+                    }
+                } else if cranelift {
+                    #[cfg(feature = "cranelift")]
+                    crate::pipeline::vm::cranelift_loop(source, ast, statements);
+                    #[cfg(not(feature = "cranelift"))]
+                    {
+                        eprintln!("error: --cranelift requires the `cranelift` feature");
+                        std::process::exit(1)
+                    }
+                } else {
+                    #[cfg(feature = "vm")]
+                    crate::pipeline::vm::vm_loop(source, ast, statements);
+                    #[cfg(not(feature = "vm"))]
+                    {
+                        eprintln!("error: this build of rl has no execution backend (missing the `vm` feature)");
+                        std::process::exit(1);
+                    }
+                }
+                return;
+            }
+
+            let file = file.unwrap_or_else(|| {
+                eprintln!("error: either a file path or -c/--code is required");
+                std::process::exit(1);
+            });
+
             let is_rlc = file.extension().and_then(|e| e.to_str()) == Some("rlc");
 
             if is_rlc {
@@ -949,6 +1035,56 @@ fn main() {
             if let Err(e) = std::fs::write(path, formatted) {
                 eprintln!("error: {}", e);
             };
+        }
+
+        Commands::Print { file, tokens, parser, ast } => {
+            if !tokens && !parser && !ast {
+                eprintln!("error: specify at least one of --tokens, --parser, or --ast");
+                std::process::exit(1);
+            }
+            let path = file
+                .to_str()
+                .unwrap_or_else(|| {
+                    eprintln!("error: invalid file path");
+                    std::process::exit(1);
+                })
+                .to_string();
+            let source_text = std::fs::read_to_string(&file).unwrap_or_else(|_| {
+                eprintln!("error: could not read file '{}'", file.display());
+                std::process::exit(1);
+            });
+            let source = SourceFile::new(&*path, source_text);
+
+            if tokens {
+                let toks = lex(source.clone());
+                rl_tooling::tree_print::print_tokens(&toks);
+            }
+            if parser {
+                let toks = lex(source.clone());
+                let (parsed_ast, statements) = parse(source.clone(), toks);
+                rl_tooling::tree_print::print_statements(&statements, &parsed_ast.exprs, "Statements (parser)");
+            }
+            if ast {
+                let toks = lex(source.clone());
+                let (checker_ast, checker_statements) = parse(source.clone(), toks);
+                use rl_checker::TypeChecker;
+                let base_dir = file
+                    .parent()
+                    .map(std::path::Path::to_path_buf)
+                    .unwrap_or_else(|| std::path::PathBuf::from("."));
+                let mut checker = TypeChecker::new()
+                    .with_source_file(source.clone())
+                    .with_ast_arena(checker_ast)
+                    .with_base_dir(base_dir);
+                let errors = checker.check(&checker_statements);
+                if !errors.is_empty() {
+                    for e in errors {
+                        e.report_to_stderr();
+                    }
+                    std::process::exit(1);
+                }
+                rl_tooling::tree_print::print_statements(&checker_statements, &checker.ast_arena.exprs, "Statements (resolved)");
+            }
         }
 
         Commands::Compile { file, output } => {

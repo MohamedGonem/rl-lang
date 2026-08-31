@@ -156,6 +156,12 @@ pub struct Token {
     pub trailing_trivia: Vec<Trivia>,
 }
 
+impl std::fmt::Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} {:?}", self.token, self.lexeme)
+    }
+}
+
 impl Token {
     /// Creates a new [`Token`].
     pub fn new(token: TokenType, lexeme: String, line: usize, span: Span) -> Self {
