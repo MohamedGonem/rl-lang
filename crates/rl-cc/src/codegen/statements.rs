@@ -565,6 +565,12 @@ impl<'a> CCodegen<'a> {
                 self.writer.write_indent();
                 self.writer.write("}\n");
             }
+            StatementKind::ResolvedImportFile { body, .. } => {
+                for stmt in body {
+                    self.compile_statement(stmt)?;
+                }
+            }
+            StatementKind::Import { .. } | StatementKind::ImportFile { .. } | StatementKind::ImportFileNamed { .. } => {}
             _ => {}
         }
         Ok(())

@@ -19,6 +19,7 @@ rl transpile file.rl -lm                # extra cc flags
 - **Declarations**: dec, const, functions with generics, impl methods on records
 - **Control flow**: if/else, while, for, foreach, forrange, loop, break, continue, match
 - **Expressions**: arithmetic, boolean (and/or/!), comparison, cast, propagate (?), lambda, closures
+- **Imports**: multi-file support via `get X from path::module` — imported code is resolved at resolve time and inlined into the generated C output
 - **Stdlib**: 370+ mapped functions across io, math, string, array, collections, time, random, terminal, fs, process, path, types, debug, result
 - **Runtime**: `rl_result` tagged union, `rl_value` for map/set storage, `rl_string`, `rl_array`, `rl_map`, `rl_set`, `rl_closure`, per-program record/tuple/enum print functions
 

@@ -117,7 +117,7 @@ rl-lang
 |   +-- [DONE] enum display (rl_print_Enum_{name} with string table)
 |   +-- [DONE] 9 closure-consuming runtime functions (arr_for_each, arr_all, arr_any, etc.)
 |   +-- [TODO] tagged union dispatch for match on enums
-|   +-- [TODO] multi-file / module transpilation
+|   +-- [DONE] multi-file / module transpilation
 +-- (language)
 |   +-- [TODO] #462 - pipe operator |>
 |   +-- [TODO] #429 - type aliasing
