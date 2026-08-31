@@ -24,6 +24,7 @@ pub struct CCodegen<'a> {
     pub closure_return_types: HashMap<String, TypeAnnotation>,
     pub tuple_names: Vec<(Vec<TypeAnnotation>, String)>,
     pub nullable_vars: HashSet<String>,
+    pub std_c_imports: HashSet<String>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -43,6 +44,7 @@ impl<'a> CCodegen<'a> {
             closure_return_types: HashMap::new(),
             tuple_names: Vec::new(),
             nullable_vars: HashSet::new(),
+            std_c_imports: HashSet::new(),
         }
     }
 

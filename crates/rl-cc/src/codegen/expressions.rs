@@ -271,7 +271,7 @@ impl<'a> CCodegen<'a> {
                         _ => TypeAnnotation::Int,
                     }
                 }).collect();
-                let tuple_name = self.lookup_tuple_name(&field_types).to_string();
+                let tuple_name = self.ensure_tuple_type(field_types);
                 self.writer.write(&format!("({}){{ ", tuple_name));
                 for (i, elem) in elems.iter().enumerate() {
                     if i > 0 {
@@ -2320,6 +2320,79 @@ impl<'a> CCodegen<'a> {
                         return Ok(());
                     }
                 }
+            "compile" if self.std_c_imports.contains("compile") => {
+                self.writer.write("rl_c_compile(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "load" if self.std_c_imports.contains("load") => {
+                self.writer.write("rl_c_load(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "has_symbol" if self.std_c_imports.contains("has_symbol") => {
+                self.writer.write("rl_c_has_symbol(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "close" if self.std_c_imports.contains("close") => {
+                self.writer.write("rl_c_close(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "clear_cache" if self.std_c_imports.contains("clear_cache") => {
+                self.writer.write("rl_c_clear_cache()");
+                return Ok(());
+            }
+            "call" if self.std_c_imports.contains("call") => {
+                // call(handle, fn_name, args_tuple, arg_types_array, ret_type_string)
+                // Emit: rl_c_call(handle_id, fn_name, argc, argv, arg_types, ret_type)
+                self.writer.write("rl_c_call(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                // Count args from the tuple literal
+                let args_expr = self.ast.exprs.get(args[2]);
+                if let ExpressionKind::TupleLiteral(elems) = &args_expr.kind {
+                    self.writer.write(&format!(", {}l", elems.len()));
+                    // Emit argv array
+                    self.writer.write(", (void*[]){");
+                    for (i, elem) in elems.iter().enumerate() {
+                        if i > 0 { self.writer.write(", "); }
+                        self.writer.write("(void*)(intptr_t)(");
+                        self.compile_expr(*elem)?;
+                        self.writer.write(")");
+                    }
+                    self.writer.write("}");
+                } else {
+                    self.writer.write(", 0, NULL");
+                }
+                // Emit arg_types as string array
+                let types_expr = self.ast.exprs.get(args[3]);
+                if let ExpressionKind::ArrayLiteral(elems) = &types_expr.kind {
+                    self.writer.write(", (const char*[]){");
+                    for (i, elem) in elems.iter().enumerate() {
+                        if i > 0 { self.writer.write(", "); }
+                        let e = self.ast.exprs.get(*elem);
+                        if let ExpressionKind::String(s) = &e.kind {
+                            self.writer.write(&format!("\"{}\"", s));
+                        }
+                    }
+                    self.writer.write("}");
+                } else {
+                    self.writer.write(", NULL");
+                }
+                self.writer.write(", ");
+                self.compile_expr(args[4])?;
+                self.writer.write(")");
+                return Ok(());
+            }
             _ => {}
         }
 

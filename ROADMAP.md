@@ -116,6 +116,7 @@ rl-lang
 |   +-- [DONE] 10 missing stdlib functions (io::read_bytes, types::error_unwrap, random::*)
 |   +-- [DONE] enum display (rl_print_Enum_{name} with string table)
 |   +-- [DONE] 9 closure-consuming runtime functions (arr_for_each, arr_all, arr_any, etc.)
+|   +-- [DONE] std::c FFI module (compile, load, call, has_symbol, close, clear_cache)
 |   +-- [TODO] tagged union dispatch for match on enums
 |   +-- [DONE] multi-file / module transpilation
 +-- (language)

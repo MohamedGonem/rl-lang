@@ -2719,3 +2719,220 @@ rl_never rl_never_fn(void) {
     fprintf(stderr, "error: reached unreachable code\n");
     abort();
 }
+
+// ---- std::c (FFI) ----
+
+#define RL_C_MAX_HANDLES 256
+
+static struct { void *handle; } rl_c_handles[RL_C_MAX_HANDLES];
+static int rl_c_handle_count = 0;
+
+static rl_result rl_c_new_handle(void *h) {
+    if (rl_c_handle_count >= RL_C_MAX_HANDLES) {
+        return rl_err_msg(rl_str_literal("c: too many open handles", 24));
+    }
+    int id = rl_c_handle_count++;
+    rl_c_handles[id].handle = h;
+    return rl_ok_i64(id);
+}
+
+static void *rl_c_get_handle(rl_result r) {
+    if (r.tag != RL_TAG_I64) return NULL;
+    int64_t id = r.data.i64;
+    if (id < 0 || id >= rl_c_handle_count) return NULL;
+    return rl_c_handles[id].handle;
+}
+
+static char *rl_string_to_cstr(rl_string s) {
+    char *buf = (char *)malloc(s.len + 1);
+    memcpy(buf, s.data, s.len);
+    buf[s.len] = '\0';
+    return buf;
+}
+
+rl_result rl_c_compile(rl_string source) {
+    const char *tmpdir = getenv("TMPDIR");
+    if (!tmpdir) tmpdir = "/tmp";
+    char cache_dir[512];
+    snprintf(cache_dir, sizeof(cache_dir), "%s/rl_std_c_cache", tmpdir);
+    mkdir(cache_dir, 0755);
+
+    unsigned long hash = 5381;
+    for (uint64_t i = 0; i < source.len; i++) {
+        hash = ((hash << 5) + hash) + (unsigned char)source.data[i];
+    }
+
+    char src_path[600], out_path[600];
+    snprintf(src_path, sizeof(src_path), "%s/%016lx.c", cache_dir, hash);
+    snprintf(out_path, sizeof(out_path), "%s/%016lx.so", cache_dir, hash);
+
+    FILE *f = fopen(src_path, "w");
+    if (!f) return rl_err_msg(rl_str_literal("c: failed to write source", 25));
+    fwrite(source.data, 1, source.len, f);
+    fclose(f);
+
+    const char *cc = getenv("CC");
+    if (!cc) cc = "cc";
+    char cmd[700];
+    snprintf(cmd, sizeof(cmd), "%s -shared -fPIC -O2 -o %s %s 2>&1", cc, out_path, src_path);
+    int rc = system(cmd);
+    if (rc != 0) {
+        return rl_err_msg(rl_str_literal("c: compile failed", 17));
+    }
+
+    void *handle = dlopen(out_path, RTLD_NOW);
+    if (!handle) {
+        return rl_err_msg(rl_str_literal("c: dlopen failed", 16));
+    }
+    return rl_c_new_handle(handle);
+}
+
+rl_result rl_c_load(rl_string path) {
+    char *cpath = rl_string_to_cstr(path);
+    void *handle = dlopen(cpath, RTLD_NOW);
+    free(cpath);
+    if (!handle) {
+        return rl_err_msg(rl_str_literal("c: dlopen failed", 16));
+    }
+    return rl_c_new_handle(handle);
+}
+
+rl_result rl_c_has_symbol(int64_t handle_id, rl_string fn_name) {
+    void *h = NULL;
+    if (handle_id >= 0 && handle_id < rl_c_handle_count) {
+        h = rl_c_handles[handle_id].handle;
+    }
+    if (!h) return rl_err_msg(rl_str_literal("c: invalid handle", 17));
+    char *name = rl_string_to_cstr(fn_name);
+    void *sym = dlsym(h, name);
+    free(name);
+    return rl_ok_bool(sym != NULL);
+}
+
+rl_result rl_c_close(int64_t handle_id) {
+    void *h = NULL;
+    if (handle_id >= 0 && handle_id < rl_c_handle_count) {
+        h = rl_c_handles[handle_id].handle;
+    }
+    if (!h) return rl_err_msg(rl_str_literal("c: invalid handle", 17));
+    dlclose(h);
+    if (handle_id >= 0 && handle_id < rl_c_handle_count) {
+        rl_c_handles[handle_id].handle = NULL;
+    }
+    return rl_ok_null();
+}
+
+rl_result rl_c_clear_cache(void) {
+    const char *tmpdir = getenv("TMPDIR");
+    if (!tmpdir) tmpdir = "/tmp";
+    char cache_dir[512];
+    snprintf(cache_dir, sizeof(cache_dir), "%s/rl_std_c_cache", tmpdir);
+    char cmd[600];
+    snprintf(cmd, sizeof(cmd), "rm -rf %s", cache_dir);
+    system(cmd);
+    return rl_ok_null();
+}
+
+#ifdef RL_USE_LIBFFI
+#include <ffi.h>
+#endif
+
+rl_result rl_c_call(int64_t handle_id, rl_string fn_name, int64_t argc, void **argv, const char **arg_types, rl_string ret_type) {
+    void *h = NULL;
+    if (handle_id >= 0 && handle_id < rl_c_handle_count) {
+        h = rl_c_handles[handle_id].handle;
+    }
+    if (!h) return rl_err_msg(rl_str_literal("c::call: invalid handle", 23));
+
+    char *name = rl_string_to_cstr(fn_name);
+    void *sym = dlsym(h, name);
+    free(name);
+    if (!sym) return rl_err_msg(rl_str_literal("c::call: symbol not found", 25));
+
+#ifndef RL_USE_LIBFFI
+    (void)argc; (void)argv; (void)arg_types; (void)ret_type;
+    return rl_err_msg(rl_str_literal("c::call: requires libffi (add -DRL_USE_LIBFFI -lffi to compile flags)", 68));
+#else
+    ffi_type **ffi_arg_types = argc ? malloc(sizeof(ffi_type *) * argc) : NULL;
+    void **ffi_values = argc ? malloc(sizeof(void *) * argc) : NULL;
+    int64_t *i64_slots = argc ? malloc(sizeof(int64_t) * argc) : NULL;
+    double *f64_slots = argc ? malloc(sizeof(double) * argc) : NULL;
+
+    for (int64_t i = 0; i < argc; i++) {
+        const char *type_str = arg_types[i];
+        if (strncmp(type_str, "i32", 3) == 0) {
+            ffi_arg_types[i] = &ffi_type_sint32;
+            i64_slots[i] = (int64_t)(int32_t)(intptr_t)argv[i];
+            ffi_values[i] = &i64_slots[i];
+        } else if (strncmp(type_str, "i64", 3) == 0 || strncmp(type_str, "bool", 4) == 0) {
+            ffi_arg_types[i] = &ffi_type_sint64;
+            i64_slots[i] = (int64_t)(intptr_t)argv[i];
+            ffi_values[i] = &i64_slots[i];
+        } else if (strncmp(type_str, "f32", 3) == 0) {
+            ffi_arg_types[i] = &ffi_type_float;
+            float v = *(float *)&argv[i];
+            f64_slots[i] = v;
+            ffi_values[i] = &f64_slots[i];
+        } else if (strncmp(type_str, "f64", 3) == 0) {
+            ffi_arg_types[i] = &ffi_type_double;
+            f64_slots[i] = *(double *)&argv[i];
+            ffi_values[i] = &f64_slots[i];
+        } else if (strncmp(type_str, "u8", 2) == 0 || strncmp(type_str, "char", 4) == 0) {
+            ffi_arg_types[i] = &ffi_type_uint8;
+            i64_slots[i] = (uint8_t)(intptr_t)argv[i];
+            ffi_values[i] = &i64_slots[i];
+        } else if (strncmp(type_str, "i16", 3) == 0) {
+            ffi_arg_types[i] = &ffi_type_sint16;
+            i64_slots[i] = (int16_t)(intptr_t)argv[i];
+            ffi_values[i] = &i64_slots[i];
+        } else if (strncmp(type_str, "str:", 4) == 0 || strncmp(type_str, "string", 6) == 0) {
+            ffi_arg_types[i] = &ffi_type_pointer;
+            ffi_values[i] = &argv[i];
+        } else {
+            ffi_arg_types[i] = &ffi_type_sint64;
+            i64_slots[i] = (int64_t)(intptr_t)argv[i];
+            ffi_values[i] = &i64_slots[i];
+        }
+    }
+
+    ffi_type *ffi_ret = &ffi_type_void;
+    const char *rt = ret_type.data;
+    if (strncmp(rt, "void", 4) == 0) ffi_ret = &ffi_type_void;
+    else if (strncmp(rt, "i32", 3) == 0) ffi_ret = &ffi_type_sint32;
+    else if (strncmp(rt, "i64", 3) == 0) ffi_ret = &ffi_type_sint64;
+    else if (strncmp(rt, "f32", 3) == 0) ffi_ret = &ffi_type_float;
+    else if (strncmp(rt, "f64", 3) == 0) ffi_ret = &ffi_type_double;
+    else if (strncmp(rt, "bool", 4) == 0 || strncmp(rt, "u8", 2) == 0) ffi_ret = &ffi_type_uint8;
+    else if (strncmp(rt, "i16", 3) == 0) ffi_ret = &ffi_type_sint16;
+    else ffi_ret = &ffi_type_pointer;
+
+    ffi_cif cif;
+    ffi_status status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, argc, ffi_ret, ffi_arg_types);
+    if (status != FFI_OK) {
+        free(ffi_arg_types); free(ffi_values); free(i64_slots); free(f64_slots);
+        return rl_err_msg(rl_str_literal("c::call: ffi_prep_cif failed", 28));
+    }
+
+    union { int64_t i; double f; int32_t i32; uint8_t u8; int16_t i16; void *ptr; } retbuf;
+    ffi_call(&cif, FFI_FN(sym), &retbuf, ffi_values);
+
+    free(ffi_arg_types); free(ffi_values); free(i64_slots); free(f64_slots);
+
+    if (strncmp(rt, "void", 4) == 0) return rl_ok_null();
+    else if (strncmp(rt, "i32", 3) == 0) return rl_ok_i64(retbuf.i32);
+    else if (strncmp(rt, "i64", 3) == 0) return rl_ok_i64(retbuf.i);
+    else if (strncmp(rt, "f32", 3) == 0) return rl_ok_f64((double)retbuf.f);
+    else if (strncmp(rt, "f64", 3) == 0) return rl_ok_f64(retbuf.f);
+    else if (strncmp(rt, "bool", 4) == 0 || strncmp(rt, "u8", 2) == 0) return rl_ok_i64(retbuf.u8);
+    else if (strncmp(rt, "i16", 3) == 0) return rl_ok_i64(retbuf.i16);
+    else if (strncmp(rt, "str", 3) == 0 || strncmp(rt, "string", 6) == 0) {
+        const char *s = (const char *)retbuf.ptr;
+        if (!s) return rl_ok_str(rl_str_literal("", 0));
+        uint64_t len = strlen(s);
+        char *buf = malloc(len + 1);
+        memcpy(buf, s, len + 1);
+        return rl_ok_str((rl_string){ .data = buf, .len = len, .rc = 1 });
+    }
+    return rl_ok_i64(retbuf.i);
+#endif
+}

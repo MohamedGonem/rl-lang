@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <ctype.h>
+#include <dlfcn.h>
 #include <dirent.h>
 
 // ---- string type ----
@@ -576,5 +577,14 @@ rl_result rl_rand_choice(rl_array arr);
 rl_result rl_rand_choices(rl_array arr, int64_t count);
 rl_result rl_rand_sample(rl_array arr, int64_t count);
 rl_result rl_rand_shuffle(rl_array arr);
+
+// ---- std::c (FFI) ----
+typedef void *rl_c_handle;
+rl_result rl_c_compile(rl_string source);
+rl_result rl_c_load(rl_string path);
+rl_result rl_c_has_symbol(int64_t handle_id, rl_string fn_name);
+rl_result rl_c_close(int64_t handle_id);
+rl_result rl_c_clear_cache(void);
+rl_result rl_c_call(int64_t handle_id, rl_string fn_name, int64_t argc, void **argv, const char **arg_types, rl_string ret_type);
 
 #endif

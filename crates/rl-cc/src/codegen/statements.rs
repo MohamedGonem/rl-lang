@@ -570,7 +570,14 @@ impl<'a> CCodegen<'a> {
                     self.compile_statement(stmt)?;
                 }
             }
-            StatementKind::Import { .. } | StatementKind::ImportFile { .. } | StatementKind::ImportFileNamed { .. } => {}
+            StatementKind::Import { names, path } => {
+                if path.len() >= 2 && path[0] == "std" && path[1] == "c" {
+                    for name in names {
+                        self.std_c_imports.insert(name.clone());
+                    }
+                }
+            }
+            StatementKind::ImportFile { .. } | StatementKind::ImportFileNamed { .. } => {}
             _ => {}
         }
         Ok(())
