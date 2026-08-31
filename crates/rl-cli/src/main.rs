@@ -1180,6 +1180,17 @@ fn main() {
                     cmd.arg(dir.join("rl_runtime.c"));
                     cmd.arg("-I").arg(dir);
                 }
+                // auto-detect std::c usage and add required flags
+                if let Ok(c_src) = std::fs::read_to_string(&c_path) {
+                    if c_src.contains("rl_c_") {
+                        cmd.arg("-DRL_USE_LIBFFI");
+                        cmd.arg("-lffi");
+                        cmd.arg("-ldl");
+                    }
+                }
+                if embed_rt {
+                    cmd.arg("-lm");
+                }
                 for flag in &cc_flags {
                     cmd.arg(flag);
                 }
