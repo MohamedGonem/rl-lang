@@ -234,7 +234,21 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(&temp);
             }
             ExpressionKind::TupleLiteral(elems) => {
-                let tuple_name = format!("rl_tuple_{}", elems.len());
+                let field_types: Vec<TypeAnnotation> = elems.iter().map(|e| {
+                    let expr = self.ast.exprs.get(*e);
+                    match &expr.kind {
+                        ExpressionKind::Integer(_) => TypeAnnotation::Int,
+                        ExpressionKind::Float(_) => TypeAnnotation::Float,
+                        ExpressionKind::Bool(_) => TypeAnnotation::Bool,
+                        ExpressionKind::String(_) => TypeAnnotation::String,
+                        ExpressionKind::Character(_) => TypeAnnotation::Char,
+                        ExpressionKind::ResolvedIdentifier { name, .. } => {
+                            self.var_types.get(name).cloned().unwrap_or(TypeAnnotation::Int)
+                        }
+                        _ => TypeAnnotation::Int,
+                    }
+                }).collect();
+                let tuple_name = self.lookup_tuple_name(&field_types).to_string();
                 self.writer.write(&format!("({}){{ ", tuple_name));
                 for (i, elem) in elems.iter().enumerate() {
                     if i > 0 {
@@ -359,8 +373,9 @@ impl<'a> CCodegen<'a> {
                             match ta {
                                 TypeAnnotation::Tuple(elems) => {
                                     let c_name = self.lookup(name);
+                                    let tuple_name = self.lookup_tuple_name(elems).to_string();
                                     let print_fn = if is_ln { "rl_println" } else { "rl_print" };
-                                    self.writer.write(&format!("{}_rl_tuple_{}({})", print_fn, elems.len(), c_name));
+                                    self.writer.write(&format!("{}_{}({})", print_fn, tuple_name, c_name));
                                 }
                                 TypeAnnotation::Record(rname) => {
                                     let c_name = self.lookup(name);
@@ -1934,11 +1949,29 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "arr_zip" => {
-                self.writer.write("rl_arr_zip(");
+                let a_temp = self.temp_var();
+                let b_temp = self.temp_var();
+                let n_temp = self.temp_var();
+                let i_temp = self.temp_var();
+                let buf_temp = self.temp_var();
+                let a_elems_temp = self.temp_var();
+                let b_elems_temp = self.temp_var();
+                self.writer.write(&format!("{{ rl_array {} = ", a_temp));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(", ");
+                self.writer.write("; ");
+                self.writer.write(&format!("rl_array {} = ", b_temp));
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write(")");
+                self.writer.write("; ");
+                self.writer.write(&format!("uint64_t {} = {}.len < {}.len ? {}.len : {}.len; ", n_temp, a_temp, b_temp, a_temp, b_temp));
+                self.writer.write(&format!("char *{} = malloc({} * {}.elem_size * 2); ", buf_temp, n_temp, a_temp));
+                self.writer.write(&format!("char *{} = (char *){}.data; ", a_elems_temp, a_temp));
+                self.writer.write(&format!("char *{} = (char *){}.data; ", b_elems_temp, b_temp));
+                self.writer.write(&format!("for (uint64_t {} = 0; {} < {}; {}++) {{ ", i_temp, i_temp, n_temp, i_temp));
+                self.writer.write(&format!("memcpy({} + {} * {}.elem_size * 2, {} + {} * {}.elem_size, {}.elem_size); ", buf_temp, i_temp, a_temp, a_elems_temp, i_temp, a_temp, a_temp));
+                self.writer.write(&format!("memcpy({} + {} * {}.elem_size * 2 + {}.elem_size, {} + {} * {}.elem_size, {}.elem_size); ", buf_temp, i_temp, a_temp, a_temp, b_elems_temp, i_temp, b_temp, b_temp));
+                self.writer.write("} ");
+                self.writer.write(&format!("rl_array _zr = {{ .data = {}, .len = {}, .cap = {}, .elem_size = {}.elem_size * 2, .type_tag = {}.type_tag }}; ", buf_temp, n_temp, n_temp, a_temp, a_temp));
+                self.writer.write(&format!("rl_ok_arr(_zr); }}"));
                 return Ok(());
             }
             "arr_push" => {

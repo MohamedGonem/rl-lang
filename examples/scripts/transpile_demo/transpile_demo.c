@@ -86,14 +86,6 @@ void rl_println_rl_Record_Point(rl_Record_Point v) { rl_print_rl_Record_Point(v)
 #define RL_TAG_COLOR_GREEN ((int64_t)1)
 #define RL_TAG_COLOR_BLUE ((int64_t)2)
 
-typedef struct { int64_t field_0; rl_string field_1; } rl_tuple_2;
-void rl_print_rl_tuple_2(rl_tuple_2 v) { printf("(");
-printf("%ld", (long)v.field_0);
-printf(", ");
-printf("%.*s", (int)v.field_1.len, v.field_1.data);
-printf(")");
-}
-void rl_println_rl_tuple_2(rl_tuple_2 v) { rl_print_rl_tuple_2(v); printf("\n"); }
 typedef struct { int64_t field_0; int64_t field_1; rl_string field_2; } rl_tuple_3;
 void rl_print_rl_tuple_3(rl_tuple_3 v) { printf("(");
 printf("%ld", (long)v.field_0);
@@ -104,6 +96,14 @@ printf("%.*s", (int)v.field_2.len, v.field_2.data);
 printf(")");
 }
 void rl_println_rl_tuple_3(rl_tuple_3 v) { rl_print_rl_tuple_3(v); printf("\n"); }
+typedef struct { int64_t field_0; rl_string field_1; } rl_tuple_2;
+void rl_print_rl_tuple_2(rl_tuple_2 v) { printf("(");
+printf("%ld", (long)v.field_0);
+printf(", ");
+printf("%.*s", (int)v.field_1.len, v.field_1.data);
+printf(")");
+}
+void rl_println_rl_tuple_2(rl_tuple_2 v) { rl_print_rl_tuple_2(v); printf("\n"); }
 
 int64_t add(int64_t a, int64_t b) {
     return a + b;

@@ -397,8 +397,10 @@ impl<'a> CCodegen<'a> {
                 ..
             } => {
                 let temp = self.temp_var();
+                let field_types: Vec<TypeAnnotation> = bindings.iter().map(|(ta, _)| ta.clone()).collect();
+                let tuple_name = self.lookup_tuple_name(&field_types).to_string();
                 self.writer.write_indent();
-                self.writer.write(&format!("rl_tuple_{} {} = ", bindings.len(), temp));
+                self.writer.write(&format!("{} {} = ", tuple_name, temp));
                 self.compile_expr(*value)?;
                 self.writer.write(";\n");
                 for (i, (type_annotation, name)) in bindings.iter().enumerate() {

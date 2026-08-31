@@ -22,6 +22,7 @@ pub struct CCodegen<'a> {
     pub static_funcs: Vec<String>,
     pub closure_params: Vec<String>,
     pub closure_return_types: HashMap<String, TypeAnnotation>,
+    pub tuple_names: Vec<(Vec<TypeAnnotation>, String)>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -39,6 +40,7 @@ impl<'a> CCodegen<'a> {
             static_funcs: Vec::new(),
             closure_params: Vec::new(),
             closure_return_types: HashMap::new(),
+            tuple_names: Vec::new(),
         }
     }
 
@@ -174,19 +176,43 @@ impl<'a> CCodegen<'a> {
         // Collect tuple types used in the program
         let mut tuple_types: Vec<Vec<TypeAnnotation>> = Vec::new();
         self.collect_tuple_types(statements, &mut tuple_types);
-        tuple_types.sort_by_key(|t| t.len());
-        tuple_types.dedup_by_key(|t| t.len());
-        for fields in &tuple_types {
+        // Dedup by full field-type layout, not just arity
+        let mut unique_tuples: Vec<Vec<TypeAnnotation>> = Vec::new();
+        for tt in &tuple_types {
+            if !unique_tuples.contains(tt) {
+                unique_tuples.push(tt.clone());
+            }
+        }
+        // Assign names: one per arity gets rl_tuple_N, multiple get rl_tuple_N_K
+        let mut arity_count: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+        for fields in &unique_tuples {
+            *arity_count.entry(fields.len()).or_insert(0) += 1;
+        }
+        let mut arity_index: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+        let mut new_tuple_names: Vec<(Vec<TypeAnnotation>, String)> = Vec::new();
+        for fields in &unique_tuples {
+            let arity = fields.len();
+            let count = arity_count[&arity];
+            let idx = arity_index.entry(arity).or_insert(0);
+            let name = if count == 1 {
+                format!("rl_tuple_{}", arity)
+            } else {
+                format!("rl_tuple_{}_{}", arity, *idx)
+            };
+            *idx += 1;
+            new_tuple_names.push((fields.clone(), name));
+        }
+        self.tuple_names = new_tuple_names;
+        for (fields, name) in self.tuple_names.clone() {
             self.writer.write("typedef struct { ");
             for (i, field_type) in fields.iter().enumerate() {
                 let c_type = type_to_c(field_type);
                 self.writer.write(&format!("{} field_{}; ", c_type, i));
             }
             self.writer
-                .writeln(&format!("}} rl_tuple_{};", fields.len()));
+                .writeln(&format!("}} {};", name));
             // Generate print function for tuple
-            let arity = fields.len();
-            self.writer.write(&format!("void rl_print_rl_tuple_{}(rl_tuple_{} v) {{ ", arity, arity));
+            self.writer.write(&format!("void rl_print_{}({} v) {{ ", name, name));
             self.writer.writeln("printf(\"(\");");
             for (i, field_type) in fields.iter().enumerate() {
                 if i > 0 {
@@ -196,7 +222,7 @@ impl<'a> CCodegen<'a> {
             }
             self.writer.writeln("printf(\")\");");
             self.writer.writeln("}");
-            self.writer.write(&format!("void rl_println_rl_tuple_{}(rl_tuple_{} v) {{ rl_print_rl_tuple_{}(v); printf(\"\\n\"); }}\n", arity, arity, arity));
+            self.writer.write(&format!("void rl_println_{}({} v) {{ rl_print_{}(v); printf(\"\\n\"); }}\n", name, name, name));
         }
         if !tuple_types.is_empty() {
             self.writer.blank_line();
@@ -352,8 +378,9 @@ impl<'a> CCodegen<'a> {
                 self.writer.writeln(&format!("rl_print_rl_Record_{}({});", rname, accessor));
             }
             TypeAnnotation::Tuple(elems) | TypeAnnotation::CTuple(elems) => {
+                let tuple_name = self.lookup_tuple_name(elems).to_string();
                 self.writer.write_indent();
-                self.writer.writeln(&format!("rl_print_rl_tuple_{}({});", elems.len(), accessor));
+                self.writer.writeln(&format!("rl_print_{}({});", tuple_name, accessor));
             }
             TypeAnnotation::Enum(_) | TypeAnnotation::CEnum(_) => {
                 self.writer.write_indent();
@@ -382,5 +409,48 @@ impl<'a> CCodegen<'a> {
             }
             _ => {}
         }
+    }
+
+    pub fn lookup_tuple_name(&self, field_types: &[TypeAnnotation]) -> &str {
+        for (fields, name) in &self.tuple_names {
+            if fields == field_types {
+                return name;
+            }
+        }
+        "rl_tuple_2"
+    }
+
+    pub fn ensure_tuple_type(&mut self, field_types: Vec<TypeAnnotation>) -> String {
+        for (fields, name) in &self.tuple_names {
+            if *fields == field_types {
+                return name.clone();
+            }
+        }
+        let arity = field_types.len();
+        let count = self.tuple_names.iter().filter(|(f, _)| f.len() == arity).count();
+        let name = if count == 0 {
+            format!("rl_tuple_{}", arity)
+        } else {
+            format!("rl_tuple_{}_{}", arity, count)
+        };
+        self.writer.write("typedef struct { ");
+        for (i, field_type) in field_types.iter().enumerate() {
+            let c_type = type_to_c(field_type);
+            self.writer.write(&format!("{} field_{}; ", c_type, i));
+        }
+        self.writer.writeln(&format!("}} {};", name));
+        self.writer.write(&format!("void rl_print_{}({} v) {{ ", name, name));
+        self.writer.writeln("printf(\"(\");");
+        for (i, field_type) in field_types.iter().enumerate() {
+            if i > 0 {
+                self.writer.writeln("printf(\", \");");
+            }
+            self.emit_field_print(field_type, &format!("v.field_{}", i));
+        }
+        self.writer.writeln("printf(\")\");");
+        self.writer.writeln("}");
+        self.writer.write(&format!("void rl_println_{}({} v) {{ rl_print_{}(v); printf(\"\\n\"); }}\n", name, name, name));
+        self.tuple_names.push((field_types, name.clone()));
+        name
     }
 }
