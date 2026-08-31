@@ -105,16 +105,20 @@ enum Commands {
         cranelift: bool,
     },
 
-    /// Scaffold a new project directory
-    #[command(after_help = "EXAMPLES:\n    rl new my_project\n    rl new my_project --no-git")]
+    /// Scaffold a new project directory, or create a standalone script
+    #[command(after_help = "EXAMPLES:\n    rl new my_project\n    rl new my_project --no-git\n    rl new --script hello")]
     New {
-        /// Name for the new project directory
+        /// Name for the new project directory or script
         #[arg(value_name = "NAME")]
         name: String,
 
         /// Skip running `git init` in the new project
         #[arg(long)]
         no_git: bool,
+
+        /// Create a standalone .rl script instead of a project directory
+        #[arg(long)]
+        script: bool,
     },
 
     /// Type-check a .rl file and report errors without running it
@@ -616,8 +620,12 @@ fn main() {
             generate(check, package);
         }
 
-        Commands::New { name, no_git } => {
-            create_project(&name, no_git);
+        Commands::New { name, no_git, script } => {
+            if script {
+                rl_tooling::new::create_script(&name);
+            } else {
+                create_project(&name, no_git);
+            }
         }
 
         #[cfg(feature = "docs")]
