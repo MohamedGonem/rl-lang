@@ -252,8 +252,8 @@ rl_value rl_map_get(rl_map m, const char *key) {
             return m.entries[i].value;
         }
     }
-    fprintf(stderr, "error: key '%s' not found in map\n", key);
-    abort();
+    rl_value null_val = { .tag = RL_VTAG_NULL, .data.i64 = 0 };
+    return null_val;
 }
 
 bool rl_map_contains(rl_map m, const char *key) {
@@ -1370,7 +1370,7 @@ rl_array rl_process_args(void) {
 
 rl_string rl_time_format_time(int64_t timestamp, rl_string pattern) {
     time_t t = (time_t)timestamp;
-    struct tm *tm = localtime(&t);
+    struct tm *tm = gmtime(&t);
     char buf[256];
     strftime(buf, sizeof(buf), pattern.data, tm);
     uint64_t len = strlen(buf);
@@ -1382,7 +1382,7 @@ rl_string rl_time_format_time(int64_t timestamp, rl_string pattern) {
 
 rl_string rl_time_format_date_str(int64_t timestamp) {
     time_t t = (time_t)timestamp;
-    struct tm *tm = localtime(&t);
+    struct tm *tm = gmtime(&t);
     char buf[64];
     strftime(buf, sizeof(buf), "%Y-%m-%d", tm);
     uint64_t len = strlen(buf);
@@ -1394,7 +1394,7 @@ rl_string rl_time_format_date_str(int64_t timestamp) {
 
 rl_string rl_time_format_time_str(int64_t timestamp) {
     time_t t = (time_t)timestamp;
-    struct tm *tm = localtime(&t);
+    struct tm *tm = gmtime(&t);
     char buf[64];
     strftime(buf, sizeof(buf), "%H:%M:%S", tm);
     uint64_t len = strlen(buf);
@@ -1406,7 +1406,7 @@ rl_string rl_time_format_time_str(int64_t timestamp) {
 
 rl_array rl_time_parts(int64_t timestamp) {
     time_t t = (time_t)timestamp;
-    struct tm *tm = localtime(&t);
+    struct tm *tm = gmtime(&t);
     int64_t parts[6] = {
         tm->tm_year + 1900,
         tm->tm_mon + 1,
@@ -1420,34 +1420,34 @@ rl_array rl_time_parts(int64_t timestamp) {
 
 // ---- io ----
 
-rl_string rl_io_read_file(rl_string path) {
+rl_result rl_io_read_file(rl_string path) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
     FILE *f = fopen(buf, "rb");
     if (!f) {
-        rl_string result = { .data = "", .len = 0, .rc = 1 };
-        return result;
+        return rl_err_msg(rl_str_literal("failed to open file for reading", 31));
     }
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     if (size <= 0) {
         fclose(f);
-        rl_string result = { .data = "", .len = 0, .rc = 1 };
-        return result;
+        return rl_ok_str(rl_str_literal("", 0));
     }
     char *out = malloc((uint64_t)size);
     size_t n = fread(out, 1, (uint64_t)size, f);
     fclose(f);
     rl_string result = { .data = out, .len = (uint64_t)n, .rc = 1 };
-    return result;
+    return rl_ok_str(result);
 }
 
-rl_array rl_io_read_lines(rl_string path) {
-    rl_string content = rl_io_read_file(path);
+rl_result rl_io_read_lines(rl_string path) {
+    rl_result content_r = rl_io_read_file(path);
+    if (!content_r.is_ok) return content_r;
     rl_string nl = { .data = "\n", .len = 1, .rc = 1 };
-    return rl_str_split(content, nl);
+    rl_array lines = rl_str_split(content_r.data.str, nl);
+    return rl_ok_arr(lines);
 }
 
 rl_string rl_io_read(void) {
@@ -1479,26 +1479,26 @@ double rl_io_read_float(void) {
     return v;
 }
 
-int64_t rl_io_write_file(rl_string path, rl_string content) {
+rl_result rl_io_write_file(rl_string path, rl_string content) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
     FILE *f = fopen(buf, "wb");
-    if (!f) return -1;
+    if (!f) return rl_err_msg(rl_str_literal("failed to open file for writing", 30));
     fwrite(content.data, 1, content.len, f);
     fclose(f);
-    return 0;
+    return rl_ok_null();
 }
 
-int64_t rl_io_append_file(rl_string path, rl_string content) {
+rl_result rl_io_append_file(rl_string path, rl_string content) {
     char buf[path.len + 1];
     memcpy(buf, path.data, path.len);
     buf[path.len] = '\0';
     FILE *f = fopen(buf, "ab");
-    if (!f) return -1;
+    if (!f) return rl_err_msg(rl_str_literal("failed to open file for appending", 32));
     fwrite(content.data, 1, content.len, f);
     fclose(f);
-    return 0;
+    return rl_ok_null();
 }
 
 int64_t rl_io_delete_file(rl_string path) {
@@ -1699,6 +1699,9 @@ rl_result rl_map_get_s(rl_map m, rl_string key) {
     char buf[key.len + 1];
     memcpy(buf, key.data, key.len);
     buf[key.len] = '\0';
+    if (!rl_map_contains(m, buf)) {
+        return rl_err_msg(rl_str_literal("key not found in map", 20));
+    }
     rl_value v = rl_map_get(m, buf);
     switch (v.tag) {
         case RL_VTAG_NULL: return rl_ok_null();
@@ -1948,11 +1951,45 @@ static int rl_arr_cmp_i64(const void *a, const void *b) {
     return (va > vb) - (va < vb);
 }
 
+static int rl_arr_cmp_f64(const void *a, const void *b) {
+    double va = *(const double *)a;
+    double vb = *(const double *)b;
+    return (va > vb) - (va < vb);
+}
+
+static int rl_arr_cmp_str(const void *a, const void *b) {
+    rl_string sa = *(const rl_string *)a;
+    rl_string sb = *(const rl_string *)b;
+    uint64_t min_len = sa.len < sb.len ? sa.len : sb.len;
+    int cmp = memcmp(sa.data, sb.data, min_len);
+    if (cmp != 0) return cmp;
+    return (sa.len > sb.len) - (sa.len < sb.len);
+}
+
 rl_array rl_arr_sort(rl_array a) {
-    int64_t *buf = malloc(a.len * sizeof(int64_t));
-    if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
-    qsort(buf, a.len, sizeof(int64_t), rl_arr_cmp_i64);
-    return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
+    if (a.len == 0) return a;
+    switch (a.type_tag) {
+        case RL_TAG_F64: {
+            double *buf = malloc(a.len * sizeof(double));
+            if (a.data) memcpy(buf, a.data, a.len * sizeof(double));
+            qsort(buf, a.len, sizeof(double), rl_arr_cmp_f64);
+            rl_array result = { .data = buf, .len = a.len, .cap = a.len, .elem_size = sizeof(double), .type_tag = RL_TAG_F64 };
+            return result;
+        }
+        case RL_TAG_STR: {
+            rl_string *buf = malloc(a.len * sizeof(rl_string));
+            if (a.data) memcpy(buf, a.data, a.len * sizeof(rl_string));
+            qsort(buf, a.len, sizeof(rl_string), rl_arr_cmp_str);
+            rl_array result = { .data = buf, .len = a.len, .cap = a.len, .elem_size = sizeof(rl_string), .type_tag = RL_TAG_STR };
+            return result;
+        }
+        default: {
+            int64_t *buf = malloc(a.len * sizeof(int64_t));
+            if (a.data) memcpy(buf, a.data, a.len * sizeof(int64_t));
+            qsort(buf, a.len, sizeof(int64_t), rl_arr_cmp_i64);
+            return rl_arr_from_vals(buf, a.len, sizeof(int64_t));
+        }
+    }
 }
 
 rl_array rl_arr_flatten(rl_array a) {
@@ -2443,6 +2480,80 @@ bool rl_term_poll(int64_t ms) {
     FD_SET(STDIN_FILENO, &fds);
     return select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) > 0;
 }
+
+// ---- result unwrap (with error checking) ----
+
+int64_t rl_result_unwrap_i64(rl_result r) {
+    if (!r.is_ok) {
+        fprintf(stderr, "error: unwrap called on err value\n");
+        abort();
+    }
+    return r.data.i64;
+}
+
+double rl_result_unwrap_f64(rl_result r) {
+    if (!r.is_ok) {
+        fprintf(stderr, "error: unwrap called on err value\n");
+        abort();
+    }
+    return r.data.f64;
+}
+
+bool rl_result_unwrap_bool(rl_result r) {
+    if (!r.is_ok) {
+        fprintf(stderr, "error: unwrap called on err value\n");
+        abort();
+    }
+    return r.data.boolean;
+}
+
+rl_string rl_result_unwrap_str(rl_result r) {
+    if (!r.is_ok) {
+        fprintf(stderr, "error: unwrap called on err value\n");
+        abort();
+    }
+    return r.data.str;
+}
+
+// ---- math ----
+
+rl_result rl_math_abs(rl_result x) {
+    switch (x.tag) {
+        case RL_TAG_F64: return rl_ok_f64(fabs(x.data.f64));
+        default: return rl_ok_i64(llabs(x.data.i64));
+    }
+}
+
+rl_result rl_math_pow(rl_result base, rl_result exp) {
+    if (base.tag == RL_TAG_I64 && exp.tag == RL_TAG_I64) {
+        int64_t b = base.data.i64;
+        int64_t e = exp.data.i64;
+        if (e < 0) {
+            return rl_ok_f64(pow((double)b, (double)e));
+        }
+        int64_t result = 1;
+        while (e > 0) {
+            if (e & 1) result *= b;
+            e >>= 1;
+            b *= b;
+        }
+        return rl_ok_i64(result);
+    }
+    double b_val = (base.tag == RL_TAG_F64) ? base.data.f64 : (double)base.data.i64;
+    double e_val = (exp.tag == RL_TAG_F64) ? exp.data.f64 : (double)exp.data.i64;
+    return rl_ok_f64(pow(b_val, e_val));
+}
+
+// ---- type checks ----
+
+rl_result rl_is_bool(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_BOOL); }
+rl_result rl_is_int(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_I64); }
+rl_result rl_is_float(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_F64); }
+rl_result rl_is_string(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_STR); }
+rl_result rl_is_null(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_NULL); }
+rl_result rl_is_char(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_CHAR); }
+rl_result rl_is_byte(rl_result x) { return rl_ok_bool(x.tag == RL_TAG_I64); }
+rl_result rl_is_error(rl_result x) { return rl_ok_bool(!x.is_ok); }
 
 rl_never rl_never_fn(void) {
     fprintf(stderr, "error: reached unreachable code\n");

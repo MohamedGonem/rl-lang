@@ -439,7 +439,7 @@ impl<'a> CCodegen<'a> {
             }
             // ---- math (single arg, raw return) ----
             "sin" | "cos" | "tan" | "asin" | "acos" | "atan"
-            | "exp" | "sign" | "degrees" | "radians" => {
+            | "exp" => {
                 self.writer.write(&format!("{}(", func_name));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
@@ -453,9 +453,13 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "abs" => {
-                self.writer.write("rl_ok((int64_t)llabs(");
-                if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write("))");
+                self.writer.write("rl_math_abs(");
+                if !args.is_empty() {
+                    self.writer.write("rl_ok(");
+                    self.compile_expr(args[0])?;
+                    self.writer.write(")");
+                }
+                self.writer.write(")");
                 return Ok(());
             }
             "hypot" => {
@@ -479,13 +483,15 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "pow" => {
-                self.writer.write("rl_ok(pow(");
+                self.writer.write("rl_math_pow(");
                 if args.len() >= 2 {
+                    self.writer.write("rl_ok(");
                     self.compile_expr(args[0])?;
-                    self.writer.write(", ");
+                    self.writer.write("), rl_ok(");
                     self.compile_expr(args[1])?;
+                    self.writer.write(")");
                 }
-                self.writer.write("))");
+                self.writer.write(")");
                 return Ok(());
             }
             "log" => {
@@ -685,13 +691,15 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "result_unwrap" => {
+                self.writer.write("rl_result_unwrap_i64(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(".data.ok_value");
+                self.writer.write(")");
                 return Ok(());
             }
             "result_unwrap_err" => {
+                self.writer.write("rl_result_unwrap_i64(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(".data.err_value");
+                self.writer.write(")");
                 return Ok(());
             }
             "result_unwrap_or" => {
@@ -1333,15 +1341,15 @@ impl<'a> CCodegen<'a> {
             }
             // ---- io (extended) ----
             "read_file" => {
-                self.writer.write("rl_ok(rl_io_read_file(");
+                self.writer.write("rl_io_read_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write("))");
+                self.writer.write(")");
                 return Ok(());
             }
             "read_lines" => {
-                self.writer.write("rl_ok(rl_io_read_lines(");
+                self.writer.write("rl_io_read_lines(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write("))");
+                self.writer.write(")");
                 return Ok(());
             }
             "read" => {
@@ -1357,19 +1365,19 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "write_file" => {
-                self.writer.write("rl_ok(rl_io_write_file(");
+                self.writer.write("rl_io_write_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write("))");
+                self.writer.write(")");
                 return Ok(());
             }
             "append_file" => {
-                self.writer.write("rl_ok(rl_io_append_file(");
+                self.writer.write("rl_io_append_file(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(", ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
-                self.writer.write("))");
+                self.writer.write(")");
                 return Ok(());
             }
             "delete_file" => {
@@ -1433,8 +1441,52 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(") ? true : false)");
                 return Ok(());
             }
-            "is_bool" | "is_int" | "is_float" | "is_string" | "is_null" | "is_char" | "is_byte" | "is_error" => {
-                self.writer.write("rl_ok_bool(true)");
+            "is_bool" => {
+                self.writer.write("rl_is_bool(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_int" => {
+                self.writer.write("rl_is_int(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_float" => {
+                self.writer.write("rl_is_float(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_string" => {
+                self.writer.write("rl_is_string(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_null" => {
+                self.writer.write("rl_is_null(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_char" => {
+                self.writer.write("rl_is_char(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_byte" => {
+                self.writer.write("rl_is_byte(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "is_error" => {
+                self.writer.write("rl_is_error(");
+                if !args.is_empty() { self.compile_expr(args[0])?; }
+                self.writer.write(")");
                 return Ok(());
             }
             // ---- random ----

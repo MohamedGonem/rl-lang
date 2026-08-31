@@ -406,13 +406,13 @@ rl_string rl_time_format_time_str(int64_t timestamp);
 rl_array rl_time_parts(int64_t timestamp);
 
 // ---- io ----
-rl_string rl_io_read_file(rl_string path);
-rl_array rl_io_read_lines(rl_string path);
+rl_result rl_io_read_file(rl_string path);
+rl_result rl_io_read_lines(rl_string path);
+rl_result rl_io_write_file(rl_string path, rl_string content);
+rl_result rl_io_append_file(rl_string path, rl_string content);
 rl_string rl_io_read(void);
 int64_t rl_io_read_int(void);
 double rl_io_read_float(void);
-int64_t rl_io_write_file(rl_string path, rl_string content);
-int64_t rl_io_append_file(rl_string path, rl_string content);
 int64_t rl_io_delete_file(rl_string path);
 void rl_io_eprint(rl_string msg);
 void rl_io_eprintln(rl_string msg);
@@ -538,5 +538,25 @@ rl_result rl_term_disable_mouse(void);
 void rl_term_print_inline(rl_result v);
 rl_array rl_term_read_key(void);
 bool rl_term_poll(int64_t ms);
+
+// ---- result unwrap (with error checking) ----
+int64_t rl_result_unwrap_i64(rl_result r);
+double rl_result_unwrap_f64(rl_result r);
+bool rl_result_unwrap_bool(rl_result r);
+rl_string rl_result_unwrap_str(rl_result r);
+
+// ---- math ----
+rl_result rl_math_abs(rl_result x);
+rl_result rl_math_pow(rl_result base, rl_result exp);
+
+// ---- type checks ----
+rl_result rl_is_bool(rl_result x);
+rl_result rl_is_int(rl_result x);
+rl_result rl_is_float(rl_result x);
+rl_result rl_is_string(rl_result x);
+rl_result rl_is_null(rl_result x);
+rl_result rl_is_char(rl_result x);
+rl_result rl_is_byte(rl_result x);
+rl_result rl_is_error(rl_result x);
 
 #endif

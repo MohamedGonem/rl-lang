@@ -41,6 +41,7 @@ fn run_demo() -> String {
             tmp.path().join("rl_runtime.c").to_str().unwrap(),
             "-I",
             tmp.path().to_str().unwrap(),
+            "-lm",
         ])
         .output()
         .expect("failed to run cc");

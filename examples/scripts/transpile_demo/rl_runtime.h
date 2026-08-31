@@ -406,13 +406,13 @@ rl_string rl_time_format_time_str(int64_t timestamp);
 rl_array rl_time_parts(int64_t timestamp);
 
 // ---- io ----
-rl_string rl_io_read_file(rl_string path);
-rl_array rl_io_read_lines(rl_string path);
+rl_result rl_io_read_file(rl_string path);
+rl_result rl_io_read_lines(rl_string path);
+rl_result rl_io_write_file(rl_string path, rl_string content);
+rl_result rl_io_append_file(rl_string path, rl_string content);
 rl_string rl_io_read(void);
 int64_t rl_io_read_int(void);
 double rl_io_read_float(void);
-int64_t rl_io_write_file(rl_string path, rl_string content);
-int64_t rl_io_append_file(rl_string path, rl_string content);
 int64_t rl_io_delete_file(rl_string path);
 void rl_io_eprint(rl_string msg);
 void rl_io_eprintln(rl_string msg);
@@ -491,5 +491,72 @@ rl_result rl_result_map_err_closure(rl_result val, rl_closure fn);
 
 // ---- closure-consuming debug ----
 rl_result rl_bench_closure(rl_closure fn, int64_t iterations);
+
+// ---- terminal (ANSI escape codes) ----
+rl_result rl_term_enter(void);
+rl_result rl_term_leave(void);
+rl_result rl_term_clear(void);
+rl_result rl_term_clear_line(void);
+rl_result rl_term_move(int64_t col, int64_t row);
+rl_result rl_term_move_to_col(int64_t col);
+rl_result rl_term_move_to_row(int64_t row);
+rl_result rl_term_move_up(int64_t n);
+rl_result rl_term_move_down(int64_t n);
+rl_result rl_term_move_left(int64_t n);
+rl_result rl_term_move_right(int64_t n);
+rl_result rl_term_next_line(int64_t n);
+rl_result rl_term_prev_line(int64_t n);
+rl_result rl_term_save_cursor(void);
+rl_result rl_term_restore_cursor(void);
+rl_result rl_term_hide_cursor(void);
+rl_result rl_term_show_cursor(void);
+rl_result rl_term_get_size(int64_t *out_cols, int64_t *out_rows);
+rl_result rl_term_set_size(int64_t cols, int64_t rows);
+rl_result rl_term_set_title(int64_t ch);
+rl_result rl_term_scroll_up(int64_t n);
+rl_result rl_term_scroll_down(int64_t n);
+rl_result rl_term_flush(void);
+rl_result rl_term_set_fg(int64_t r, int64_t g, int64_t b);
+rl_result rl_term_set_bg(int64_t r, int64_t g, int64_t b);
+rl_result rl_term_reset_color(void);
+rl_result rl_term_fg(rl_string name);
+rl_result rl_term_bg(rl_string name);
+rl_result rl_term_bold(void);
+rl_result rl_term_dim(void);
+rl_result rl_term_italic(void);
+rl_result rl_term_underline(void);
+rl_result rl_term_blink(void);
+rl_result rl_term_reverse(void);
+rl_result rl_term_crossed_out(void);
+rl_result rl_term_reset_attr(void);
+rl_result rl_term_enable_wrap(void);
+rl_result rl_term_disable_wrap(void);
+rl_result rl_term_begin_sync(void);
+rl_result rl_term_end_sync(void);
+rl_result rl_term_enable_mouse(void);
+rl_result rl_term_disable_mouse(void);
+void rl_term_print_inline(rl_result v);
+rl_array rl_term_read_key(void);
+bool rl_term_poll(int64_t ms);
+
+// ---- result unwrap (with error checking) ----
+int64_t rl_result_unwrap_i64(rl_result r);
+double rl_result_unwrap_f64(rl_result r);
+bool rl_result_unwrap_bool(rl_result r);
+rl_string rl_result_unwrap_str(rl_result r);
+
+// ---- math ----
+rl_result rl_math_abs(rl_result x);
+rl_result rl_math_pow(rl_result base, rl_result exp);
+
+// ---- type checks ----
+rl_result rl_is_bool(rl_result x);
+rl_result rl_is_int(rl_result x);
+rl_result rl_is_float(rl_result x);
+rl_result rl_is_string(rl_result x);
+rl_result rl_is_null(rl_result x);
+rl_result rl_is_char(rl_result x);
+rl_result rl_is_byte(rl_result x);
+rl_result rl_is_error(rl_result x);
 
 #endif
