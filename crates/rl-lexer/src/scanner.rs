@@ -242,6 +242,18 @@ impl Tokenizer {
             '_' | 'a'..='z' | 'A'..='Z' => self.identifier(),
             c if c.is_alphabetic() => self.identifier(),
 
+            '|' => {
+                if self.peek() == '>' {
+                    self.advance();
+                    self.add_token(TokenType::Pipe);
+                } else {
+                    return Err(self.err(
+                        format!("unexpected character `|`"),
+                        self.current_span(),
+                    ));
+                }
+            }
+
             other => {
                 return Err(self.err(
                     format!("unexpected character `{}`", other),

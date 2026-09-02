@@ -49,11 +49,13 @@ rl-lang
 +-- rl-utils          (error handling, source files, helpers)
 +-- rl-lexer          (tokenization)
 |   +-- [DONE] Arabic keyword aliases (all 38 keywords)
+|   +-- [DONE] pipe operator `|>` token
 |   +-- [TODO] #427 - allow more statements to have newlines
 +-- rl-ast            (AST node types, arena)
 |   +-- [TODO] #190 - refactor AST
 +-- rl-parser         (source to AST)
 |   +-- [DONE] optional semicolons as statement terminators
+|   +-- [DONE] pipe operator `|>` desugaring (a |> f() -> a.f())
 |   +-- [TODO] #341 - parser tests
 +-- rl-resolver       (name resolution, imports)
 |   +-- [TODO] #342 - resolver tests
@@ -137,7 +139,7 @@ rl-lang
 |   +-- [DONE] std::http module (http_get, http_post, http_request, http_server_start/recv/try_recv/respond/stop)
 |   +-- [DONE] multi-file / module transpilation
 +-- (language)
-|   +-- [TODO] #462 - pipe operator |>
+|   +-- [DONE] pipe operator |>
 |   +-- [TODO] #429 - type aliasing
 |   +-- [TODO] #375 - more types
 +-- (meta)
@@ -148,7 +150,6 @@ rl-lang
 
 | # | Title | Labels |
 |---|-------|--------|
-| 462 | feat pipe `\|>` | enhancement, language |
 | 437 | refactor `term_set_title` | documentation, enhancement, stdlib, good first issue |
 | 431 | feat: std functions aliasing | enhancement, language |
 | 429 | feat: add `type` aliasing | enhancement, language |

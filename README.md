@@ -56,6 +56,8 @@ Statements are separated by newlines. Semicolons (`;`) are optional and can be u
 
 All keywords have Arabic equivalents (e.g. `دالة` for `fn`, `لكل` for `for`, `بينما` for `while`, `أرجع` for `return`). Identifiers may freely mix Arabic and Latin characters.
 
+The pipe operator `|>` chains function calls left-to-right: `"hello" |> to_upper()` becomes `"hello".to_upper()`.
+
 ## Installation
 
 ### Via install script (recommended)

@@ -56,6 +56,7 @@ pub fn concept_entries() -> Vec<&'static ConceptEntry> {
         &concepts::r#match::MATCH,
         &concepts::nulls::NULL,
         &concepts::operators::OPERATORS,
+        &concepts::pipe::PIPE,
         &concepts::propagate::PROPAGATE,
         &concepts::records::RECORDS,
         &concepts::semicolons::SEMICOLONS,

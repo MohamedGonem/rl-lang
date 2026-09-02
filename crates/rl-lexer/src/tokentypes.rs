@@ -67,6 +67,7 @@ pub enum TokenType {
     Arrow,
     FatArrow,
     Wildcard,
+    Pipe,
 
     // -- literals --
     /// A 64-bit unsigned integer e.g. `1000`

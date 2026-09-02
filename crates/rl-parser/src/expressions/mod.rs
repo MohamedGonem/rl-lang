@@ -22,6 +22,7 @@ mod comparsion;
 mod equality;
 mod factor;
 mod logical;
+mod pipe;
 mod postfix;
 mod primary;
 mod struct_literal;
@@ -37,6 +38,6 @@ impl Parser {
     ///
     /// [`parse_equality`]: Parser::parse_equality
     pub fn parse_expression(&mut self) -> Result<ExprId, Error> {
-        self.parse_logical()
+        self.parse_pipe()
     }
 }

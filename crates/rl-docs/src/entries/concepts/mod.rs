@@ -16,6 +16,7 @@ pub mod maps;
 pub mod r#match;
 pub mod nulls;
 pub mod operators;
+pub mod pipe;
 pub mod propagate;
 pub mod records;
 pub mod semicolons;

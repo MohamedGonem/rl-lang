@@ -97,7 +97,7 @@ fn token_color(tt: &TokenType) -> Style {
             .add_modifier(Modifier::ITALIC),
 
         // arrow, dimmed
-        TokenType::Arrow => Style::default().fg(theme::TEXT).add_modifier(Modifier::DIM),
+        TokenType::Arrow | TokenType::Pipe => Style::default().fg(theme::TEXT).add_modifier(Modifier::DIM),
 
         // operators
         TokenType::Plus
