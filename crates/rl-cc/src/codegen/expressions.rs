@@ -2460,6 +2460,116 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(")");
                 return Ok(());
             }
+            "http_server_start" if self.std_http_imports.contains("http_server_start") => {
+                self.writer.write("rl_http_server_start(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_server_recv" if self.std_http_imports.contains("http_server_recv") => {
+                self.writer.write("rl_http_server_recv(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_server_try_recv" if self.std_http_imports.contains("http_server_try_recv") => {
+                self.writer.write("rl_http_server_try_recv(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_server_stop" if self.std_http_imports.contains("http_server_stop") => {
+                self.writer.write("rl_http_server_stop(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_request_method" if self.std_http_imports.contains("http_request_method") => {
+                self.writer.write("rl_http_request_method(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_request_url" if self.std_http_imports.contains("http_request_url") => {
+                self.writer.write("rl_http_request_url(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_request_header" if self.std_http_imports.contains("http_request_header") => {
+                self.writer.write("rl_http_request_header(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_request_body" if self.std_http_imports.contains("http_request_body") => {
+                self.writer.write("rl_http_request_body(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_respond" if self.std_http_imports.contains("http_respond") => {
+                self.writer.write("rl_http_respond(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(", ");
+                self.compile_expr(args[2])?;
+                if args.len() >= 4 {
+                    self.writer.write(", ");
+                    self.compile_expr(args[3])?;
+                    self.writer.write(", 1");
+                } else {
+                    self.writer.write(", rl_str_literal(\"\", 0), 0");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_get" if self.std_http_imports.contains("http_get") => {
+                self.writer.write("rl_http_get(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_post" if self.std_http_imports.contains("http_post") => {
+                self.writer.write("rl_http_post(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                if args.len() >= 3 {
+                    self.writer.write(", ");
+                    self.compile_expr(args[2])?;
+                    self.writer.write(", 1");
+                } else {
+                    self.writer.write(", rl_str_literal(\"text/plain\", 10), 0");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
+            "http_request" if self.std_http_imports.contains("http_request") => {
+                self.writer.write("rl_http_request(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                if args.len() >= 3 {
+                    self.writer.write(", ");
+                    self.compile_expr(args[2])?;
+                    self.writer.write(", 1");
+                } else {
+                    self.writer.write(", rl_str_literal(\"\", 0), 0");
+                }
+                if args.len() >= 4 {
+                    self.writer.write(", ");
+                    self.compile_expr(args[3])?;
+                    self.writer.write(", 1");
+                } else {
+                    self.writer.write(", rl_str_literal(\"\", 0), 0");
+                }
+                self.writer.write(")");
+                return Ok(());
+            }
             "compile" if self.std_c_imports.contains("compile") => {
                 self.writer.write("rl_c_compile(");
                 self.compile_expr(args[0])?;

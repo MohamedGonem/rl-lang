@@ -127,7 +127,7 @@ rl-lang
 |   +-- [TODO] Lambda capture collection misses While, Match, ForEach bodies
 |   +-- [TODO] Nested arrays coerce to int64 — ArrayLiteral hardcodes element type
 |   +-- [TODO] tagged union dispatch for match on enums
-|   +-- [TODO] std::http module (http_get, http_post, http_request, http_server_start/recv/respond/stop)
+|   +-- [DONE] std::http module (http_get, http_post, http_request, http_server_start/recv/try_recv/respond/stop)
 |   +-- [DONE] multi-file / module transpilation
 +-- (language)
 |   +-- [TODO] #462 - pipe operator |>

@@ -1187,6 +1187,10 @@ fn main() {
                         cmd.arg("-lffi");
                         cmd.arg("-ldl");
                     }
+                    if c_src.contains("rl_http_") && c_src.contains("RL_USE_CURL") {
+                        cmd.arg("-DRL_USE_CURL");
+                        cmd.arg("-lcurl");
+                    }
                 }
                 if embed_rt {
                     cmd.arg("-lm");

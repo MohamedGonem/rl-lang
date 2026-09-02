@@ -609,4 +609,18 @@ rl_result rl_net_udp_recv_from(int64_t handle_id, int64_t max_bytes);
 rl_result rl_net_udp_close(int64_t handle_id);
 rl_result rl_net_resolve(rl_string host_port);
 
+// ---- std::http (server + client) ----
+rl_result rl_http_server_start(rl_string addr);
+rl_result rl_http_server_recv(int64_t handle_id);
+rl_result rl_http_server_try_recv(int64_t handle_id);
+rl_result rl_http_server_stop(int64_t handle_id);
+rl_result rl_http_request_method(int64_t handle_id);
+rl_result rl_http_request_url(int64_t handle_id);
+rl_result rl_http_request_header(int64_t handle_id, rl_string name);
+rl_result rl_http_request_body(int64_t handle_id);
+rl_result rl_http_respond(int64_t handle_id, int64_t status, rl_string body, rl_string content_type, int has_content_type);
+rl_result rl_http_get(rl_string url);
+rl_result rl_http_post(rl_string url, rl_string body, rl_string content_type, int has_content_type);
+rl_result rl_http_request(rl_string method, rl_string url, rl_string body, int has_body, rl_string headers_json, int has_headers);
+
 #endif

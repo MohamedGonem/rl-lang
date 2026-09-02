@@ -3352,3 +3352,478 @@ rl_result rl_net_resolve(rl_string host_port) {
     free(ptrs);
     return rl_ok_arr(result_arr);
 }
+
+// ---- std::http (server + client via POSIX sockets + libcurl) ----
+
+#ifdef RL_USE_CURL
+#include <curl/curl.h>
+#endif
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <poll.h>
+
+#define RL_HTTP_MAX_HANDLES 256
+#define RL_HTTP_BUF_SIZE 65536
+
+enum rl_http_handle_kind { RL_HTTP_SERVER, RL_HTTP_REQUEST };
+
+struct rl_http_request_data {
+    char method[16];
+    char url[2048];
+    char headers_raw[RL_HTTP_BUF_SIZE];
+    char *body;
+    int64_t body_len;
+    int client_fd;
+};
+
+static struct {
+    enum rl_http_handle_kind kind;
+    union {
+        int server_fd;
+        struct rl_http_request_data *request;
+    } data;
+} rl_http_handles[RL_HTTP_MAX_HANDLES];
+static int rl_http_handle_count = 0;
+
+static rl_result rl_http_new_handle(void *ptr, enum rl_http_handle_kind kind) {
+    if (rl_http_handle_count >= RL_HTTP_MAX_HANDLES) return rl_err(-1);
+    int id = rl_http_handle_count++;
+    rl_http_handles[id].kind = kind;
+    if (kind == RL_HTTP_SERVER) {
+        rl_http_handles[id].data.server_fd = *(int *)ptr;
+    } else {
+        rl_http_handles[id].data.request = (struct rl_http_request_data *)ptr;
+    }
+    return rl_ok_i64(id);
+}
+
+// minimal HTTP/1.1 server: bind, listen, accept, parse request, return handle
+
+rl_result rl_http_server_start(rl_string addr) {
+    char buf[256];
+    int len = addr.len < 255 ? (int)addr.len : 255;
+    memcpy(buf, addr.data, len);
+    buf[len] = '\0';
+
+    char *colon = strrchr(buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in sa = {0};
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(port);
+    sa.sin_addr.s_addr = INADDR_ANY;
+
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return rl_err(-1);
+
+    int opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) { close(fd); return rl_err(-1); }
+    if (listen(fd, 128) < 0) { close(fd); return rl_err(-1); }
+
+    return rl_http_new_handle(&fd, RL_HTTP_SERVER);
+}
+
+static int rl_http_read_line(int fd, char *buf, int max) {
+    int n = 0;
+    while (n < max - 1) {
+        char c;
+        if (read(fd, &c, 1) <= 0) break;
+        buf[n++] = c;
+        if (c == '\n') break;
+    }
+    buf[n] = '\0';
+    return n;
+}
+
+rl_result rl_http_server_recv(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_SERVER) return rl_err(-1);
+
+    int server_fd = rl_http_handles[handle_id].data.server_fd;
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
+    if (client_fd < 0) return rl_err(-1);
+
+    struct rl_http_request_data *req = calloc(1, sizeof(struct rl_http_request_data));
+    req->client_fd = client_fd;
+
+    // parse request line: "METHOD /path HTTP/1.1\r\n"
+    char line[2048];
+    int n = rl_http_read_line(client_fd, line, sizeof(line));
+    if (n <= 0) { close(client_fd); free(req); return rl_err(-1); }
+
+    // strip \r\n
+    char *cr = strchr(line, '\r'); if (cr) *cr = '\0';
+    char *nl = strchr(line, '\n'); if (nl) *nl = '\0';
+
+    char *sp1 = strchr(line, ' ');
+    char *sp2 = sp1 ? strchr(sp1 + 1, ' ') : NULL;
+    if (!sp1 || !sp2) { close(client_fd); free(req); return rl_err(-1); }
+
+    *sp1 = '\0'; *sp2 = '\0';
+    strncpy(req->method, line, sizeof(req->method) - 1);
+    strncpy(req->url, sp1 + 1, sizeof(req->url) - 1);
+
+    // read headers into raw buffer
+    int hdr_pos = 0;
+    int content_length = 0;
+    for (;;) {
+        n = rl_http_read_line(client_fd, line, sizeof(line));
+        if (n <= 0) break;
+        cr = strchr(line, '\r'); if (cr) *cr = '\0';
+        nl = strchr(line, '\n'); if (nl) *nl = '\0';
+        if (strlen(line) == 0) break; // empty line = end of headers
+
+        if (hdr_pos + (int)strlen(line) + 2 < (int)sizeof(req->headers_raw)) {
+            memcpy(req->headers_raw + hdr_pos, line, strlen(line));
+            hdr_pos += strlen(line);
+            req->headers_raw[hdr_pos++] = '\n';
+            req->headers_raw[hdr_pos] = '\0';
+        }
+
+        // extract Content-Length
+        if (strncasecmp(line, "Content-Length:", 15) == 0) {
+            content_length = atoi(line + 15);
+        }
+    }
+
+    // read body
+    if (content_length > 0 && content_length < RL_HTTP_BUF_SIZE) {
+        req->body = malloc(content_length + 1);
+        int total = 0;
+        while (total < content_length) {
+            int r = read(client_fd, req->body + total, content_length - total);
+            if (r <= 0) break;
+            total += r;
+        }
+        req->body[total] = '\0';
+        req->body_len = total;
+    } else {
+        req->body = strdup("");
+        req->body_len = 0;
+    }
+
+    return rl_http_new_handle(req, RL_HTTP_REQUEST);
+}
+
+rl_result rl_http_server_try_recv(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_SERVER) return rl_err(-1);
+
+    int server_fd = rl_http_handles[handle_id].data.server_fd;
+
+    struct pollfd pfd = { .fd = server_fd, .events = POLLIN };
+    int ret = poll(&pfd, 1, 0);
+    if (ret <= 0) return rl_ok_null();
+
+    return rl_http_server_recv(handle_id);
+}
+
+rl_result rl_http_server_stop(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_SERVER) return rl_err(-1);
+
+    close(rl_http_handles[handle_id].data.server_fd);
+    rl_http_handles[handle_id].data.server_fd = -1;
+    return rl_ok_null();
+}
+
+rl_result rl_http_request_method(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_REQUEST) return rl_err(-1);
+
+    struct rl_http_request_data *req = rl_http_handles[handle_id].data.request;
+    uint64_t slen = strlen(req->method);
+    char *dup = malloc(slen + 1);
+    memcpy(dup, req->method, slen + 1);
+    return rl_ok_str(rl_str_literal(dup, slen));
+}
+
+rl_result rl_http_request_url(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_REQUEST) return rl_err(-1);
+
+    struct rl_http_request_data *req = rl_http_handles[handle_id].data.request;
+    uint64_t slen = strlen(req->url);
+    char *dup = malloc(slen + 1);
+    memcpy(dup, req->url, slen + 1);
+    return rl_ok_str(rl_str_literal(dup, slen));
+}
+
+rl_result rl_http_request_header(int64_t handle_id, rl_string name) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_REQUEST) return rl_err(-1);
+
+    struct rl_http_request_data *req = rl_http_handles[handle_id].data.request;
+
+    // search headers_raw for "Name: value"
+    char needle[512];
+    int nlen = name.len < 510 ? (int)name.len : 510;
+    memcpy(needle, name.data, nlen);
+    needle[nlen] = '\0';
+
+    char *found = NULL;
+    char *line = req->headers_raw;
+    while (*line) {
+        if (strncasecmp(line, needle, nlen) == 0 && line[nlen] == ':') {
+            line += nlen + 1;
+            while (*line == ' ') line++;
+            char *end = strchr(line, '\n');
+            int vlen = end ? (int)(end - line) : (int)strlen(line);
+            char *val = malloc(vlen + 1);
+            memcpy(val, line, vlen);
+            val[vlen] = '\0';
+            return rl_ok_str(rl_str_literal(val, vlen));
+        }
+        char *next = strchr(line, '\n');
+        if (!next) break;
+        line = next + 1;
+    }
+
+    return rl_err(-1);
+}
+
+rl_result rl_http_request_body(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_REQUEST) return rl_err(-1);
+
+    struct rl_http_request_data *req = rl_http_handles[handle_id].data.request;
+    uint64_t slen = req->body_len;
+    char *dup = malloc(slen + 1);
+    memcpy(dup, req->body, slen);
+    dup[slen] = '\0';
+    return rl_ok_str(rl_str_literal(dup, slen));
+}
+
+rl_result rl_http_respond(int64_t handle_id, int64_t status, rl_string body, rl_string content_type, int has_content_type) {
+    if (handle_id < 0 || handle_id >= rl_http_handle_count) return rl_err(-1);
+    if (rl_http_handles[handle_id].kind != RL_HTTP_REQUEST) return rl_err(-1);
+
+    struct rl_http_request_data *req = rl_http_handles[handle_id].data.request;
+    int fd = req->client_fd;
+
+    const char *status_text = "OK";
+    if (status == 201) status_text = "Created";
+    else if (status == 404) status_text = "Not Found";
+    else if (status == 500) status_text = "Internal Server Error";
+    else if (status == 400) status_text = "Bad Request";
+    else if (status == 403) status_text = "Forbidden";
+    else if (status == 204) status_text = "No Content";
+    else if (status == 301) status_text = "Moved Permanently";
+    else if (status == 302) status_text = "Found";
+
+    char header_buf[RL_HTTP_BUF_SIZE];
+    int hlen = snprintf(header_buf, sizeof(header_buf),
+        "HTTP/1.1 %ld %s\r\n"
+        "Content-Length: %ld\r\n",
+        (long)status, status_text, (long)body.len);
+
+    if (has_content_type && content_type.len > 0) {
+        hlen += snprintf(header_buf + hlen, sizeof(header_buf) - hlen,
+            "Content-Type: %.*s\r\n", (int)content_type.len, content_type.data);
+    } else {
+        hlen += snprintf(header_buf + hlen, sizeof(header_buf) - hlen,
+            "Content-Type: text/plain\r\n");
+    }
+
+    hlen += snprintf(header_buf + hlen, sizeof(header_buf) - hlen, "\r\n");
+
+    write(fd, header_buf, hlen);
+    if (body.len > 0) write(fd, body.data, body.len);
+    close(fd);
+
+    // clean up request handle
+    free(req->body);
+    free(req);
+    rl_http_handles[handle_id].kind = RL_HTTP_SERVER; // mark as consumed
+    rl_http_handles[handle_id].data.server_fd = -1;
+
+    return rl_ok_null();
+}
+
+// ---- client (libcurl) ----
+
+#ifdef RL_USE_CURL
+
+struct rl_http_curl_buf {
+    char *data;
+    size_t len;
+    size_t cap;
+};
+
+static size_t rl_http_curl_write_cb(void *ptr, size_t size, size_t nmemb, void *userdata) {
+    struct rl_http_curl_buf *buf = (struct rl_http_curl_buf *)userdata;
+    size_t new_len = buf->len + size * nmemb;
+    if (new_len > buf->cap) {
+        buf->cap = new_len * 2;
+        buf->data = realloc(buf->data, buf->cap);
+    }
+    memcpy(buf->data + buf->len, ptr, size * nmemb);
+    buf->len = new_len;
+    return size * nmemb;
+}
+
+static rl_result rl_http_curl_perform(CURL *curl) {
+    struct rl_http_curl_buf resp = {0};
+    resp.cap = 4096;
+    resp.data = malloc(resp.cap);
+
+    long status = 0;
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, rl_http_curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resp);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, rl_http_curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        free(resp.data);
+        return rl_err(-1);
+    }
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+
+    // find body after \r\n\r\n
+    char *body_start = memmem(resp.data, resp.len, "\r\n\r\n", 4);
+    size_t body_len;
+    char *body_data;
+    if (body_start) {
+        body_data = body_start + 4;
+        body_len = resp.len - (size_t)(body_data - resp.data);
+    } else {
+        body_data = resp.data;
+        body_len = resp.len;
+    }
+
+    // copy body to stable memory
+    char *body_copy = malloc(body_len + 1);
+    memcpy(body_copy, body_data, body_len);
+    body_copy[body_len] = '\0';
+
+    // return tuple (status, body) as 2-element int64 array of pointers
+    int64_t ptrs[2];
+    ptrs[0] = (int64_t)(intptr_t)(int64_t)status;
+    ptrs[1] = (int64_t)(intptr_t)body_copy;
+    rl_array result_arr = rl_arr_from_vals(ptrs, 2, sizeof(int64_t));
+
+    free(resp.data);
+    return rl_ok_arr(result_arr);
+}
+
+rl_result rl_http_get(rl_string url) {
+    char url_buf[2048];
+    int ulen = url.len < 2047 ? (int)url.len : 2047;
+    memcpy(url_buf, url.data, ulen);
+    url_buf[ulen] = '\0';
+
+    CURL *curl = curl_easy_init();
+    if (!curl) return rl_err(-1);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url_buf);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+
+    rl_result result = rl_http_curl_perform(curl);
+    curl_easy_cleanup(curl);
+    return result;
+}
+
+rl_result rl_http_post(rl_string url, rl_string body, rl_string content_type, int has_content_type) {
+    char url_buf[2048];
+    int ulen = url.len < 2047 ? (int)url.len : 2047;
+    memcpy(url_buf, url.data, ulen);
+    url_buf[ulen] = '\0';
+
+    CURL *curl = curl_easy_init();
+    if (!curl) return rl_err(-1);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url_buf);
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body.len);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+
+    char ct_buf[512];
+    if (has_content_type && content_type.len > 0) {
+        int ctlen = content_type.len < 510 ? (int)content_type.len : 510;
+        memcpy(ct_buf, content_type.data, ctlen);
+        ct_buf[ctlen] = '\0';
+    } else {
+        strcpy(ct_buf, "text/plain");
+    }
+    struct curl_slist *headers = NULL;
+    char hdr[600];
+    snprintf(hdr, sizeof(hdr), "Content-Type: %s", ct_buf);
+    headers = curl_slist_append(headers, hdr);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+    rl_result result = rl_http_curl_perform(curl);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    return result;
+}
+
+rl_result rl_http_request(rl_string method, rl_string url, rl_string body, int has_body, rl_string headers_json, int has_headers) {
+    char url_buf[2048];
+    int ulen = url.len < 2047 ? (int)url.len : 2047;
+    memcpy(url_buf, url.data, ulen);
+    url_buf[ulen] = '\0';
+
+    char method_buf[16];
+    int mlen = method.len < 15 ? (int)method.len : 15;
+    memcpy(method_buf, method.data, mlen);
+    method_buf[mlen] = '\0';
+
+    CURL *curl = curl_easy_init();
+    if (!curl) return rl_err(-1);
+
+    CURL *ehandle = curl;
+    curl_easy_setopt(curl, CURLOPT_URL, url_buf);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+
+    // set custom method
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method_buf);
+
+    if (has_body) {
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body.len);
+    }
+
+    // parse simple headers: each line is "Name: Value\n"
+    struct curl_slist *hdr_list = NULL;
+    if (has_headers && headers_json.len > 0) {
+        char *hdr_buf = malloc(headers_json.len + 1);
+        memcpy(hdr_buf, headers_json.data, headers_json.len);
+        hdr_buf[headers_json.len] = '\0';
+
+        char *line = strtok(hdr_buf, "\n");
+        while (line) {
+            while (*line == ' ') line++;
+            if (*line) hdr_list = curl_slist_append(hdr_list, line);
+            line = strtok(NULL, "\n");
+        }
+        free(hdr_buf);
+        if (hdr_list) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr_list);
+    }
+
+    rl_result result = rl_http_curl_perform(curl);
+    if (hdr_list) curl_slist_free_all(hdr_list);
+    curl_easy_cleanup(curl);
+    return result;
+}
+
+#else
+
+// stubs when libcurl is not available
+rl_result rl_http_get(rl_string url) { (void)url; return rl_err(-1); }
+rl_result rl_http_post(rl_string url, rl_string body, rl_string ct, int h) { (void)url; (void)body; (void)ct; (void)h; return rl_err(-1); }
+rl_result rl_http_request(rl_string m, rl_string u, rl_string b, int hb, rl_string h, int hh) { (void)m; (void)u; (void)b; (void)hb; (void)h; (void)hh; return rl_err(-1); }
+
+#endif

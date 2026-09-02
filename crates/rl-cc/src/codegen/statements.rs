@@ -581,6 +581,11 @@ impl<'a> CCodegen<'a> {
                         self.std_net_imports.insert(name.clone());
                     }
                 }
+                if path.len() >= 2 && path[0] == "std" && path[1] == "http" {
+                    for name in names {
+                        self.std_http_imports.insert(name.clone());
+                    }
+                }
             }
             StatementKind::ImportFile { .. } | StatementKind::ImportFileNamed { .. } => {}
             _ => {}

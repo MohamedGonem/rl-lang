@@ -26,6 +26,7 @@ pub struct CCodegen<'a> {
     pub nullable_vars: HashSet<String>,
     pub std_c_imports: HashSet<String>,
     pub std_net_imports: HashSet<String>,
+    pub std_http_imports: HashSet<String>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -47,6 +48,7 @@ impl<'a> CCodegen<'a> {
             nullable_vars: HashSet::new(),
             std_c_imports: HashSet::new(),
             std_net_imports: HashSet::new(),
+            std_http_imports: HashSet::new(),
         }
     }
 
