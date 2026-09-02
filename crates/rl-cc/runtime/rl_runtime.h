@@ -547,6 +547,7 @@ int64_t rl_result_unwrap_i64(rl_result r);
 double rl_result_unwrap_f64(rl_result r);
 bool rl_result_unwrap_bool(rl_result r);
 rl_string rl_result_unwrap_str(rl_result r);
+rl_result rl_result_unwrap_auto(rl_result r);
 
 // ---- math ----
 rl_result rl_math_abs(rl_result x);
@@ -586,5 +587,26 @@ rl_result rl_c_has_symbol(int64_t handle_id, rl_string fn_name);
 rl_result rl_c_close(int64_t handle_id);
 rl_result rl_c_clear_cache(void);
 rl_result rl_c_call(int64_t handle_id, rl_string fn_name, int64_t argc, void **argv, const char **arg_types, rl_string ret_type);
+
+// ---- std::net (TCP/UDP) ----
+rl_result rl_net_tcp_listen(rl_string address);
+rl_result rl_net_tcp_accept(int64_t handle_id);
+rl_result rl_net_tcp_connect(rl_string address);
+rl_result rl_net_tcp_read(int64_t handle_id, int64_t max_bytes);
+rl_result rl_net_tcp_write(int64_t handle_id, rl_string data);
+rl_result rl_net_tcp_peer_addr(int64_t handle_id);
+rl_result rl_net_tcp_local_addr(int64_t handle_id);
+rl_result rl_net_tcp_set_timeout(int64_t handle_id, int64_t millis);
+rl_result rl_net_tcp_set_nonblocking(int64_t handle_id, bool flag);
+rl_result rl_net_tcp_shutdown(int64_t handle_id, rl_string mode);
+rl_result rl_net_tcp_close(int64_t handle_id);
+rl_result rl_net_udp_bind(rl_string address);
+rl_result rl_net_udp_connect(int64_t handle_id, rl_string address);
+rl_result rl_net_udp_send(int64_t handle_id, rl_string data);
+rl_result rl_net_udp_send_to(int64_t handle_id, rl_string data, rl_string address);
+rl_result rl_net_udp_recv(int64_t handle_id, int64_t max_bytes);
+rl_result rl_net_udp_recv_from(int64_t handle_id, int64_t max_bytes);
+rl_result rl_net_udp_close(int64_t handle_id);
+rl_result rl_net_resolve(rl_string host_port);
 
 #endif

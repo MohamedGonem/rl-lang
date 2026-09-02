@@ -117,17 +117,18 @@ rl-lang
 |   +-- [DONE] enum display (rl_print_Enum_{name} with string table)
 |   +-- [DONE] 9 closure-consuming runtime functions (arr_for_each, arr_all, arr_any, etc.)
 |   +-- [DONE] std::c FFI module (compile, load, call, has_symbol, close, clear_cache)
+|   +-- [DONE] std::net module (tcp_listen, tcp_accept, tcp_connect, tcp_read, tcp_write, tcp_peer_addr, tcp_local_addr, tcp_set_timeout, tcp_set_nonblocking, tcp_shutdown, tcp_close, udp_bind, udp_connect, udp_send, udp_send_to, udp_recv, udp_recv_from, udp_close, resolve)
+|   +-- [DONE] result_unwrap type dispatch (str, f64, bool, i64)
+|   +-- [DONE] result_unwrap_or fixed (.data.ok_value removed)
 |   +-- [TODO] len() only works on strings — fails on arrays/maps/sets
-|   +-- [TODO] result_unwrap_err hardcoded to i64 — should dispatch by type
 |   +-- [TODO] Map literals silently drop non-string keys
 |   +-- [TODO] arr_filter/arr_map/etc. fallthrough — named function args generate wrong C name
 |   +-- [TODO] Lambda body compilation incomplete — missing While, Match, ForEach, Break, Continue
 |   +-- [TODO] Lambda capture collection misses While, Match, ForEach bodies
 |   +-- [TODO] Nested arrays coerce to int64 — ArrayLiteral hardcodes element type
-|   +-- [TODO] result_unwrap_or may use wrong struct field
 |   +-- [TODO] tagged union dispatch for match on enums
+|   +-- [TODO] std::http module (http_get, http_post, http_request, http_server_start/recv/respond/stop)
 |   +-- [DONE] multi-file / module transpilation
-|   +-- [TODO] std::net module (tcp_listen, tcp_accept, tcp_connect, tcp_read, tcp_write, udp_bind, udp_send, udp_recv, resolve)
 +-- (language)
 |   +-- [TODO] #462 - pipe operator |>
 |   +-- [TODO] #429 - type aliasing

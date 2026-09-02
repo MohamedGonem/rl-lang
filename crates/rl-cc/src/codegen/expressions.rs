@@ -774,23 +774,27 @@ impl<'a> CCodegen<'a> {
                 return Ok(());
             }
             "result_unwrap" => {
-                self.writer.write("rl_result_unwrap_i64(");
+                let unwrap_fn = if !args.is_empty() { self.unwrap_fn_for_result(args[0]) } else { "rl_result_unwrap_i64" };
+                self.writer.write(&format!("{}(", unwrap_fn));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "result_unwrap_err" => {
-                self.writer.write("rl_result_unwrap_i64(");
+                let unwrap_fn = if !args.is_empty() { self.unwrap_fn_for_result(args[0]) } else { "rl_result_unwrap_i64" };
+                self.writer.write(&format!("{}(", unwrap_fn));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(")");
                 return Ok(());
             }
             "result_unwrap_or" => {
+                let unwrap_fn = if !args.is_empty() { self.unwrap_fn_for_result(args[0]) } else { "rl_result_unwrap_i64" };
                 self.writer.write("(");
                 if !args.is_empty() { self.compile_expr(args[0])?; }
                 self.writer.write(".is_ok ? ");
+                self.writer.write(&format!("{}(", unwrap_fn));
                 if !args.is_empty() { self.compile_expr(args[0])?; }
-                self.writer.write(".data.ok_value : ");
+                self.writer.write(") : ");
                 if args.len() >= 2 { self.compile_expr(args[1])?; }
                 self.writer.write(")");
                 return Ok(());
@@ -2320,6 +2324,142 @@ impl<'a> CCodegen<'a> {
                         return Ok(());
                     }
                 }
+            "tcp_listen" if self.std_net_imports.contains("tcp_listen") => {
+                self.writer.write("rl_net_tcp_listen(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_accept" if self.std_net_imports.contains("tcp_accept") => {
+                self.writer.write("rl_net_tcp_accept(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_connect" if self.std_net_imports.contains("tcp_connect") => {
+                self.writer.write("rl_net_tcp_connect(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_read" if self.std_net_imports.contains("tcp_read") => {
+                self.writer.write("rl_net_tcp_read(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_write" if self.std_net_imports.contains("tcp_write") => {
+                self.writer.write("rl_net_tcp_write(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_peer_addr" if self.std_net_imports.contains("tcp_peer_addr") => {
+                self.writer.write("rl_net_tcp_peer_addr(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_local_addr" if self.std_net_imports.contains("tcp_local_addr") => {
+                self.writer.write("rl_net_tcp_local_addr(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_set_timeout" if self.std_net_imports.contains("tcp_set_timeout") => {
+                self.writer.write("rl_net_tcp_set_timeout(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_set_nonblocking" if self.std_net_imports.contains("tcp_set_nonblocking") => {
+                self.writer.write("rl_net_tcp_set_nonblocking(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_shutdown" if self.std_net_imports.contains("tcp_shutdown") => {
+                self.writer.write("rl_net_tcp_shutdown(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "tcp_close" if self.std_net_imports.contains("tcp_close") => {
+                self.writer.write("rl_net_tcp_close(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_bind" if self.std_net_imports.contains("udp_bind") => {
+                self.writer.write("rl_net_udp_bind(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_connect" if self.std_net_imports.contains("udp_connect") => {
+                self.writer.write("rl_net_udp_connect(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_send" if self.std_net_imports.contains("udp_send") => {
+                self.writer.write("rl_net_udp_send(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_send_to" if self.std_net_imports.contains("udp_send_to") => {
+                self.writer.write("rl_net_udp_send_to(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(", ");
+                self.compile_expr(args[2])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_recv" if self.std_net_imports.contains("udp_recv") => {
+                self.writer.write("rl_net_udp_recv(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_recv_from" if self.std_net_imports.contains("udp_recv_from") => {
+                self.writer.write("rl_net_udp_recv_from(");
+                self.compile_expr(args[0])?;
+                self.writer.write(", ");
+                self.compile_expr(args[1])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "udp_close" if self.std_net_imports.contains("udp_close") => {
+                self.writer.write("rl_net_udp_close(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
+            "resolve" if self.std_net_imports.contains("resolve") => {
+                self.writer.write("rl_net_resolve(");
+                self.compile_expr(args[0])?;
+                self.writer.write(")");
+                return Ok(());
+            }
             "compile" if self.std_c_imports.contains("compile") => {
                 self.writer.write("rl_c_compile(");
                 self.compile_expr(args[0])?;

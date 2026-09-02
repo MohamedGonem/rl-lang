@@ -2936,3 +2936,419 @@ rl_result rl_c_call(int64_t handle_id, rl_string fn_name, int64_t argc, void **a
     return rl_ok_i64(retbuf.i);
 #endif
 }
+
+// ---- std::net (TCP/UDP) ----
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <fcntl.h>
+#include <poll.h>
+
+#define RL_NET_MAX_HANDLES 256
+#define RL_NET_BUF_SIZE 65536
+
+enum rl_net_handle_kind { RL_NET_TCP_LISTENER, RL_NET_TCP_STREAM, RL_NET_UDP_SOCKET };
+
+static struct {
+    enum rl_net_handle_kind kind;
+    int fd;
+} rl_net_handles[RL_NET_MAX_HANDLES];
+static int rl_net_handle_count = 0;
+
+static rl_result rl_net_new_handle(int fd, enum rl_net_handle_kind kind) {
+    if (rl_net_handle_count >= RL_NET_MAX_HANDLES) {
+        return rl_err(-1);
+    }
+    int id = rl_net_handle_count++;
+    rl_net_handles[id].kind = kind;
+    rl_net_handles[id].fd = fd;
+    return rl_ok_i64(id);
+}
+
+static int rl_net_get_fd(int64_t handle_id, enum rl_net_handle_kind expected) {
+    if (handle_id < 0 || handle_id >= rl_net_handle_count) return -1;
+    if (rl_net_handles[handle_id].kind != expected) return -1;
+    return rl_net_handles[handle_id].fd;
+}
+
+static int rl_net_resolve_addr(const char *addr_str, struct sockaddr_in *out) {
+    struct addrinfo hints = {0}, *res;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    int rc = getaddrinfo(addr_str, NULL, &hints, &res);
+    if (rc != 0) return -1;
+    memcpy(out, res->ai_addr, sizeof(struct sockaddr_in));
+    freeaddrinfo(res);
+    return 0;
+}
+
+rl_result rl_net_tcp_listen(rl_string address) {
+    char addr_buf[256];
+    int len = address.len < 255 ? (int)address.len : 255;
+    memcpy(addr_buf, address.data, len);
+    addr_buf[len] = '\0';
+
+    char *colon = strrchr(addr_buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, addr_buf, &addr.sin_addr) != 1) {
+        struct addrinfo hints = {0}, *res;
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        if (getaddrinfo(addr_buf, NULL, &hints, &res) == 0) {
+            memcpy(&addr, res->ai_addr, sizeof(struct sockaddr_in));
+            freeaddrinfo(res);
+        } else {
+            return rl_err(-1);
+        }
+    }
+
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return rl_err(-1);
+
+    int opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) { close(fd); return rl_err(-1); }
+    if (listen(fd, 128) < 0) { close(fd); return rl_err(-1); }
+
+    return rl_net_new_handle(fd, RL_NET_TCP_LISTENER);
+}
+
+rl_result rl_net_tcp_accept(int64_t handle_id) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_LISTENER);
+    if (fd < 0) return rl_err(-1);
+
+    int client = accept(fd, NULL, NULL);
+    if (client < 0) return rl_err(-1);
+
+    return rl_net_new_handle(client, RL_NET_TCP_STREAM);
+}
+
+rl_result rl_net_tcp_connect(rl_string address) {
+    char addr_buf[256];
+    int len = address.len < 255 ? (int)address.len : 255;
+    memcpy(addr_buf, address.data, len);
+    addr_buf[len] = '\0';
+
+    char *colon = strrchr(addr_buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, addr_buf, &addr.sin_addr) != 1) {
+        struct addrinfo hints = {0}, *res;
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        if (getaddrinfo(addr_buf, NULL, &hints, &res) == 0) {
+            memcpy(&addr, res->ai_addr, sizeof(struct sockaddr_in));
+            freeaddrinfo(res);
+        } else {
+            return rl_err(-1);
+        }
+    }
+
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return rl_err(-1);
+
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) { close(fd); return rl_err(-1); }
+
+    return rl_net_new_handle(fd, RL_NET_TCP_STREAM);
+}
+
+rl_result rl_net_tcp_read(int64_t handle_id, int64_t max_bytes) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    int buf_size = max_bytes > 0 ? (int)max_bytes : RL_NET_BUF_SIZE;
+    char *buf = malloc(buf_size);
+    ssize_t n = read(fd, buf, buf_size);
+    if (n < 0) { free(buf); return rl_err(-1); }
+    if (n == 0) { free(buf); return rl_ok_str(rl_str_literal("", 0)); }
+
+    return rl_ok_str(rl_str_literal(buf, n));
+}
+
+rl_result rl_net_tcp_write(int64_t handle_id, rl_string data) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    ssize_t n = write(fd, data.data, data.len);
+    if (n < 0) return rl_err(-1);
+
+    return rl_ok_i64(n);
+}
+
+rl_result rl_net_tcp_peer_addr(int64_t handle_id) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    if (getpeername(fd, (struct sockaddr *)&addr, &len) < 0) return rl_err(-1);
+
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%s:%d", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    uint64_t slen = strlen(buf);
+    char *dup = malloc(slen + 1);
+    memcpy(dup, buf, slen + 1);
+    return rl_ok_str(rl_str_literal(dup, slen));
+}
+
+rl_result rl_net_tcp_local_addr(int64_t handle_id) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    if (getsockname(fd, (struct sockaddr *)&addr, &len) < 0) return rl_err(-1);
+
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%s:%d", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    uint64_t slen = strlen(buf);
+    char *dup = malloc(slen + 1);
+    memcpy(dup, buf, slen + 1);
+    return rl_ok_str(rl_str_literal(dup, slen));
+}
+
+rl_result rl_net_tcp_set_timeout(int64_t handle_id, int64_t millis) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    struct timeval tv;
+    tv.tv_sec = millis / 1000;
+    tv.tv_usec = (millis % 1000) * 1000;
+
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) return rl_err(-1);
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) return rl_err(-1);
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_tcp_set_nonblocking(int64_t handle_id, bool flag) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) return rl_err(-1);
+
+    if (flag) flags |= O_NONBLOCK;
+    else flags &= ~O_NONBLOCK;
+
+    if (fcntl(fd, F_SETFL, flags) < 0) return rl_err(-1);
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_tcp_shutdown(int64_t handle_id, rl_string mode) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_TCP_STREAM);
+    if (fd < 0) return rl_err(-1);
+
+    int how;
+    if (mode.len == 4 && memcmp(mode.data, "read", 4) == 0) how = SHUT_RD;
+    else if (mode.len == 5 && memcmp(mode.data, "write", 5) == 0) how = SHUT_WR;
+    else if (mode.len == 4 && memcmp(mode.data, "both", 4) == 0) how = SHUT_RDWR;
+    else return rl_err(-1);
+
+    if (shutdown(fd, how) < 0) return rl_err(-1);
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_tcp_close(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_net_handle_count) return rl_err(-1);
+
+    enum rl_net_handle_kind kind = rl_net_handles[handle_id].kind;
+    if (kind != RL_NET_TCP_LISTENER && kind != RL_NET_TCP_STREAM) return rl_err(-1);
+
+    close(rl_net_handles[handle_id].fd);
+    rl_net_handles[handle_id].fd = -1;
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_udp_bind(rl_string address) {
+    char addr_buf[256];
+    int len = address.len < 255 ? (int)address.len : 255;
+    memcpy(addr_buf, address.data, len);
+    addr_buf[len] = '\0';
+
+    char *colon = strrchr(addr_buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = INADDR_ANY;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) return rl_err(-1);
+
+    int opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) { close(fd); return rl_err(-1); }
+
+    return rl_net_new_handle(fd, RL_NET_UDP_SOCKET);
+}
+
+rl_result rl_net_udp_connect(int64_t handle_id, rl_string address) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_UDP_SOCKET);
+    if (fd < 0) return rl_err(-1);
+
+    char addr_buf[256];
+    int len = address.len < 255 ? (int)address.len : 255;
+    memcpy(addr_buf, address.data, len);
+    addr_buf[len] = '\0';
+
+    char *colon = strrchr(addr_buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, addr_buf, &addr.sin_addr) != 1) return rl_err(-1);
+
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) return rl_err(-1);
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_udp_send(int64_t handle_id, rl_string data) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_UDP_SOCKET);
+    if (fd < 0) return rl_err(-1);
+
+    ssize_t n = send(fd, data.data, data.len, 0);
+    if (n < 0) return rl_err(-1);
+
+    return rl_ok_i64(n);
+}
+
+rl_result rl_net_udp_send_to(int64_t handle_id, rl_string data, rl_string address) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_UDP_SOCKET);
+    if (fd < 0) return rl_err(-1);
+
+    char addr_buf[256];
+    int len = address.len < 255 ? (int)address.len : 255;
+    memcpy(addr_buf, address.data, len);
+    addr_buf[len] = '\0';
+
+    char *colon = strrchr(addr_buf, ':');
+    if (!colon) return rl_err(-1);
+    *colon = '\0';
+    int port = atoi(colon + 1);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, addr_buf, &addr.sin_addr) != 1) return rl_err(-1);
+
+    ssize_t n = sendto(fd, data.data, data.len, 0, (struct sockaddr *)&addr, sizeof(addr));
+    if (n < 0) return rl_err(-1);
+
+    return rl_ok_i64(n);
+}
+
+rl_result rl_net_udp_recv(int64_t handle_id, int64_t max_bytes) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_UDP_SOCKET);
+    if (fd < 0) return rl_err(-1);
+
+    int buf_size = max_bytes > 0 ? (int)max_bytes : RL_NET_BUF_SIZE;
+    char *buf = malloc(buf_size);
+    ssize_t n = recv(fd, buf, buf_size, 0);
+    if (n < 0) { free(buf); return rl_err(-1); }
+
+    return rl_ok_str(rl_str_literal(buf, n));
+}
+
+rl_result rl_net_udp_recv_from(int64_t handle_id, int64_t max_bytes) {
+    int fd = rl_net_get_fd(handle_id, RL_NET_UDP_SOCKET);
+    if (fd < 0) return rl_err(-1);
+
+    int buf_size = max_bytes > 0 ? (int)max_bytes : RL_NET_BUF_SIZE;
+    char *buf = malloc(buf_size);
+    struct sockaddr_in sender;
+    socklen_t sender_len = sizeof(sender);
+
+    ssize_t n = recvfrom(fd, buf, buf_size, 0, (struct sockaddr *)&sender, &sender_len);
+    if (n < 0) { free(buf); return rl_err(-1); }
+
+    char *data = malloc(n);
+    memcpy(data, buf, n);
+    free(buf);
+
+    char addr_str[64];
+    snprintf(addr_str, sizeof(addr_str), "%s:%d", inet_ntoa(sender.sin_addr), ntohs(sender.sin_port));
+    uint64_t addr_len = strlen(addr_str);
+    char *addr_dup = malloc(addr_len + 1);
+    memcpy(addr_dup, addr_str, addr_len + 1);
+
+    // Return 2-element array: [data_string, sender_addr_string]
+    // Arrays store element pointers as int64_t (intptr_t)
+    int64_t ptrs[2];
+    ptrs[0] = (int64_t)(intptr_t)data;
+    ptrs[1] = (int64_t)(intptr_t)addr_dup;
+    rl_array result_arr = rl_arr_from_vals(ptrs, 2, sizeof(int64_t));
+
+    return rl_ok_arr(result_arr);
+}
+
+rl_result rl_net_udp_close(int64_t handle_id) {
+    if (handle_id < 0 || handle_id >= rl_net_handle_count) return rl_err(-1);
+    if (rl_net_handles[handle_id].kind != RL_NET_UDP_SOCKET) return rl_err(-1);
+
+    close(rl_net_handles[handle_id].fd);
+    rl_net_handles[handle_id].fd = -1;
+
+    return rl_ok_null();
+}
+
+rl_result rl_net_resolve(rl_string host_port) {
+    char buf[256];
+    int len = host_port.len < 255 ? (int)host_port.len : 255;
+    memcpy(buf, host_port.data, len);
+    buf[len] = '\0';
+
+    struct addrinfo hints = {0}, *res;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int rc = getaddrinfo(buf, NULL, &hints, &res);
+    if (rc != 0) return rl_err(-1);
+
+    // count results first
+    int count = 0;
+    for (struct addrinfo *p = res; p != NULL; p = p->ai_next) count++;
+
+    int64_t *ptrs = malloc(count * sizeof(int64_t));
+    int i = 0;
+    for (struct addrinfo *p = res; p != NULL; p = p->ai_next) {
+        struct sockaddr_in *addr = (struct sockaddr_in *)p->ai_addr;
+        char ip[64];
+        inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(ip));
+        uint64_t ip_len = strlen(ip);
+        char *ip_dup = malloc(ip_len + 1);
+        memcpy(ip_dup, ip, ip_len + 1);
+        ptrs[i++] = (int64_t)(intptr_t)ip_dup;
+    }
+
+    freeaddrinfo(res);
+    rl_array result_arr = rl_arr_from_vals(ptrs, count, sizeof(int64_t));
+    free(ptrs);
+    return rl_ok_arr(result_arr);
+}

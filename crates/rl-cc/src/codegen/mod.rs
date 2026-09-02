@@ -25,6 +25,7 @@ pub struct CCodegen<'a> {
     pub tuple_names: Vec<(Vec<TypeAnnotation>, String)>,
     pub nullable_vars: HashSet<String>,
     pub std_c_imports: HashSet<String>,
+    pub std_net_imports: HashSet<String>,
 }
 
 impl<'a> CCodegen<'a> {
@@ -45,6 +46,7 @@ impl<'a> CCodegen<'a> {
             tuple_names: Vec::new(),
             nullable_vars: HashSet::new(),
             std_c_imports: HashSet::new(),
+            std_net_imports: HashSet::new(),
         }
     }
 
@@ -469,5 +471,22 @@ impl<'a> CCodegen<'a> {
         self.writer.write(&format!("void rl_println_{}({} v) {{ rl_print_{}(v); printf(\"\\n\"); }}\n", name, name, name));
         self.tuple_names.push((field_types, name.clone()));
         name
+    }
+
+    pub fn unwrap_fn_for_result(&self, arg_id: rl_ast::ExprId) -> &'static str {
+        use rl_ast::nodes::ExpressionKind;
+        use rl_ast::statements::TypeAnnotation;
+        let expr = self.ast.exprs.get(arg_id);
+        if let ExpressionKind::ResolvedIdentifier { name, .. } = &expr.kind {
+            if let Some(TypeAnnotation::Result(inner)) = self.var_types.get(name) {
+                return match inner.as_ref() {
+                    TypeAnnotation::Float | TypeAnnotation::SFloat => "rl_result_unwrap_f64",
+                    TypeAnnotation::Bool => "rl_result_unwrap_bool",
+                    TypeAnnotation::String => "rl_result_unwrap_str",
+                    _ => "rl_result_unwrap_i64",
+                };
+            }
+        }
+        "rl_result_unwrap_i64"
     }
 }
