@@ -21,12 +21,17 @@ pub const COMMANDS: &[&str] = &[
     ":help", ":stdlib", ":save", ":load", ":attach", ":detach", ":clear", ":reset", ":exit",
 ];
 
-/// Reserved words of the language.
+/// Reserved words of the language (English + Arabic aliases).
 const KEYWORDS: &[&str] = &[
-    "fn", "for", "while", "return", "continue", "break", "get", "from", "in", "or", "and", "null",
-    "int", "CONST", "float", "bool", "string", "byte", "char", "true", "false", "dec", "if",
-    "else", "arr", "as", "error", "result", "ok", "err", "match", "record", "impl", "tag", "map",
-    "set", "loop", "uint", "big", "small", "sbyte",
+    "fn", "دالة", "for", "لكل", "while", "بينما", "return", "أرجع", "continue", "استمر",
+    "break", "توقف", "get", "استورد", "from", "من", "in", "في", "or", "أو", "and", "و",
+    "null", "فارغ", "int", "عدد", "CONST", "ثابت", "float", "عشري", "bool", "منطقي",
+    "string", "نص", "byte", "بايت", "char", "حرف", "true", "صحيح", "false", "ليس_صحيح", "dec",
+    "أعلن", "if", "إذا", "else", "وإلا", "arr", "مصفوفة", "as", "بصفة", "error", "خطأ",
+    "result", "نتيجة", "ok", "نجاح", "err", "فشل", "match", "طابق", "record", "سجل",
+    "impl", "تنفيذ", "tag", "وسم", "map", "خريطة", "set", "مجموعة", "loop", "تكرار",
+    "uint", "عدد_غير_مُوَقَّع", "big", "كبير", "small", "صغير", "sbyte", "بايت_مُوَقَّع",
+    "handle", "مقبض",
 ];
 
 /// Tracks an in-progress `Tab`-cycle so repeated presses walk through

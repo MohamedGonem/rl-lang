@@ -37,6 +37,7 @@ pub fn stdlib_entries() -> Vec<&'static StdEntry> {
 /// Returns all language concept entries in display order.
 pub fn concept_entries() -> Vec<&'static ConceptEntry> {
     vec![
+        &concepts::arabic_keywords::ARABIC_KEYWORDS,
         &concepts::arrays::ARRAYS,
         &concepts::bytes::BYTES,
         &concepts::casts::CASTING,

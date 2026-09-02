@@ -1,4 +1,5 @@
 //! Language concept documentation entries (variables, types, loops, etc.).
+pub mod arabic_keywords;
 pub mod arrays;
 pub mod bytes;
 pub mod casts;

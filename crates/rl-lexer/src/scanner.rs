@@ -240,6 +240,7 @@ impl Tokenizer {
             '0'..='9' => self.number_literal(),
 
             '_' | 'a'..='z' | 'A'..='Z' => self.identifier(),
+            c if c.is_alphabetic() => self.identifier(),
 
             other => {
                 return Err(self.err(

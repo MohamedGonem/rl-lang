@@ -48,6 +48,7 @@ rl-lang
 |
 +-- rl-utils          (error handling, source files, helpers)
 +-- rl-lexer          (tokenization)
+|   +-- [DONE] Arabic keyword aliases (all 38 keywords)
 |   +-- [TODO] #427 - allow more statements to have newlines
 +-- rl-ast            (AST node types, arena)
 |   +-- [TODO] #190 - refactor AST

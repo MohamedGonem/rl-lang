@@ -54,6 +54,8 @@ println(PI() * pow(r, 2.0))  // 78.53981633974483
 
 Statements are separated by newlines. Semicolons (`;`) are optional and can be used as an alternative statement terminator.
 
+All keywords have Arabic equivalents (e.g. `دالة` for `fn`, `لكل` for `for`, `بينما` for `while`, `أرجع` for `return`). Identifiers may freely mix Arabic and Latin characters.
+
 ## Installation
 
 ### Via install script (recommended)
