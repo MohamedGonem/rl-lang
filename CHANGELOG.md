@@ -6,6 +6,13 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Added
 
+- **`std::process` new functions** - `set_env`, `remove_env`, `env_keys`, `os_name`, `arch`, `num_cpus`, `parent_pid`, `process_exists`, `exec_with_stdin`, `with_exec_with_stdin`, `exec_with_env`, `with_exec_with_env`, `exec_with_cwd`, `with_exec_with_cwd`, `exec_with_timeout`, `exec_background`, `with_exec_background`, `wait_pid`, `term_pid`, `kill_pid`, `pipe`, `pipe_all`.
+- **`std::path` new functions** - `path_is_absolute`, `path_is_relative`, `path_starts_with`, `path_ends_with`, `path_normalize`, `path_absolute`, `path_canonicalize`, `path_expand_home`, `path_split`, `path_split_extension`, `path_components`, `path_with_file_name`, `path_relative`, `path_join_many`.
+- **`std::fs` new functions** - `touch`, `truncate_file`, `glob`, `walk_dir`, `symlink`, `readlink`, `hardlink`, `temp_file`, `temp_file_in`, `file_created`, `file_accessed`, `file_permissions`, `set_permissions`, `list_dir_names`, `realpath`, `lock_file`, `unlock_file`.
+- **`std::io` handle-based I/O** - `open`, `close`, `read_handle`, `write_handle`, `seek`, `flush`, `read_all`, `readline` with proper `HandleKind::File` variant in the handle system. Also `read_all_stdin`, `decode_utf8`, `encode_utf8`, `isatty`.
+- **`HandleKind::File`** - new handle variant in `rl-ast` for file I/O resources, following the same `IoStore` trait pattern as `NetStore`/`HttpStore`/etc.
+- **Bytecode deserialization fix** - added missing `4 => HandleKind::Gui` and `5 => HandleKind::File` to the handle kind deserialization match.
+
 - **Shebang support** - `.rl` files starting with `#!` are valid; the lexer strips the shebang line before tokenizing. `rl new --script <name>` creates a standalone executable `.rl` script with a shebang header pointing to the `rl` binary (detected via `current_exe` / PATH scan, falls back to `rlc`), a hello world body, and executable permissions (`0755`). Scripts can be run directly: `chmod +x hello.rl && ./hello.rl`.
 - **Program attributes fixed** - `#![convert(kg=1000(g))]` now parses correctly. The lexer's `BangHash` token now properly consumes both characters, the shebang stripper no longer eats `#![...]` inner attributes, and the parser handles both `BangHash` and separate `Hash`+`Bang` token sequences.
 - **`result_unwrap` type dispatch** - `result_unwrap`, `result_unwrap_err`, and `result_unwrap_or` now emit the correct type-specific unwrap function (`rl_result_unwrap_str`, `_f64`, `_bool`, `_i64`) based on the result's inner type. Previously all three hardcoded `rl_result_unwrap_i64`.

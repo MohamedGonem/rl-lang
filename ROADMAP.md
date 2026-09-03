@@ -67,6 +67,11 @@ rl-lang
 |   +-- [TODO] #437 - refactor term_set_title
 +-- rl-std-macros     (stdlib procedural macros)
 +-- rl-std            (standard library)
+|   +-- [DONE] std::process - exec_background, wait_pid, term_pid, kill_pid, pipe, pipe_all, set_env, remove_env, env_keys, os_name, arch, num_cpus, parent_pid, process_exists, exec_with_stdin, exec_with_env, exec_with_cwd, exec_with_timeout (+ with_* variants)
+|   +-- [DONE] std::path - path_normalize, path_is_absolute, path_is_relative, path_split, path_split_extension, path_with_file_name, path_absolute, path_relative, path_canonicalize, path_starts_with, path_ends_with, path_join_many, path_expand_home, path_components
+|   +-- [DONE] std::fs - touch, truncate_file, glob, walk_dir, symlink, readlink, hardlink, temp_file, temp_file_in, file_created, file_accessed, file_permissions, set_permissions, list_dir_names, realpath, lock_file, unlock_file
+|   +-- [DONE] std::io - handle-based I/O (open, close, read_handle, write_handle, seek, flush, read_all, readline) with HandleKind::File, plus read_all_stdin, decode_utf8, encode_utf8, isatty
+|   +-- [DONE] HandleKind::File - new handle variant in rl-ast with IoStore trait
 |   +-- [TODO] #431 - std functions aliasing
 |   +-- [TODO] #338 - std functions tests
 +-- rl-commons        (shared utilities)
