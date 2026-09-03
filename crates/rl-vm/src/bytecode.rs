@@ -821,9 +821,11 @@ fn read_value(
                 1 => HandleKind::Net,
                 2 => HandleKind::Http,
                 3 => HandleKind::Audio,
+                4 => HandleKind::Gui,
+                5 => HandleKind::File,
                 _ => {
                     return Err(BytecodeError(
-                        "corrupt .rlc: closure template is not a function".into(),
+                        "corrupt .rlc: unknown handle kind".into(),
                     ));
                 }
             };

@@ -158,6 +158,10 @@ pub struct Vm {
     pub(crate) http_handles: HashMap<u64, rl_std::http::HttpHandle>,
     /// Next handle id to hand out for `std::http` resources; only ever increments.
     pub(crate) http_next_handle: u64,
+    /// Side-table of native I/O file resources (`std::io`), keyed by handle id.
+    pub(crate) io_handles: HashMap<u64, rl_std::io::IoFileHandle>,
+    /// Next handle id to hand out for `std::io` resources; only ever increments.
+    pub(crate) io_next_handle: u64,
     /// PRNG state for `std::random`, seeded from the system clock at startup.
     pub(crate) rng: rl_std_core::Xoshiro256,
     /// Number of leading `std::env::args()` entries to skip when reporting
@@ -196,6 +200,8 @@ impl Vm {
             net_next_handle: 1,
             http_handles: HashMap::new(),
             http_next_handle: 1,
+            io_handles: HashMap::new(),
+            io_next_handle: 1,
             rng: Default::default(),
             user_args_offset: 1,
             output_buffer: None,

@@ -35,6 +35,7 @@ pub enum HandleKind {
     Http = 2,
     Audio = 3,
     Gui = 4,
+    File = 5,
 }
 
 impl Statement {

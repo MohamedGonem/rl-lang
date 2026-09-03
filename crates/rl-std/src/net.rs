@@ -71,6 +71,7 @@ fn extract_handle<R: NetStore>(v: &R::Value, name: &str) -> Result<u64, String> 
             .or_else(|| R::as_handle(v, HandleKind::Http).map(|_| HandleKind::Http))
             .or_else(|| R::as_handle(v, HandleKind::Audio).map(|_| HandleKind::Audio))
             .or_else(|| R::as_handle(v, HandleKind::Gui).map(|_| HandleKind::Gui))
+            .or_else(|| R::as_handle(v, HandleKind::File).map(|_| HandleKind::File))
         {
             Some(kind) => Err(format!(
                 "{}: expected a {:?} handle, got a {:?} handle",

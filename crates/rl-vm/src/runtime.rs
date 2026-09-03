@@ -545,3 +545,21 @@ impl rl_std::gui::GuiStore for VmRuntime {
         &mut cx.gui_quit_requested
     }
 }
+
+impl rl_std::io::IoStore for VmRuntime {
+    fn io_insert(cx: &mut Vm, h: rl_std::io::IoFileHandle) -> u64 {
+        let id = cx.io_next_handle;
+        cx.io_next_handle += 1;
+        cx.io_handles.insert(id, h);
+        id
+    }
+    fn io_get(cx: &Vm, id: u64) -> Option<&rl_std::io::IoFileHandle> {
+        cx.io_handles.get(&id)
+    }
+    fn io_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::io::IoFileHandle> {
+        cx.io_handles.get_mut(&id)
+    }
+    fn io_remove(cx: &mut Vm, id: u64) -> Option<rl_std::io::IoFileHandle> {
+        cx.io_handles.remove(&id)
+    }
+}
