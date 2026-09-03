@@ -148,6 +148,20 @@ pub fn process_exists(pid: i64) -> bool {
     unsafe { libc::kill(pid as i32, 0) == 0 }
 }
 
+#[native_fn(module = "process")]
+pub fn process_running(pid: i64) -> bool {
+    let p = pid as u32;
+    let mut map = SPAWNED.lock().unwrap();
+    match map.get_mut(&p) {
+        Some(child) => match child.try_wait() {
+            Ok(None) => true,
+            Ok(Some(_)) => false,
+            Err(_) => false,
+        },
+        None => false,
+    }
+}
+
 // ---- shell helpers --------------------------------------------------------
 
 #[cfg(feature = "impls")]
@@ -270,12 +284,7 @@ pub fn exec_with_stdin(cmd: String, input: String) -> Result<String, String> {
         .spawn()
     {
         Ok(c) => c,
-        Err(e) => {
-            return Err(format!(
-                "exec_with_stdin: failed to run \"{}\": {}",
-                cmd, e
-            ))
-        }
+        Err(e) => return Err(format!("exec_with_stdin: failed to run \"{}\": {}", cmd, e)),
     };
     if let Some(mut stdin) = child.stdin.take() {
         use std::io::Write;
@@ -297,7 +306,7 @@ pub fn with_exec_with_stdin(e: String, cmd: String, input: String) -> Result<Str
             return Err(format!(
                 "with_exec_with_stdin: invalid args \"{}\": {}",
                 cmd, err
-            ))
+            ));
         }
     };
     let mut child = match command
@@ -333,26 +342,25 @@ pub fn exec_with_env(cmd: String, envs: Vec<Vec<String>>) -> Result<String, Stri
     }
     let output = match command.output() {
         Ok(o) => o,
-        Err(e) => {
-            return Err(format!(
-                "exec_with_env: failed to run \"{}\": {}",
-                cmd, e
-            ))
-        }
+        Err(e) => return Err(format!("exec_with_env: failed to run \"{}\": {}", cmd, e)),
     };
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     Ok(stdout.trim_end_matches('\n').to_string())
 }
 
 #[native_fn(module = "process")]
-pub fn with_exec_with_env(e: String, cmd: String, envs: Vec<Vec<String>>) -> Result<String, String> {
+pub fn with_exec_with_env(
+    e: String,
+    cmd: String,
+    envs: Vec<Vec<String>>,
+) -> Result<String, String> {
     let mut command = match with_command(&e, &cmd) {
         Ok(c) => c,
         Err(err) => {
             return Err(format!(
                 "with_exec_with_env: invalid args \"{}\": {}",
                 cmd, err
-            ))
+            ));
         }
     };
     for pair in &envs {
@@ -380,7 +388,7 @@ pub fn exec_with_cwd(cmd: String, dir: String) -> Result<String, String> {
             return Err(format!(
                 "exec_with_cwd: failed to run \"{}\" in \"{}\": {}",
                 cmd, dir, e
-            ))
+            ));
         }
     };
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -395,7 +403,7 @@ pub fn with_exec_with_cwd(e: String, cmd: String, dir: String) -> Result<String,
             return Err(format!(
                 "with_exec_with_cwd: invalid args \"{}\": {}",
                 cmd, err
-            ))
+            ));
         }
     };
     command.current_dir(&dir);
@@ -421,7 +429,7 @@ pub fn exec_with_timeout(cmd: String, timeout_ms: i64) -> Result<String, String>
             return Err(format!(
                 "exec_with_timeout: failed to run \"{}\": {}",
                 cmd, e
-            ))
+            ));
         }
     };
 
@@ -464,8 +472,7 @@ pub fn exec_with_timeout(cmd: String, timeout_ms: i64) -> Result<String, String>
 // ---- background process management ----------------------------------------
 
 #[cfg(feature = "impls")]
-static SPAWNED: LazyLock<Mutex<HashMap<u32, Child>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+static SPAWNED: LazyLock<Mutex<HashMap<u32, Child>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // ---- exec_background (result[int]) ----------------------------------------
 
@@ -477,7 +484,7 @@ pub fn exec_background(cmd: String) -> Result<i64, String> {
             return Err(format!(
                 "exec_background: failed to spawn \"{}\": {}",
                 cmd, e
-            ))
+            ));
         }
     };
     let pid = child.id();
@@ -493,7 +500,7 @@ pub fn with_exec_background(e: String, cmd: String) -> Result<i64, String> {
             return Err(format!(
                 "with_exec_background: invalid args \"{}\": {}",
                 cmd, err
-            ))
+            ));
         }
     };
     let child = match command.spawn() {
@@ -514,12 +521,7 @@ pub fn wait_pid(pid: i64) -> Result<i64, String> {
         let mut map = SPAWNED.lock().unwrap();
         match map.remove(&p) {
             Some(c) => c,
-            None => {
-                return Err(format!(
-                    "wait_pid: no tracked process with pid {}",
-                    pid
-                ))
-            }
+            None => return Err(format!("wait_pid: no tracked process with pid {}", pid)),
         }
     };
     match child.wait() {
@@ -536,10 +538,7 @@ pub fn term_pid(pid: i64) -> Result<(), String> {
     if ret == 0 {
         Ok(())
     } else {
-        Err(format!(
-            "term_pid: failed to send SIGTERM to pid {}",
-            pid
-        ))
+        Err(format!("term_pid: failed to send SIGTERM to pid {}", pid))
     }
 }
 
@@ -549,10 +548,7 @@ pub fn kill_pid(pid: i64) -> Result<(), String> {
     if ret == 0 {
         Ok(())
     } else {
-        Err(format!(
-            "kill_pid: failed to send SIGKILL to pid {}",
-            pid
-        ))
+        Err(format!("kill_pid: failed to send SIGKILL to pid {}", pid))
     }
 }
 
@@ -571,12 +567,7 @@ pub fn pipe(cmd1: String, cmd2: String) -> Result<String, String> {
 
     let stdout1 = match child1.stdout.take() {
         Some(s) => s,
-        None => {
-            return Err(format!(
-                "pipe: failed to capture stdout of \"{}\"",
-                cmd1
-            ))
-        }
+        None => return Err(format!("pipe: failed to capture stdout of \"{}\"", cmd1)),
     };
 
     let mut c2 = shell_command(&cmd2);
@@ -665,7 +656,7 @@ rl_std_core::native_module!("process";
         env, set_env, remove_env, env_keys,
         cwd, set_cwd,
         os_name, arch, num_cpus,
-        parent_pid, process_exists,
+        parent_pid, process_exists, process_running,
         exec, with_exec,
         exec_code, with_exec_code,
         exec_lines, with_exec_lines,
