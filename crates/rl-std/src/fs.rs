@@ -58,6 +58,24 @@ pub fn list_dir(path: String) -> Result<Vec<String>, String> {
     }
 }
 
+#[native_fn(module = "fs")]
+pub fn list_dir_names(path: String) -> Result<Vec<String>, String> {
+    match std::fs::read_dir(&path) {
+        Err(e) => Err(format!(
+            "list_dir_names: failed to read \"{}\": {}",
+            path, e
+        )),
+        Ok(d) => Ok(d
+            .filter_map(|i| i.ok())
+            .map(|i| {
+                i.file_name()
+                    .to_string_lossy()
+                    .to_string()
+            })
+            .collect::<Vec<String>>()),
+    }
+}
+
 // ---- copy / move ----------------------------------------------------------
 
 #[native_fn(module = "fs")]
@@ -116,11 +134,129 @@ pub fn file_modified(path: String) -> Result<i64, String> {
     }
 }
 
-// ---- temp dir (plain string, no arguments) --------------------------------
+#[native_fn(module = "fs")]
+pub fn file_created(path: String) -> Result<i64, String> {
+    let metadata = match std::fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) => return Err(format!("file_created: failed to read \"{}\": {}", path, e)),
+    };
+    match metadata.created() {
+        Err(e) => Err(format!(
+            "file_created: creation time not available for \"{}\": {}",
+            path, e
+        )),
+        Ok(t) => match t.duration_since(std::time::UNIX_EPOCH) {
+            Err(e) => Err(format!(
+                "file_created: creation time before epoch for \"{}\": {}",
+                path, e
+            )),
+            Ok(d) => Ok(d.as_secs() as i64),
+        },
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn file_accessed(path: String) -> Result<i64, String> {
+    let metadata = match std::fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) => {
+            return Err(format!(
+                "file_accessed: failed to read \"{}\": {}",
+                path, e
+            ))
+        }
+    };
+    match metadata.accessed() {
+        Err(e) => Err(format!(
+            "file_accessed: access time not available for \"{}\": {}",
+            path, e
+        )),
+        Ok(t) => match t.duration_since(std::time::UNIX_EPOCH) {
+            Err(e) => Err(format!(
+                "file_accessed: access time before epoch for \"{}\": {}",
+                path, e
+            )),
+            Ok(d) => Ok(d.as_secs() as i64),
+        },
+    }
+}
+
+// ---- permissions ----------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn file_permissions(path: String) -> Result<i64, String> {
+    let metadata = match std::fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) => {
+            return Err(format!(
+                "file_permissions: failed to read \"{}\": {}",
+                path, e
+            ))
+        }
+    };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        Ok(metadata.permissions().mode() as i64)
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(if metadata.permissions().readonly() { 0o444 } else { 0o644 })
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn set_permissions(path: String, mode: i64) -> Result<(), String> {
+    let metadata = match std::fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) => {
+            return Err(format!(
+                "set_permissions: failed to read \"{}\": {}",
+                path, e
+            ))
+        }
+    };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = metadata.permissions();
+        perms.set_mode(mode as u32);
+        match std::fs::set_permissions(&path, perms) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!(
+                "set_permissions: failed to set permissions on \"{}\": {}",
+                path, e
+            )),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (metadata, mode);
+        Err("set_permissions: not supported on this platform".to_string())
+    }
+}
+
+// ---- temp dir / file ------------------------------------------------------
 
 #[native_fn(module = "fs")]
 pub fn temp_dir() -> String {
     std::env::temp_dir().to_string_lossy().to_string()
+}
+
+#[native_fn(module = "fs")]
+pub fn temp_file() -> Result<String, String> {
+    match tempfile::NamedTempFile::new() {
+        Ok(f) => Ok(f.into_temp_path().to_string_lossy().to_string()),
+        Err(e) => Err(format!("temp_file: {}", e)),
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn temp_file_in(dir: String) -> Result<String, String> {
+    match tempfile::Builder::new().tempfile_in(&dir) {
+        Ok(f) => Ok(f.into_temp_path().to_string_lossy().to_string()),
+        Err(e) => Err(format!("temp_file_in: {}", e)),
+    }
 }
 
 // ---- rename (language `result[string]`) -----------------------------------
@@ -145,13 +281,194 @@ pub fn rename_file(path: String, new_name: String) -> Result<String, String> {
     Ok(new_path.to_string_lossy().to_string())
 }
 
+// ---- touch / truncate -----------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn touch(path: String) -> Result<(), String> {
+    match std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&path)
+    {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("touch: failed to create \"{}\": {}", path, e)),
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn truncate_file(path: String, len: i64) -> Result<(), String> {
+    match std::fs::File::open(&path) {
+        Ok(f) => match f.set_len(len.max(0) as u64) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!(
+                "truncate_file: failed to truncate \"{}\": {}",
+                path, e
+            )),
+        },
+        Err(e) => Err(format!(
+            "truncate_file: failed to open \"{}\": {}",
+            path, e
+        )),
+    }
+}
+
+// ---- glob -----------------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn glob(pattern: String) -> Result<Vec<String>, String> {
+    match ::glob::glob(&pattern) {
+        Ok(paths) => Ok(paths
+            .filter_map(|p| p.ok())
+            .map(|p| p.to_string_lossy().to_string())
+            .collect()),
+        Err(e) => Err(format!("glob: invalid pattern \"{}\": {}", pattern, e)),
+    }
+}
+
+// ---- walk -----------------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn walk_dir(path: String) -> Result<Vec<String>, String> {
+    let mut results = Vec::new();
+    let mut stack = vec![std::path::PathBuf::from(&path)];
+
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(e) => {
+                return Err(format!(
+                    "walk_dir: failed to read \"{}\": {}",
+                    dir.to_string_lossy(),
+                    e
+                ))
+            }
+        };
+
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path.clone());
+            }
+            results.push(path.to_string_lossy().to_string());
+        }
+    }
+
+    Ok(results)
+}
+
+// ---- symlinks -------------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn symlink(src: String, dst: String) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        match std::os::unix::fs::symlink(&src, &dst) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!(
+                "symlink: failed to create symlink from \"{}\" to \"{}\": {}",
+                src, dst, e
+            )),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (src, dst);
+        Err("symlink: not supported on this platform".to_string())
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn readlink(path: String) -> Result<String, String> {
+    match std::fs::read_link(&path) {
+        Ok(target) => Ok(target.to_string_lossy().to_string()),
+        Err(e) => Err(format!(
+            "readlink: failed to read symlink \"{}\": {}",
+            path, e
+        )),
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn hardlink(src: String, dst: String) -> Result<(), String> {
+    match std::fs::hard_link(&src, &dst) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!(
+            "hardlink: failed to create hard link from \"{}\" to \"{}\": {}",
+            src, dst, e
+        )),
+    }
+}
+
+// ---- realpath -------------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn realpath(path: String) -> Result<String, String> {
+    match std::fs::canonicalize(&path) {
+        Ok(p) => Ok(p.to_string_lossy().to_string()),
+        Err(e) => Err(format!("realpath: failed to resolve \"{}\": {}", path, e)),
+    }
+}
+
+// ---- lock / unlock --------------------------------------------------------
+
+#[native_fn(module = "fs")]
+pub fn lock_file(path: String) -> Result<(), String> {
+    use std::os::unix::io::AsRawFd;
+    let file = match std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&path)
+    {
+        Ok(f) => f,
+        Err(e) => return Err(format!("lock_file: failed to open \"{}\": {}", path, e)),
+    };
+    let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) };
+    if ret == 0 {
+        std::mem::forget(file);
+        Ok(())
+    } else {
+        Err(format!("lock_file: failed to lock \"{}\"", path))
+    }
+}
+
+#[native_fn(module = "fs")]
+pub fn unlock_file(path: String) -> Result<(), String> {
+    use std::os::unix::io::AsRawFd;
+    let file = match std::fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+    {
+        Ok(f) => f,
+        Err(e) => {
+            return Err(format!(
+                "unlock_file: failed to open \"{}\": {}",
+                path, e
+            ))
+        }
+    };
+    let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_UN) };
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err(format!("unlock_file: failed to unlock \"{}\"", path))
+    }
+}
+
 rl_std_core::native_module!("fs";
     funcs: [
         mkdir, mkdir_all, rmdir, rmdir_all,
-        list_dir,
+        list_dir, list_dir_names,
         copy_file, move_file,
-        file_size, file_modified,
-        temp_dir,
+        file_size, file_modified, file_created, file_accessed,
+        file_permissions, set_permissions,
+        temp_dir, temp_file, temp_file_in,
         rename_file,
+        touch, truncate_file,
+        glob, walk_dir,
+        symlink, readlink, hardlink,
+        realpath,
+        lock_file, unlock_file,
     ],
 );

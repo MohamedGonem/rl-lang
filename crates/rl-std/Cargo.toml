@@ -27,6 +27,8 @@ symphonia = { workspace = true, optional = true }
 eframe = { workspace = true, optional = true }
 shell-words = { workspace = true, optional = true }
 libc = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
+glob = { workspace = true, optional = true }
 
 [features]
 default = ["signatures"]
@@ -47,4 +49,6 @@ impls = [
     "dep:eframe",
     "dep:shell-words",
     "dep:libc",
+    "dep:tempfile",
+    "dep:glob",
 ]
