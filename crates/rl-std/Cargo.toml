@@ -26,6 +26,7 @@ cpal = { workspace = true, optional = true }
 symphonia = { workspace = true, optional = true }
 eframe = { workspace = true, optional = true }
 shell-words = { workspace = true, optional = true }
+libc = { workspace = true, optional = true }
 
 [features]
 default = ["signatures"]
@@ -45,4 +46,5 @@ impls = [
     "dep:symphonia",
     "dep:eframe",
     "dep:shell-words",
+    "dep:libc",
 ]

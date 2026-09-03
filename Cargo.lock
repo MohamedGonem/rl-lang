@@ -3871,6 +3871,7 @@ dependencies = [
  "cpal",
  "crossterm",
  "eframe",
+ "libc",
  "libffi",
  "libloading",
  "rl-ast",
