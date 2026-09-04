@@ -7,3 +7,4 @@ mod fns_lambdas;
 mod imports;
 mod r#match;
 mod postfix;
+mod semicolons;
