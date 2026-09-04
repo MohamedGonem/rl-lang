@@ -12,5 +12,5 @@ close(file)?"#,
     returns: "result[handle(File)]",
     errors: Some("Will return error on invalid mode or if the file cannot be opened"),
     see_also: &["close", "read_handle", "write_handle"],
-    since: None,
+    since: Some("v2.1.0"),
 };

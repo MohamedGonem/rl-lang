@@ -46,5 +46,5 @@ pub static ADV_CSV_QUERY: ConceptEntry = ConceptEntry {
     pitfalls: &[],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

@@ -10,5 +10,5 @@ dec bool terminal = isatty()?"#,
     returns: "bool",
     errors: None,
     see_also: &[],
-    since: None,
+    since: Some("v2.1.0"),
 };

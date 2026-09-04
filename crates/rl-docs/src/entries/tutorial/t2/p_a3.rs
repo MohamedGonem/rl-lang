@@ -57,5 +57,5 @@ pub static ADV_STRING_PARSING: ConceptEntry = ConceptEntry {
     ],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

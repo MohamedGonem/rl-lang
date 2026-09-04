@@ -12,5 +12,5 @@ close(file)?"#,
     returns: "result[null]",
     errors: Some("Will return error if the handle is invalid"),
     see_also: &["open"],
-    since: None,
+    since: Some("v2.1.0"),
 };

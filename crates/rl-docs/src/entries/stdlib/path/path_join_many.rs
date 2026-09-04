@@ -10,5 +10,5 @@ dec string full = path_join_many(["src", "utils", "helper.rs"])??"#,
     returns: "string",
     errors: None,
     see_also: &["path_join", "path_components"],
-    since: None,
+    since: Some("v2.1.0"),
 };

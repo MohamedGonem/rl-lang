@@ -10,5 +10,5 @@ dec string real = realpath(".")?"#,
     returns: "result[string]",
     errors: Some("Will return error if the path cannot be resolved"),
     see_also: &["readlink", "symlink"],
-    since: None,
+    since: Some("v2.1.0"),
 };

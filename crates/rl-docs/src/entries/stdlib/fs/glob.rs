@@ -10,5 +10,5 @@ dec arr[string] files = glob("**/*.rs")?"#,
     returns: "result[arr[string]]",
     errors: Some("Will return error on invalid glob pattern"),
     see_also: &["walk_dir", "list_dir"],
-    since: None,
+    since: Some("v2.1.0"),
 };

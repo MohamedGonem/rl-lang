@@ -30,11 +30,11 @@ pub static BITWISE: StdEntry = StdEntry {
 
 static FUNCTIONS: &[&FnEntry] = &[
     &BIT_AND,
-    &BIT_OR,
-    &BIT_XOR,
     &BIT_NOT,
+    &BIT_OR,
     &BIT_SHIFT_LEFT,
     &BIT_SHIFT_RIGHT,
+    &BIT_XOR,
     &COUNT_BITS,
     &LEADING_ZEROS,
     &TRAILING_ZEROS,

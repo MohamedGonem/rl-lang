@@ -10,5 +10,5 @@ dec string new = path_with_file_name("src/main.rs", "lib.rs")?"#,
     returns: "string",
     errors: None,
     see_also: &["path_set_extension", "path_filename"],
-    since: None,
+    since: Some("v2.1.0"),
 };

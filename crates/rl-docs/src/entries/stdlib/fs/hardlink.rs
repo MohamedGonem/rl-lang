@@ -10,5 +10,5 @@ hardlink("original.txt", "linked.txt")?"#,
     returns: "result[null]",
     errors: Some("Will return error if the hard link cannot be created"),
     see_also: &["symlink"],
-    since: None,
+    since: Some("v2.1.0"),
 };

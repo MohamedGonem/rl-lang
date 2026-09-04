@@ -12,5 +12,5 @@ dec int code = wait_pid(pid)?"#,
     returns: "result[int]",
     errors: Some("Will return error if pid is not a tracked background process"),
     see_also: &["exec_background", "kill_pid"],
-    since: None,
+    since: Some("v2.1.0"),
 };

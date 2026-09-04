@@ -10,5 +10,5 @@ dec string rel = path_relative("src/main.rs", "src/utils/helper.rs")?"#,
     returns: "result[string]",
     errors: Some("Will return error if current working directory cannot be determined"),
     see_also: &["path_absolute", "path_join"],
-    since: None,
+    since: Some("v2.1.0"),
 };

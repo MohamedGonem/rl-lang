@@ -10,5 +10,5 @@ dec string out = pipe_all(["echo hello world", "tr ' ' '\\n'", "sort"])??"#,
     returns: "result[string]",
     errors: Some("Will return error on failed command run"),
     see_also: &["pipe", "exec"],
-    since: None,
+    since: Some("v2.1.0"),
 };

@@ -33,7 +33,7 @@ pub static FS: StdEntry = StdEntry {
     name: "fs",
     description: "functions for working with the filesystem",
     functions: FUNCTIONS,
-    since: None,
+    since: Some("v2.1.0"),
     unstable: false,
 };
 
@@ -52,8 +52,8 @@ static FUNCTIONS: &[&FnEntry] = &[
     &mkdir::MKDIR,
     &mkdir_all::MKDIR_ALL,
     &move_file::MOVE_FILE,
-    &realpath::REALPATH,
     &readlink::READLINK,
+    &realpath::REALPATH,
     &rename_file::RENAME_FILE,
     &rmdir::RMDIR,
     &rmdir_all::RMDIR_ALL,

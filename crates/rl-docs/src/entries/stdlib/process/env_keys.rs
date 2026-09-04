@@ -10,5 +10,5 @@ dec arr[string] keys = env_keys()?"#,
     returns: "result[arr[string]]",
     errors: None,
     see_also: &["env", "set_env"],
-    since: None,
+    since: Some("v2.1.0"),
 };

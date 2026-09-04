@@ -14,5 +14,5 @@ close(file)?"#,
     returns: "result[int]",
     errors: Some("Will return error if the handle is invalid or not open for writing"),
     see_also: &["read_handle", "flush"],
-    since: None,
+    since: Some("v2.1.0"),
 };

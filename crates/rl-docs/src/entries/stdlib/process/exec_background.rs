@@ -10,5 +10,5 @@ dec int pid = exec_background("sleep 5 & echo started")?"#,
     returns: "result[int]",
     errors: Some("Will return error on failed process spawn"),
     see_also: &["wait_pid", "term_pid", "kill_pid"],
-    since: None,
+    since: Some("v2.1.0"),
 };

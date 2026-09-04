@@ -10,5 +10,5 @@ dec string path = temp_file()?"#,
     returns: "result[string]",
     errors: Some("Will return error if the temp file cannot be created"),
     see_also: &["temp_file_in", "temp_dir"],
-    since: None,
+    since: Some("v2.1.0"),
 };

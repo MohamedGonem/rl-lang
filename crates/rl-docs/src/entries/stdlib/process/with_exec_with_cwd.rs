@@ -10,5 +10,5 @@ dec string out = with_exec_with_cwd("ls", "", "/tmp")?"#,
     returns: "result[string]",
     errors: Some("Will return error on failed command run"),
     see_also: &["exec_with_cwd", "with_exec"],
-    since: None,
+    since: Some("v2.1.0"),
 };

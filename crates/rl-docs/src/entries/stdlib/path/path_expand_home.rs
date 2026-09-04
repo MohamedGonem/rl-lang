@@ -10,5 +10,5 @@ dec string home = path_expand_home("~/Documents")?"#,
     returns: "string",
     errors: None,
     see_also: &["path_absolute"],
-    since: None,
+    since: Some("v2.1.0"),
 };

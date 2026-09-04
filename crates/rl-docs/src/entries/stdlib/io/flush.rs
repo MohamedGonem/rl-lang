@@ -16,5 +16,5 @@ close(file)?"#,
     returns: "result[null]",
     errors: Some("Will return error if the handle is invalid or not open for writing"),
     see_also: &["write_handle", "close"],
-    since: None,
+    since: Some("v2.1.0"),
 };

@@ -10,5 +10,5 @@ dec arr[string] parts = path_split("src/main.rs")?"#,
     returns: "arr[string]",
     errors: None,
     see_also: &["path_split_extension", "path_parent", "path_filename"],
-    since: None,
+    since: Some("v2.1.0"),
 };

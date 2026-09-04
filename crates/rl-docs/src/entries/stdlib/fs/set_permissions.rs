@@ -10,5 +10,5 @@ set_permissions("script.sh", 0o755)?"#,
     returns: "result[null]",
     errors: Some("Will return error if permissions cannot be set"),
     see_also: &["file_permissions"],
-    since: None,
+    since: Some("v2.1.0"),
 };

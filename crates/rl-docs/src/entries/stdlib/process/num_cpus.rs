@@ -10,5 +10,5 @@ dec int cores = num_cpus()?"#,
     returns: "int",
     errors: None,
     see_also: &["arch"],
-    since: None,
+    since: Some("v2.1.0"),
 };

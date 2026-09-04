@@ -10,5 +10,5 @@ dec string a = arch()?"#,
     returns: "string",
     errors: None,
     see_also: &["os_name", "num_cpus"],
-    since: None,
+    since: Some("v2.1.0"),
 };

@@ -10,5 +10,5 @@ truncate_file("data.txt", 0)?"#,
     returns: "result[null]",
     errors: Some("Will return error if the file cannot be opened"),
     see_also: &["file_size", "write_file"],
-    since: None,
+    since: Some("v2.1.0"),
 };

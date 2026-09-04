@@ -137,5 +137,5 @@ pub static ERROR_TYPE: ConceptEntry = ConceptEntry {
     ],
     related: &["propagation", "types", "functions"],
     related_stdlib: &["res", "types"],
-    since: None,
+    since: Some("v1.0.0"),
 };

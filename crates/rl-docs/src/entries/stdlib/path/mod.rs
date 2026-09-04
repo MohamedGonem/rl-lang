@@ -57,7 +57,7 @@ static FUNCTIONS: &[&FnEntry] = &[
     &path_set_extension::PATH_SET_EXTENSION,
     &path_split::PATH_SPLIT,
     &path_split_extension::PATH_SPLIT_EXTENSION,
-    &path_stem::PATH_STEM,
     &path_starts_with::PATH_STARTS_WITH,
+    &path_stem::PATH_STEM,
     &path_with_file_name::PATH_WITH_FILE_NAME,
 ];

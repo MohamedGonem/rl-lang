@@ -10,5 +10,5 @@ dec int ts = file_accessed("Cargo.toml")?"#,
     returns: "result[int]",
     errors: Some("Will return error if access time is not available"),
     see_also: &["file_modified", "file_created"],
-    since: None,
+    since: Some("v2.1.0"),
 };

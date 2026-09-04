@@ -10,5 +10,5 @@ dec int mode = file_permissions("script.sh")?"#,
     returns: "result[int]",
     errors: Some("Will return error if permissions cannot be read"),
     see_also: &["set_permissions"],
-    since: None,
+    since: Some("v2.1.0"),
 };

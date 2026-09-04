@@ -10,5 +10,5 @@ dec string all = read_all_stdin()?"#,
     returns: "result[string]",
     errors: Some("Will return error if stdin cannot be read"),
     see_also: &["read", "read_all"],
-    since: None,
+    since: Some("v2.1.0"),
 };

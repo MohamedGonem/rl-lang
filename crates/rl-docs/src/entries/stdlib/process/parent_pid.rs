@@ -10,5 +10,5 @@ dec int ppid = parent_pid()?"#,
     returns: "int",
     errors: None,
     see_also: &["pid", "process_exists"],
-    since: None,
+    since: Some("v2.1.0"),
 };

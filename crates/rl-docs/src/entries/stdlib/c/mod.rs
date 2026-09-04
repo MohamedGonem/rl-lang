@@ -16,10 +16,10 @@ pub static C: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
-    &compile::COMPILE,
-    &load::LOAD,
     &call::CALL,
-    &has_symbol::HAS_SYMBOL,
-    &close::CLOSE,
     &clear_cache::CLEAR_CACHE,
+    &close::CLOSE,
+    &compile::COMPILE,
+    &has_symbol::HAS_SYMBOL,
+    &load::LOAD,
 ];

@@ -10,5 +10,5 @@ dec arr[string] parts = path_components("src/utils/helper.rs")?"#,
     returns: "arr[string]",
     errors: None,
     see_also: &["path_split", "path_join_many"],
-    since: None,
+    since: Some("v2.1.0"),
 };

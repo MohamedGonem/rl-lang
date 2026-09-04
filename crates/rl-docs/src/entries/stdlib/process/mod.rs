@@ -40,13 +40,13 @@ pub static PROCESS: StdEntry = StdEntry {
     name: "process",
     description: "functions for interacting with the current process and running shell commands",
     functions: FUNCTIONS,
-    since: None,
+    since: Some("v2.1.0"),
     unstable: false,
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
-    &args::ARGS,
     &arch::ARCH,
+    &args::ARGS,
     &cwd::CWD,
     &env::ENV,
     &env_keys::ENV_KEYS,
@@ -63,9 +63,9 @@ static FUNCTIONS: &[&FnEntry] = &[
     &num_cpus::NUM_CPUS,
     &os_name::OS_NAME,
     &parent_pid::PARENT_PID,
+    &pid::PID,
     &pipe::PIPE,
     &pipe_all::PIPE_ALL,
-    &pid::PID,
     &process_exists::PROCESS_EXISTS,
     &remove_env::REMOVE_ENV,
     &set_cwd::SET_CWD,

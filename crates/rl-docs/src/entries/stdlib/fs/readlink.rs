@@ -10,5 +10,5 @@ dec string target = readlink("/tmp/link")?"#,
     returns: "result[string]",
     errors: Some("Will return error if the path is not a symlink"),
     see_also: &["symlink", "realpath"],
-    since: None,
+    since: Some("v2.1.0"),
 };

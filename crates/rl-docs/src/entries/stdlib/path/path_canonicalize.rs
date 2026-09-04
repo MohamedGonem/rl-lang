@@ -10,5 +10,5 @@ dec string real = path_canonicalize(".")?"#,
     returns: "result[string]",
     errors: Some("Will return error if path does not exist"),
     see_also: &["path_absolute", "path_normalize"],
-    since: None,
+    since: Some("v2.1.0"),
 };

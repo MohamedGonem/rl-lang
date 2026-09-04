@@ -46,5 +46,5 @@ pub static ADV_COMMANDS_DONE_REMOVE: ConceptEntry = ConceptEntry {
     pitfalls: &[],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

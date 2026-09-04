@@ -10,5 +10,5 @@ dec bool starts = path_starts_with("src/main.rs", "src")?"#,
     returns: "bool",
     errors: None,
     see_also: &["path_ends_with"],
-    since: None,
+    since: Some("v2.1.0"),
 };

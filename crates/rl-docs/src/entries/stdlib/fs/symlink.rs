@@ -10,5 +10,5 @@ symlink("/tmp/original", "/tmp/link")?"#,
     returns: "result[null]",
     errors: Some("Will return error if the symlink cannot be created"),
     see_also: &["readlink", "hardlink"],
-    since: None,
+    since: Some("v2.1.0"),
 };

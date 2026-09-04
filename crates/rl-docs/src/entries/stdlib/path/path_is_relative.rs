@@ -10,5 +10,5 @@ dec bool rel = path_is_relative("src/main.rs")?"#,
     returns: "bool",
     errors: None,
     see_also: &["path_is_absolute"],
-    since: None,
+    since: Some("v2.1.0"),
 };

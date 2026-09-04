@@ -10,5 +10,5 @@ touch("new_file.txt")?"#,
     returns: "result[null]",
     errors: Some("Will return error if the file cannot be created"),
     see_also: &["write_file", "create_file"],
-    since: None,
+    since: Some("v2.1.0"),
 };
