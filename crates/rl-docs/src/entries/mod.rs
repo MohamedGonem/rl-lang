@@ -60,6 +60,7 @@ pub fn concept_entries() -> Vec<&'static ConceptEntry> {
         &concepts::logical_operators::LOGICAL_OPERATORS,
         &concepts::records::RECORDS,
         &concepts::records::IMPL_BLOCKS,
+        &concepts::semicolons::SEMICOLONS,
         &concepts::tags::TAGS,
         &concepts::maps::MAPS,
         &concepts::sets::SETS,

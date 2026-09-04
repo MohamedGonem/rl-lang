@@ -17,6 +17,7 @@ pub mod nulls;
 pub mod operators;
 pub mod propagate;
 pub mod records;
+pub mod semicolons;
 pub mod sets;
 pub mod tags;
 pub mod tooling;
