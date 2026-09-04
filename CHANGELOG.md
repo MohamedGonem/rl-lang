@@ -6,6 +6,7 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Added
 
+- **Optional semicolons** - statements can now optionally end with `;`. Semicolons are silently consumed by the parser, so `dec int x = 10;` and `dec int x = 10` are both valid.
 - **`std::process` new functions** - `set_env`, `remove_env`, `env_keys`, `os_name`, `arch`, `num_cpus`, `parent_pid`, `process_exists`, `exec_with_stdin`, `with_exec_with_stdin`, `exec_with_env`, `with_exec_with_env`, `exec_with_cwd`, `with_exec_with_cwd`, `exec_with_timeout`, `exec_background`, `with_exec_background`, `wait_pid`, `term_pid`, `kill_pid`, `pipe`, `pipe_all`.
 - **`std::path` new functions** - `path_is_absolute`, `path_is_relative`, `path_starts_with`, `path_ends_with`, `path_normalize`, `path_absolute`, `path_canonicalize`, `path_expand_home`, `path_split`, `path_split_extension`, `path_components`, `path_with_file_name`, `path_relative`, `path_join_many`.
 - **`std::fs` new functions** - `touch`, `truncate_file`, `glob`, `walk_dir`, `symlink`, `readlink`, `hardlink`, `temp_file`, `temp_file_in`, `file_created`, `file_accessed`, `file_permissions`, `set_permissions`, `list_dir_names`, `realpath`, `lock_file`, `unlock_file`.

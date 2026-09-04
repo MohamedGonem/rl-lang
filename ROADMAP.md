@@ -52,6 +52,7 @@ rl-lang
 +-- rl-ast            (AST node types, arena)
 |   +-- [TODO] #190 - refactor AST
 +-- rl-parser         (source to AST)
+|   +-- [DONE] optional semicolons as statement terminators
 |   +-- [TODO] #341 - parser tests
 +-- rl-resolver       (name resolution, imports)
 |   +-- [TODO] #342 - resolver tests
