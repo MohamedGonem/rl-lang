@@ -62,25 +62,25 @@ impl Parser {
     /// [`parse_expression`]: Parser::parse_expression
     pub fn parse_statement_to_ast(&mut self) -> Result<Statement, Error> {
         let start = self.peek_span();
-        match self.peek() {
+        let result = match self.peek() {
             TokenType::Newline => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found newline while parsing... skipping");
                 let span = self.previous_span();
-                Ok(Statement::new(
+                Statement::new(
                     StatementKind::Expression(
                         self.ast_arena.alloc_expr(ExpressionKind::Integer(0), span),
                     ),
                     span,
-                ))
+                )
             }
 
             TokenType::Get => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `get` for import while parsing");
-                self.parse_import(start)
+                self.parse_import(start)?
             }
             TokenType::Dec => {
                 self.advance();
@@ -94,54 +94,54 @@ impl Parser {
                 if is_inferred {
                     #[cfg(feature = "debug")]
                     log::info!("found `dec` for inferred variable while parsing");
-                    self.parse_infer_declaration(start)
+                    self.parse_infer_declaration(start)?
                 } else {
                     #[cfg(feature = "debug")]
                     log::info!("found `dec` for variable (record|tag) while parsing");
-                    self.parse_variable_declartion(start)
+                    self.parse_variable_declartion(start)?
                 }
             }
             TokenType::Const => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `declaration` for constant while parsing");
-                self.parse_const_declartion(start)
+                self.parse_const_declartion(start)?
             }
             TokenType::While => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `while` while parsing");
-                self.parse_while(start)
+                self.parse_while(start)?
             }
             TokenType::Loop => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `loop` while parsing");
-                self.parse_loop(start)
+                self.parse_loop(start)?
             }
             TokenType::For => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `for` while parsing");
-                self.parse_for(start)
+                self.parse_for(start)?
             }
             TokenType::If => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `if` while parsing");
-                self.parse_if(start)
+                self.parse_if(start)?
             }
 
             TokenType::Fn => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found 'fn' while parsing");
-                self.parse_function(start, None)
+                self.parse_function(start, None)?
             }
 
             TokenType::BangHash => {
                 self.advance();
-                self.parse_entry_attribute(start)
+                self.parse_entry_attribute(start)?
             }
             TokenType::Return => {
                 self.advance();
@@ -155,45 +155,45 @@ impl Parser {
                     None
                 };
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Return(expr), span))
+                Statement::new(StatementKind::Return(expr), span)
             }
 
             TokenType::Break => {
                 self.advance();
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Break, span))
+                Statement::new(StatementKind::Break, span)
             }
 
             TokenType::Continue => {
                 self.advance();
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Continue, span))
+                Statement::new(StatementKind::Continue, span)
             }
 
             TokenType::Match => {
                 self.advance();
-                self.parse_match(start)
+                self.parse_match(start)?
             }
 
             TokenType::Record => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `record` while parsing");
-                self.parse_record_declaration(start)
+                self.parse_record_declaration(start)?
             }
 
             TokenType::Tag => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `tag` while parsing");
-                self.parse_tag_declaration(start)
+                self.parse_tag_declaration(start)?
             }
 
             TokenType::Impl => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `impl` while parsing");
-                self.parse_impl_block(start)
+                self.parse_impl_block(start)?
             }
 
             _ => {
@@ -201,9 +201,12 @@ impl Parser {
                 log::info!("parsing the current tokens as expression");
                 let expr = self.parse_expression()?;
                 let span = self.ast_arena.exprs.get(expr).span;
-                Ok(Statement::new(StatementKind::Expression(expr), span))
+                Statement::new(StatementKind::Expression(expr), span)
             }
-        }
+        };
+
+        self.match_type(&[TokenType::Semicolon]);
+        Ok(result)
     }
 
     /// Parses a brace-delimited block `{ stmts* }` into a [`Vec<Statement>`].
