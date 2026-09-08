@@ -6,6 +6,13 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Added
 
+- **`std::fs` reorganization** - the `fs` module is now the single home for everything disk-facing:
+  - File I/O functions (`read_file`, `read_lines`, `read_bytes`, `write_file`, `append_file`, `delete_file`) moved from `std::io`.
+  - Handle-based streaming I/O (`open`, `close`, `read_handle`, `write_handle`, `seek`, `flush`, `read_all`, `readline`) moved from `std::io`.
+  - Path filesystem predicates (`path_exists`, `path_is_dir`, `path_is_file`, `path_canonicalize`, `path_absolute`, `path_expand_home`) moved from `std::path`.
+  - `path_relative` moved from `std::path` (uses `getcwd` syscall).
+  - Old paths still work but emit deprecation warnings. `std::io` is now console-only; `std::path` is now pure string manipulation only.
+- **Numeric suffix sugar** - write `10_u8`, `3.14_f32`, `100_i32` etc. to create typed literals directly without `as` casts. Supported suffixes: `_u8`, `_i8`, `_u16`, `_i16`, `_i32`, `_u32`, `_f32`, `_i64`, `_u64`, `_f64`. Equivalent to `10 as byte`, `3.14 as small float`, etc.
 - **Warning severity system** - the type-checker now emits warnings (yellow) that don't block execution, separate from errors (red) that do. Warnings are reported via `checker.warnings` alongside `checker.errors`, and include colored output with `[Warning: ...]` labels.
 - **Unused variable/function warnings** - the checker reports unused variables and functions at the end of scope. Functions with `!#[entry]`, `!#[init]`, `!#[final]`, or `!#[test]` attributes are automatically marked as used. When no `!#[entry]` exists, `main` is treated as the implicit entry point and won't warn.
 - **`!#[allow(unused)]`** - suppresses unused variable/function warnings for the annotated declaration. Works on `dec`, `const`, and `fn` declarations.
