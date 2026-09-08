@@ -76,6 +76,20 @@ pub enum TokenType {
     SignedLiteral(i64),
     /// A single byte (u8) e.g. `1`
     ByteLiteral(u8),
+    /// A single signed byte (i8) via suffix e.g. `1_i8`
+    SignedByteLiteral(i8),
+    /// A big byte (u16) via suffix e.g. `1_u16`
+    BigByteLiteral(u16),
+    /// A big signed byte (i16) via suffix e.g. `1_i16`
+    BigSignedByteLiteral(i16),
+    /// A small int (i32) via suffix e.g. `1_i32`
+    SmallIntLiteral(i32),
+    /// A small uint (u32) via suffix e.g. `1_u32`
+    SmallUIntLiteral(u32),
+    /// A small float (f32) via suffix e.g. `3.14_f32`
+    SmallFloatLiteral(f32),
+    /// A 64-bit unsigned integer via suffix e.g. `10_u64`
+    UIntLiteral(u64),
     /// A UTF-8 string e.g. `"hello"`
     StringLiteral(String),
     /// A single character e.g. `'a'`

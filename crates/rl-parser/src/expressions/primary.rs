@@ -1167,6 +1167,57 @@ impl Parser {
                 return self.parse_postfix(expr, start);
             }
         }
+
+        // --- suffixed integer types ---
+        if self.match_type(&[TokenType::SignedByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SignedByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::BigByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::BigByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::BByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::BigSignedByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::BigSignedByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::BSByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallUIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallUIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SUInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallFloatLiteral(0.0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallFloatLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SFloat(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::UIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::UIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::UInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
         // ---- numbers end ----
 
         // --- string ---
