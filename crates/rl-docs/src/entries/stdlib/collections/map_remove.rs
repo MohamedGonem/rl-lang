@@ -11,4 +11,6 @@ pub static MAP_REMOVE: FnEntry = FnEntry {
     ),
     see_also: &["map_contains", "map_clear"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

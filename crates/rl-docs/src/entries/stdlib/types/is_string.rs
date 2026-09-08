@@ -9,4 +9,6 @@ pub static IS_STRING: FnEntry = FnEntry {
     errors: None,
     see_also: &["to_string"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

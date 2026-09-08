@@ -15,4 +15,6 @@ http_respond(req, 200, "hello world", "text/plain")"#,
     errors: Some("Err(string) on a write/send failure"),
     see_also: &["http_server_recv"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

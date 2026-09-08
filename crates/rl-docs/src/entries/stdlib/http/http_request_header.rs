@@ -15,4 +15,6 @@ http_request_header(req, "Content-Type")"#,
     errors: Some("Err(string) when the header isn't present"),
     see_also: &["http_request_body"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

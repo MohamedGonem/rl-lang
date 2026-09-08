@@ -11,4 +11,6 @@ dec string out = with_exec_with_env("env", "", [["MY_VAR", "hello"]])?"#,
     errors: Some("Will return error on failed command run"),
     see_also: &["exec_with_env", "with_exec"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

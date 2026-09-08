@@ -11,4 +11,6 @@ pub static RESULT_UNWRAP_OR: FnEntry = FnEntry {
     ),
     see_also: &["result_unwrap"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -13,4 +13,6 @@ kill_pid(pid)?"#,
     errors: Some("Will return error if the signal could not be sent"),
     see_also: &["term_pid", "exec_background"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

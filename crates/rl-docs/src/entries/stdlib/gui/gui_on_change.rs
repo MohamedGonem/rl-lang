@@ -31,4 +31,6 @@ gui_on_change(slider, fn(float value) {
         "gui_on_click",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

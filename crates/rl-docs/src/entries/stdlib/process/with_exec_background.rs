@@ -11,4 +11,6 @@ dec int pid = with_exec_background("sleep", "5")?"#,
     errors: Some("Will return error on failed process spawn"),
     see_also: &["exec_background", "wait_pid"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

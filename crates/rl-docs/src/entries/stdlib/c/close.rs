@@ -12,4 +12,6 @@ close(h)"#,
     errors: Some("err(string) if `handle` is unknown (already closed, or never valid)"),
     see_also: &["compile", "load", "call"],
     since: Some("v0.4.1"),
+    deprecated: None,
+    updated: Some("v0.4.1"),
 };

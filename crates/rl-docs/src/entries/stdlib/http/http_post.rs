@@ -11,4 +11,6 @@ dec (int, string) resp = result_unwrap(http_post("https://example.com/api", "{}"
     errors: Some("Err(string) on a transport failure - not on non-2xx status"),
     see_also: &["http_get", "http_request"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

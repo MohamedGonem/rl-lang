@@ -11,4 +11,6 @@ set_permissions("script.sh", 0o755)?"#,
     errors: Some("Will return error if permissions cannot be set"),
     see_also: &["file_permissions"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

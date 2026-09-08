@@ -11,4 +11,6 @@ dec string abs = path_absolute("src/main.rs")?"#,
     errors: Some("Will return error if current working directory cannot be determined"),
     see_also: &["path_canonicalize", "path_relative"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

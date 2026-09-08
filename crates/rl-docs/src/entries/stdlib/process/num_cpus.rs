@@ -11,4 +11,6 @@ dec int cores = num_cpus()?"#,
     errors: None,
     see_also: &["arch"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

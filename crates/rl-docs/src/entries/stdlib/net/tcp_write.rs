@@ -13,4 +13,6 @@ result_unwrap(tcp_write(stream, "hello\n"))"#,
     errors: Some("Err(string) on a write error"),
     see_also: &["tcp_read"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

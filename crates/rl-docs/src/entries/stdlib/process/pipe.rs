@@ -11,4 +11,6 @@ dec string out = pipe("echo hello world", "wc -w")?"#,
     errors: Some("Will return error on failed command run"),
     see_also: &["pipe_all", "exec"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

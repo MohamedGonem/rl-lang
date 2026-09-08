@@ -13,4 +13,6 @@ result_unwrap(tcp_set_timeout(stream, 5000))"#,
     errors: Some("Err(string) if the timeout can't be set"),
     see_also: &["tcp_set_nonblocking"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

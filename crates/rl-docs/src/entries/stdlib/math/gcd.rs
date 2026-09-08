@@ -9,4 +9,6 @@ pub static GCD: FnEntry = FnEntry {
     errors: None,
     see_also: &["lcm"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

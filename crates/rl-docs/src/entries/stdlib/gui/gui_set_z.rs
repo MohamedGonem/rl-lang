@@ -20,4 +20,6 @@ gui_set_z(background_label, 1)?"#,
     errors: Some("err(string) for an unknown handle, or a handle that's a window"),
     see_also: &["gui_get_z", "gui_set_pos"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

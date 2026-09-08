@@ -14,4 +14,6 @@ unlock_file("data.json")?"#,
     errors: Some("Will return error if the lock cannot be released"),
     see_also: &["lock_file"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

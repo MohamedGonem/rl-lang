@@ -11,4 +11,6 @@ pub static READ_LINES: FnEntry = FnEntry {
     ),
     see_also: &["read_file", "read_bytes"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

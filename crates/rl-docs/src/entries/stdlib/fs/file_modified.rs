@@ -17,4 +17,6 @@ file_modified("./Cargo.toml")?"#,
     ),
     see_also: &["file_size"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

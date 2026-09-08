@@ -11,4 +11,6 @@ dec string norm = path_normalize("src/../src/./main.rs")?"#,
     errors: None,
     see_also: &["path_canonicalize", "path_absolute"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

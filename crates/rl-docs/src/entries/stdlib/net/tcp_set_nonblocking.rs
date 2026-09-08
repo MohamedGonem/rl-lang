@@ -13,4 +13,6 @@ result_unwrap(tcp_set_nonblocking(stream, true))"#,
     errors: Some("Err(string) if the mode can't be set"),
     see_also: &["tcp_set_timeout"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

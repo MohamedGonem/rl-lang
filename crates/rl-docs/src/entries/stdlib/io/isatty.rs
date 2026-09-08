@@ -11,4 +11,6 @@ dec bool terminal = isatty()?"#,
     errors: None,
     see_also: &[],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

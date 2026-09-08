@@ -11,4 +11,6 @@ touch("new_file.txt")?"#,
     errors: Some("Will return error if the file cannot be created"),
     see_also: &["write_file", "create_file"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

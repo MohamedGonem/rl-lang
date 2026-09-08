@@ -9,4 +9,6 @@ pub static RAND_RANGE: FnEntry = FnEntry {
     errors: Some("Will return error if `stop` is 0 or negative"),
     see_also: &["rand_int_range", "rand_range_step"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

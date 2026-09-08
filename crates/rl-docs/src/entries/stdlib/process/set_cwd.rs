@@ -16,4 +16,6 @@ set_cwd("/tmp")?"#,
     ),
     see_also: &["cwd"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -11,4 +11,6 @@ pub static RAND_BYTES: FnEntry = FnEntry {
     ),
     see_also: &["rand_byte", "rand_string"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

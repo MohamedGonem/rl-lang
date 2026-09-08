@@ -11,4 +11,6 @@ dec arr[string] parts = path_split("src/main.rs")?"#,
     errors: None,
     see_also: &["path_split_extension", "path_parent", "path_filename"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

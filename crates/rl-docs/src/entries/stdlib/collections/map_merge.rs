@@ -11,4 +11,6 @@ pub static MAP_MERGE: FnEntry = FnEntry {
     ),
     see_also: &["map_to_array", "map_clear"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

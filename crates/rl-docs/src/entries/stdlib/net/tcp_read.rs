@@ -13,4 +13,6 @@ dec string data = result_unwrap(tcp_read(stream, 1024))"#,
     errors: Some("Err(string) on a read error"),
     see_also: &["tcp_write", "tcp_set_timeout", "tcp_set_nonblocking"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

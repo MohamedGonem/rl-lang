@@ -13,4 +13,6 @@ tcp_local_addr(stream)"#,
     errors: None,
     see_also: &["tcp_peer_addr"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

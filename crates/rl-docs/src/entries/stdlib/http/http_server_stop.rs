@@ -13,4 +13,6 @@ http_server_stop(server)"#,
     errors: None,
     see_also: &["http_server_start"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

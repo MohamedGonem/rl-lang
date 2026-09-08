@@ -12,4 +12,6 @@ assert(false, \"should never happen\")"#,
     errors: Some("raises a runtime error when `cond` is not true"),
     see_also: &["assert_eq", "assert_ne"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -16,4 +16,6 @@ match true {
     errors: Some("always raises a runtime error"),
     see_also: &["panic", "todo"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

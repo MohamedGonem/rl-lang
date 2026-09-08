@@ -11,4 +11,6 @@ dec string s = decode_utf8([72, 101, 108, 108, 111])?"#,
     errors: Some("Will return error if the bytes are not valid UTF-8"),
     see_also: &["encode_utf8"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

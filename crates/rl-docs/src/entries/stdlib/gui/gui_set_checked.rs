@@ -15,4 +15,6 @@ gui_set_checked(checkbox, true)?"#,
     errors: Some("err(string) for an unknown handle, or a handle that isn't a checkbox"),
     see_also: &["gui_is_checked", "gui_on_change", "gui_checkbox"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

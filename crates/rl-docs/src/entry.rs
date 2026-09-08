@@ -29,6 +29,14 @@ pub struct FnEntry {
     /// The version this function was introduced in (e.g. `"v0.1.4"`).
     /// `None` for functions that predate version tracking.
     pub since: Option<&'static str>,
+    /// Deprecation message, if this function is deprecated.
+    /// `None` if the function is not deprecated.
+    #[serde(default)]
+    pub deprecated: Option<&'static str>,
+    /// The version this function was last updated in (e.g. `"v2.1.0"`).
+    /// `None` if the function hasn't been updated since introduction.
+    #[serde(default)]
+    pub updated: Option<&'static str>,
 }
 
 /// A stdlib module's documentation, grouping related [`FnEntry`]s together.

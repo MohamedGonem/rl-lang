@@ -11,4 +11,6 @@ dec arr[string] keys = env_keys()?"#,
     errors: None,
     see_also: &["env", "set_env"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

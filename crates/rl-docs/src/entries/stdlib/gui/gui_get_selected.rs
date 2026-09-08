@@ -17,4 +17,6 @@ dec string choice = result_unwrap(gui_get_selected(dropdown))"#,
     ),
     see_also: &["gui_get_selected_index", "gui_set_selected_index"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -17,4 +17,6 @@ gui_set_selected_index(dropdown, 2)?"#,
     ),
     see_also: &["gui_get_selected_index", "gui_get_selected"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

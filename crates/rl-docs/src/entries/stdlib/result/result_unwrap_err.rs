@@ -11,4 +11,6 @@ pub static RESULT_UNWRAP_ERR: FnEntry = FnEntry {
     ),
     see_also: &["result_unwrap", "is_err"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

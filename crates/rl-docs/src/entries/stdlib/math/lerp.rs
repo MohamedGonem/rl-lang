@@ -9,4 +9,6 @@ pub static LERP: FnEntry = FnEntry {
     errors: None,
     see_also: &["map_range", "clamp"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

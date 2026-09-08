@@ -11,4 +11,6 @@ dec arr[string] names = list_dir_names("src")?"#,
     errors: Some("Will return error if the directory cannot be read"),
     see_also: &["list_dir", "walk_dir"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

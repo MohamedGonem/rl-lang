@@ -11,4 +11,6 @@ dec handle server = result_unwrap(http_server_start("0.0.0.0:8080"))"#,
     errors: Some("Err(string) if the address can't be bound"),
     see_also: &["http_server_recv", "http_server_stop"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

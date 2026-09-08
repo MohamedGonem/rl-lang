@@ -22,4 +22,6 @@ dec handle textbox = result_unwrap(gui_textbox(window, "", 20, 20, 200))"#,
         "gui_set_pos",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

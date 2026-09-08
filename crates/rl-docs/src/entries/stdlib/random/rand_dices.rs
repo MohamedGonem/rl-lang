@@ -11,4 +11,6 @@ pub static RAND_DICES: FnEntry = FnEntry {
     ),
     see_also: &["rand_dice"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

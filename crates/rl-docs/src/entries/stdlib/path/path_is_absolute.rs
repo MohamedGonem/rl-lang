@@ -11,4 +11,6 @@ dec bool abs = path_is_absolute("/home/user")?"#,
     errors: None,
     see_also: &["path_is_relative"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

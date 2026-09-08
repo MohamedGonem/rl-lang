@@ -11,4 +11,6 @@ dec arr[byte] bytes = encode_utf8("Hello")?"#,
     errors: None,
     see_also: &["decode_utf8"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

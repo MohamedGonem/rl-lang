@@ -11,4 +11,6 @@ dec string a = arch()?"#,
     errors: None,
     see_also: &["os_name", "num_cpus"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

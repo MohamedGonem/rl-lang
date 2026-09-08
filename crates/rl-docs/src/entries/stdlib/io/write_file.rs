@@ -11,4 +11,6 @@ pub static WRITE_FILE: FnEntry = FnEntry {
     ),
     see_also: &["append_file", "read_file"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

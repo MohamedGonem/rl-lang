@@ -9,4 +9,6 @@ pub static RAND_BOOL_WEIGHTED: FnEntry = FnEntry {
     errors: None,
     see_also: &["rand_bool"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

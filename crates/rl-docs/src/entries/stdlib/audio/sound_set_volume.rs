@@ -13,4 +13,6 @@ result_unwrap(sound_set_volume(sound, 0.5))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["sound_get_volume", "set_master_volume"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

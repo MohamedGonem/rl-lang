@@ -11,4 +11,6 @@ term_get_size()?"#,
     errors: Some(r#"Will return error if retrieving the terminal size fails"#),
     see_also: &["term_set_size"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

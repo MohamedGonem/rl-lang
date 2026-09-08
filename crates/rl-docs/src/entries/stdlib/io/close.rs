@@ -13,4 +13,6 @@ close(file)?"#,
     errors: Some("Will return error if the handle is invalid"),
     see_also: &["open"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

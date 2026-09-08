@@ -9,4 +9,6 @@ pub static EXP: FnEntry = FnEntry {
     errors: None,
     see_also: &["pow", "log"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

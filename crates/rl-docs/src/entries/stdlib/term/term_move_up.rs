@@ -17,4 +17,6 @@ term_move_up(1)?"#,
     ),
     see_also: &["term_move_down"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

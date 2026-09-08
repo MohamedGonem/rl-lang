@@ -21,4 +21,6 @@ dec int index = result_unwrap(gui_get_selected_index(dropdown))"#,
         "gui_on_change",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

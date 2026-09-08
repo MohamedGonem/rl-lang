@@ -9,4 +9,6 @@ pub static ENDS_WITH: FnEntry = FnEntry {
     errors: None,
     see_also: &["starts_with", "contains"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -9,4 +9,6 @@ pub static CONTAINS: FnEntry = FnEntry {
     errors: None,
     see_also: &["starts_with", "ends_with", "index_of"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

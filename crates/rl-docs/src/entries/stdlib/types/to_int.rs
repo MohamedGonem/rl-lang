@@ -9,4 +9,6 @@ pub static TO_INT: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to int"),
     see_also: &["is_int"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

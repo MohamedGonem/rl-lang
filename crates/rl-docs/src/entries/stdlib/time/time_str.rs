@@ -11,4 +11,6 @@ format_time_str(1784305564)?"#,
     errors: Some("Will return error on negative timestamp"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

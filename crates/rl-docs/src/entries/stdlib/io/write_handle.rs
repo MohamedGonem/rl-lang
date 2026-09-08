@@ -15,4 +15,6 @@ close(file)?"#,
     errors: Some("Will return error if the handle is invalid or not open for writing"),
     see_also: &["read_handle", "flush"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

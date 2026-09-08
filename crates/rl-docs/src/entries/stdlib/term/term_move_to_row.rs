@@ -17,4 +17,6 @@ term_move_to_row(0)?"#,
     ),
     see_also: &["term_move_to_col", "term_move"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

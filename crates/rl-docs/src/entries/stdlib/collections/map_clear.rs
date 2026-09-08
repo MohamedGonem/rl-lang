@@ -9,4 +9,6 @@ pub static MAP_CLEAR: FnEntry = FnEntry {
     errors: Some("Will return error if `map` is not a map"),
     see_also: &["map_remove", "map_is_empty"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

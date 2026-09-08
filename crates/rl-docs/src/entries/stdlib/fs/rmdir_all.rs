@@ -17,4 +17,6 @@ rmdir_all("./build")?"#,
     ),
     see_also: &["rmdir", "mkdir"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

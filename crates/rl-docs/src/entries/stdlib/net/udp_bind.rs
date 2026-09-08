@@ -11,4 +11,6 @@ dec handle socket = result_unwrap(udp_bind("127.0.0.1:9000"))"#,
     errors: Some("Err(string) if the address can't be bound"),
     see_also: &["udp_recv_from", "udp_close"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

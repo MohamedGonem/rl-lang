@@ -22,4 +22,6 @@ gui_on_close(settings, fn() {
     ),
     see_also: &["gui_window", "gui_close", "gui_on_key"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

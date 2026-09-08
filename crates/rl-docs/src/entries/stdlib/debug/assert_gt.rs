@@ -11,4 +11,6 @@ assert_gt(2, 1)"#,
     errors: Some("raises a runtime error when `a <= b`, or when either argument is not numeric"),
     see_also: &["assert_ge", "assert_lt", "assert_le"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

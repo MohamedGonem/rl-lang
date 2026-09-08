@@ -11,4 +11,6 @@ dec string out = exec_with_stdin("cat", "hello world")?"#,
     errors: Some("Will return error on failed command run"),
     see_also: &["exec", "with_exec_with_stdin"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

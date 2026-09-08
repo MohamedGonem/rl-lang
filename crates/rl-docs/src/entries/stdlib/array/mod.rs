@@ -56,6 +56,8 @@ static ARR_CONCAT: FnEntry = FnEntry {
     ),
     see_also: &["arr_push", "arr_flatten"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_CONTAINS: FnEntry = FnEntry {
@@ -67,6 +69,8 @@ static ARR_CONTAINS: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["arr_index_of", "arr_find"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_COUNT: FnEntry = FnEntry {
@@ -78,6 +82,8 @@ static ARR_COUNT: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["len", "arr_is_empty"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FILL: FnEntry = FnEntry {
@@ -91,6 +97,8 @@ static ARR_FILL: FnEntry = FnEntry {
     ),
     see_also: &["arr_range"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FIRST: FnEntry = FnEntry {
@@ -104,6 +112,8 @@ static ARR_FIRST: FnEntry = FnEntry {
     ),
     see_also: &["arr_last"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FLATTEN: FnEntry = FnEntry {
@@ -115,6 +125,8 @@ static ARR_FLATTEN: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["arr_concat", "arr_flat_map"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_INDEX_OF: FnEntry = FnEntry {
@@ -126,6 +138,8 @@ static ARR_INDEX_OF: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["arr_contains", "arr_find_index"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_INSERT: FnEntry = FnEntry {
@@ -139,6 +153,8 @@ static ARR_INSERT: FnEntry = FnEntry {
     ),
     see_also: &["arr_push", "arr_remove"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_IS_EMPTY: FnEntry = FnEntry {
@@ -150,6 +166,8 @@ static ARR_IS_EMPTY: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["arr_count"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_LAST: FnEntry = FnEntry {
@@ -163,6 +181,8 @@ static ARR_LAST: FnEntry = FnEntry {
     ),
     see_also: &["arr_first"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_MAX: FnEntry = FnEntry {
@@ -176,6 +196,8 @@ static ARR_MAX: FnEntry = FnEntry {
     ),
     see_also: &["arr_min", "arr_sort"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_MIN: FnEntry = FnEntry {
@@ -189,6 +211,8 @@ static ARR_MIN: FnEntry = FnEntry {
     ),
     see_also: &["arr_max", "arr_sort"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_POP: FnEntry = FnEntry {
@@ -202,6 +226,8 @@ static ARR_POP: FnEntry = FnEntry {
     ),
     see_also: &["arr_push", "arr_remove"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_PRODUCT: FnEntry = FnEntry {
@@ -215,6 +241,8 @@ static ARR_PRODUCT: FnEntry = FnEntry {
     ),
     see_also: &["arr_sum"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_PUSH: FnEntry = FnEntry {
@@ -228,6 +256,8 @@ static ARR_PUSH: FnEntry = FnEntry {
     ),
     see_also: &["arr_pop", "arr_insert"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_RANGE: FnEntry = FnEntry {
@@ -239,6 +269,8 @@ static ARR_RANGE: FnEntry = FnEntry {
     errors: Some("Will return error if `step` is 0 or negative"),
     see_also: &["arr_fill"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_REMOVE: FnEntry = FnEntry {
@@ -252,6 +284,8 @@ static ARR_REMOVE: FnEntry = FnEntry {
     ),
     see_also: &["arr_insert", "arr_pop"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_REVERSE: FnEntry = FnEntry {
@@ -263,6 +297,8 @@ static ARR_REVERSE: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &["arr_sort"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_SLICE: FnEntry = FnEntry {
@@ -276,6 +312,8 @@ static ARR_SLICE: FnEntry = FnEntry {
     ),
     see_also: &["arr_slice"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_SORT: FnEntry = FnEntry {
@@ -289,6 +327,8 @@ static ARR_SORT: FnEntry = FnEntry {
     ),
     see_also: &["arr_sort_by", "arr_max", "arr_min"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_SUM: FnEntry = FnEntry {
@@ -302,6 +342,8 @@ static ARR_SUM: FnEntry = FnEntry {
     ),
     see_also: &["arr_product"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_UNIQUE: FnEntry = FnEntry {
@@ -313,6 +355,8 @@ static ARR_UNIQUE: FnEntry = FnEntry {
     errors: Some("Will return error if `arr` is not an array"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LEN: FnEntry = FnEntry {
@@ -326,6 +370,8 @@ static LEN: FnEntry = FnEntry {
     ),
     see_also: &["arr_count", "arr_is_empty"],
     since: Some("v0.1.5"),
+    deprecated: Some("moved to std::len"),
+    updated: Some("v0.1.5"),
 };
 
 static ARR_ALL: FnEntry = FnEntry {
@@ -339,6 +385,8 @@ static ARR_ALL: FnEntry = FnEntry {
     ),
     see_also: &["arr_any", "arr_filter"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_ANY: FnEntry = FnEntry {
@@ -352,6 +400,8 @@ static ARR_ANY: FnEntry = FnEntry {
     ),
     see_also: &["arr_all", "arr_find"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FILTER: FnEntry = FnEntry {
@@ -365,6 +415,8 @@ static ARR_FILTER: FnEntry = FnEntry {
     ),
     see_also: &["arr_map", "arr_find"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FIND: FnEntry = FnEntry {
@@ -378,6 +430,8 @@ static ARR_FIND: FnEntry = FnEntry {
     ),
     see_also: &["arr_find_index", "arr_filter"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FIND_INDEX: FnEntry = FnEntry {
@@ -391,6 +445,8 @@ static ARR_FIND_INDEX: FnEntry = FnEntry {
     ),
     see_also: &["arr_find", "arr_index_of"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FLAT_MAP: FnEntry = FnEntry {
@@ -404,6 +460,8 @@ static ARR_FLAT_MAP: FnEntry = FnEntry {
     ),
     see_also: &["arr_map", "arr_flatten"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_FOR_EACH: FnEntry = FnEntry {
@@ -417,6 +475,8 @@ static ARR_FOR_EACH: FnEntry = FnEntry {
     ),
     see_also: &["arr_map"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_MAP: FnEntry = FnEntry {
@@ -430,6 +490,8 @@ static ARR_MAP: FnEntry = FnEntry {
     ),
     see_also: &["arr_filter", "arr_flat_map", "arr_reduce"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_REDUCE: FnEntry = FnEntry {
@@ -443,6 +505,8 @@ static ARR_REDUCE: FnEntry = FnEntry {
     ),
     see_also: &["arr_map", "arr_sum"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_SORT_BY: FnEntry = FnEntry {
@@ -456,6 +520,8 @@ static ARR_SORT_BY: FnEntry = FnEntry {
     ),
     see_also: &["arr_sort"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static ARR_ZIP: FnEntry = FnEntry {
@@ -469,4 +535,6 @@ static ARR_ZIP: FnEntry = FnEntry {
     ),
     see_also: &["arr_map", "arr_concat"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

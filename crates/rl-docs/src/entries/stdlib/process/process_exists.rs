@@ -13,4 +13,6 @@ dec bool alive = process_exists(pid)?"#,
     errors: None,
     see_also: &["pid", "parent_pid", "wait_pid"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

@@ -9,4 +9,6 @@ pub static RAND_CHAR: FnEntry = FnEntry {
     errors: None,
     see_also: &["rand_string"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

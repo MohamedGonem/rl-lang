@@ -11,6 +11,8 @@ pub static READ_FLOAT: FnEntry = FnEntry {
     ),
     see_also: &["read", "read_int"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 pub static READ_FLOAT_PROMPT: FnEntry = FnEntry {
@@ -24,4 +26,6 @@ pub static READ_FLOAT_PROMPT: FnEntry = FnEntry {
     ),
     see_also: &["read", "read_int"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

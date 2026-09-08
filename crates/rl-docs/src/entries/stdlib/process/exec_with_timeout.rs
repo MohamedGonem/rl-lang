@@ -11,4 +11,6 @@ dec string out = exec_with_timeout("echo done", 5000)?"#,
     errors: Some("Will return error on timeout or failed command run"),
     see_also: &["exec", "exec_background"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

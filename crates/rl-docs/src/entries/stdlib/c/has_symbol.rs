@@ -12,4 +12,6 @@ dec bool found = result_unwrap(has_symbol(h, "sqrt"))"#,
     errors: Some("err(string) if `handle` is unknown"),
     see_also: &["compile", "load", "call", "close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

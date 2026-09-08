@@ -11,4 +11,6 @@ pub static CHAR_AT: FnEntry = FnEntry {
     ),
     see_also: &["chars", "slice"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -11,4 +11,6 @@ term_clear_line()?"#,
     errors: Some(r#"Will return error if writing the clear sequence to stdout fails"#),
     see_also: &["term_clear"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -11,4 +11,6 @@ dec int ppid = parent_pid()?"#,
     errors: None,
     see_also: &["pid", "process_exists"],
     since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

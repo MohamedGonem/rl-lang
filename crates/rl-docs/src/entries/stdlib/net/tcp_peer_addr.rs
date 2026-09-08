@@ -13,4 +13,6 @@ tcp_peer_addr(stream)"#,
     errors: Some("Err(string) if the stream has no peer address available"),
     see_also: &["tcp_local_addr"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

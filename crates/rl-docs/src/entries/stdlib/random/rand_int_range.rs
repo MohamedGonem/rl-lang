@@ -9,4 +9,6 @@ pub static RAND_INT_RANGE: FnEntry = FnEntry {
     errors: Some("Will return error if `min` is greater than or equal to `max`"),
     see_also: &["rand_int", "rand_range"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

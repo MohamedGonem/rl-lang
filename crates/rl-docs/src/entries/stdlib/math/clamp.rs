@@ -16,4 +16,6 @@ clamp(12, 15, 20)?"#,
     ),
     see_also: &["min", "max"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
