@@ -124,9 +124,12 @@ impl TypeChecker {
                     return_type: return_type.clone(),
                 };
                 self.declare(name.clone(), fn_type, false, statement.span);
-                // Entry functions are called by the runtime, not user code —
-                // mark as used to suppress unused warnings.
-                if matches!(attribute, Some(FunctionAttribute::Entry)) {
+                // Runtime-called attributes: these are invoked by the runtime,
+                // not user code — mark as used to suppress unused warnings.
+                if matches!(
+                    attribute,
+                    Some(FunctionAttribute::Entry | FunctionAttribute::Init(_) | FunctionAttribute::Final(_) | FunctionAttribute::Test)
+                ) {
                     if let Some(scope) = self.scopes.last_mut() {
                         if let Some(item) = scope.get_mut(name) {
                             item.used = true;
