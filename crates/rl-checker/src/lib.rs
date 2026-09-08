@@ -76,7 +76,18 @@ impl TypeChecker {
             conversions: crate::units::ConversionTable::default(),
             allow_stack: Vec::new(),
             has_explicit_entry: false,
+            deprecated_stdlib: Self::build_deprecated_stdlib_map(),
         }
+    }
+
+    /// Builds the map of deprecated stdlib function paths to their messages.
+    fn build_deprecated_stdlib_map() -> HashMap<Vec<String>, String> {
+        let mut m = HashMap::new();
+        m.insert(
+            vec!["std".into(), "array".into(), "len".into()],
+            "use std::len instead".into(),
+        );
+        m
     }
 
     // functions for source file for ariadne

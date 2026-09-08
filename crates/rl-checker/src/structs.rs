@@ -32,6 +32,8 @@ pub struct TypeChecker {
     /// signature, for fast single-name lookup (`print` vs `std::io::print`).
     pub stdlib_fn_names: HashMap<String, rl_commons::StdFn>,
     pub imported_std_fns: HashMap<String, rl_commons::StdFn>,
+    /// Stdlib function deprecation map: full path -> deprecation message.
+    pub deprecated_stdlib: HashMap<Vec<String>, String>,
     /// `(span, markdown)` pairs collected at every declaration and usage site,
     /// consumed by the LSP hover provider.
     pub hovers: Vec<(Span, String)>,

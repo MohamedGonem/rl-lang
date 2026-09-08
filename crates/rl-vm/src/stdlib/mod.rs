@@ -26,6 +26,7 @@ pub fn root() -> Module {
                 Module::from_std("array", rl_std::array::handles::<VmRuntime>())
                     .with_function("len", len::std_len),
             )
+            .with_function("len", len::std_len)
             .with_module(Module::from_std("c", rl_std::c::handles::<VmRuntime>()))
             .with_module(Module::from_std(
                 "audio",

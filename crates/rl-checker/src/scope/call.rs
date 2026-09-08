@@ -2,7 +2,7 @@
 
 use crate::structs::{CheckType, TypeChecker};
 use crate::types::{has_generic, substitute, unify_arg};
-use rl_ast::statements::TypeAnnotation;
+use rl_ast::statements::{Lint, TypeAnnotation};
 use rl_commons::{StdFn, keywords};
 use rl_utils::{span::Span, suggest::closest_match};
 use std::collections::HashMap;
@@ -38,6 +38,18 @@ impl TypeChecker {
         // stdlib path (std::io::print)
         if let Some(f) = self.root_module.resolve(path).cloned() {
             self.push_stdlib_hover(path, span);
+            // Check for deprecated stdlib functions
+            if let Some(msg) = self.deprecated_stdlib.get(path) {
+                let fn_name = path.join("::");
+                let text = format!("'{}' is deprecated: {}", fn_name, msg);
+                if !self
+                    .allow_stack
+                    .last()
+                    .map_or(false, |s| s.contains(&Lint::Deprecated))
+                {
+                    self.warn_lint(Lint::Deprecated, text, span);
+                }
+            }
             return self.check_stdlib_call(&f, arg_types, span);
         }
 
