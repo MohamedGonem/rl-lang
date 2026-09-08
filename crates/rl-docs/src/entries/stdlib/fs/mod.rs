@@ -1,6 +1,8 @@
 use crate::entry::{FnEntry, StdEntry};
 
+mod append_file;
 mod copy_file;
+mod delete_file;
 mod file_accessed;
 mod file_created;
 mod file_modified;
@@ -14,8 +16,17 @@ mod lock_file;
 mod mkdir;
 mod mkdir_all;
 mod move_file;
-mod realpath;
+mod path_absolute;
+mod path_canonicalize;
+mod path_expand_home;
+mod path_exists;
+mod path_is_dir;
+mod path_is_file;
+mod read_bytes;
+mod read_file;
+mod read_lines;
 mod readlink;
+mod realpath;
 mod rename_file;
 mod rmdir;
 mod rmdir_all;
@@ -28,6 +39,7 @@ mod touch;
 mod truncate_file;
 mod unlock_file;
 mod walk_dir;
+mod write_file;
 
 pub static FS: StdEntry = StdEntry {
     name: "fs",
@@ -38,7 +50,9 @@ pub static FS: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
+    &append_file::APPEND_FILE,
     &copy_file::COPY_FILE,
+    &delete_file::DELETE_FILE,
     &file_accessed::FILE_ACCESSED,
     &file_created::FILE_CREATED,
     &file_modified::FILE_MODIFIED,
@@ -52,6 +66,15 @@ static FUNCTIONS: &[&FnEntry] = &[
     &mkdir::MKDIR,
     &mkdir_all::MKDIR_ALL,
     &move_file::MOVE_FILE,
+    &path_absolute::PATH_ABSOLUTE,
+    &path_canonicalize::PATH_CANONICALIZE,
+    &path_expand_home::PATH_EXPAND_HOME,
+    &path_exists::PATH_EXISTS,
+    &path_is_dir::PATH_IS_DIR,
+    &path_is_file::PATH_IS_FILE,
+    &read_bytes::READ_BYTES,
+    &read_file::READ_FILE,
+    &read_lines::READ_LINES,
     &readlink::READLINK,
     &realpath::REALPATH,
     &rename_file::RENAME_FILE,
@@ -66,4 +89,5 @@ static FUNCTIONS: &[&FnEntry] = &[
     &truncate_file::TRUNCATE_FILE,
     &unlock_file::UNLOCK_FILE,
     &walk_dir::WALK_DIR,
+    &write_file::WRITE_FILE,
 ];
