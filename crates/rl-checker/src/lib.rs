@@ -124,6 +124,15 @@ impl TypeChecker {
                     return_type: return_type.clone(),
                 };
                 self.declare(name.clone(), fn_type, false, statement.span);
+                // Entry functions are called by the runtime, not user code —
+                // mark as used to suppress unused warnings.
+                if matches!(attribute, Some(FunctionAttribute::Entry)) {
+                    if let Some(scope) = self.scopes.last_mut() {
+                        if let Some(item) = scope.get_mut(name) {
+                            item.used = true;
+                        }
+                    }
+                }
             }
             if let StatementKind::RecordDeclaration { name, fields } = &statement.kind {
                 self.records.insert(name.clone(), fields.clone());

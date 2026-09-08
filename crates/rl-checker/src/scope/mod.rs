@@ -10,6 +10,13 @@ use rl_utils::{span::Span, suggest::closest_match};
 
 use std::collections::HashMap;
 
+/// Returns "function" or "variable" depending on the item's type.
+fn unused_kind(item: &crate::structs::ScopeItem) -> &'static str {
+    matches!(item.type_annotation, CheckType::Function { .. })
+        .then(|| "function")
+        .unwrap_or("variable")
+}
+
 impl TypeChecker {
     /// Pushes a new empty scope onto the scope stack.
     pub fn push_scope(&mut self) {
@@ -22,7 +29,8 @@ impl TypeChecker {
                 if !item.used && !item.is_const && !name.starts_with('_')
                     && !item.suppressed_lints.contains(&Lint::Unused)
                 {
-                    self.warn_lint(Lint::Unused, format!("unused variable '{}'", name), item.decl_span);
+                    let kind = unused_kind(item);
+                    self.warn_lint(Lint::Unused, format!("unused {} '{}'", kind, name), item.decl_span);
                 }
             }
         }
@@ -33,7 +41,7 @@ impl TypeChecker {
     /// are reported while the scope remains available for post-check inspection.
     pub fn report_unused_in_root_scope(&mut self) {
         if let Some(scope) = self.scopes.first() {
-            let unused: Vec<(String, Span)> = scope
+            let unused: Vec<(String, Span, &str)> = scope
                 .iter()
                 .filter(|(name, item)| {
                     if !item.used && !item.is_const && !name.starts_with('_')
@@ -49,10 +57,10 @@ impl TypeChecker {
                         false
                     }
                 })
-                .map(|(name, item)| (name.clone(), item.decl_span))
+                .map(|(name, item)| (name.clone(), item.decl_span, unused_kind(item)))
                 .collect();
-            for (name, span) in unused {
-                self.warn_lint(Lint::Unused, format!("unused variable '{}'", name), span);
+            for (name, span, kind) in unused {
+                self.warn_lint(Lint::Unused, format!("unused {} '{}'", kind, name), span);
             }
         }
     }
