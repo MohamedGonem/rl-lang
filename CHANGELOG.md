@@ -6,6 +6,17 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Added
 
+- **Warning severity system** - the type-checker now emits warnings (yellow) that don't block execution, separate from errors (red) that do. Warnings are reported via `checker.warnings` alongside `checker.errors`, and include colored output with `[Warning: ...]` labels.
+- **Unused variable/function warnings** - the checker reports unused variables and functions at the end of scope. Functions with `!#[entry]`, `!#[init]`, `!#[final]`, or `!#[test]` attributes are automatically marked as used. When no `!#[entry]` exists, `main` is treated as the implicit entry point and won't warn.
+- **`!#[allow(unused)]`** - suppresses unused variable/function warnings for the annotated declaration. Works on `dec`, `const`, and `fn` declarations.
+- **`!#[deprecated("msg")]`** - marks variables, constants, and functions as deprecated. Using a deprecated item emits a yellow warning. Works on user-defined items and stdlib functions. `!#[deprecated]` (without message) also works.
+- **`!#[allow(deprecated)]`** - suppresses deprecation warnings for the annotated declaration or scope.
+- **`std::len`** - new top-level stdlib function for getting the length of strings, arrays, and tuples. `std::array::len` is now deprecated in favor of `std::len`.
+- **Stdlib deprecation checking** - the checker warns when calling deprecated stdlib functions (e.g. `std::array::len`). The deprecation map is in `rl-checker/src/lib.rs`.
+- **`deprecated` and `updated` fields for doc entries** - `FnEntry` now has `deprecated: Option<&str>` and `updated: Option<&str>` fields. The markdown and HTML doc renderers display deprecation notices and version metadata.
+
+### Changed
+
 - **Arabic keyword aliases** - all 38 language keywords have Arabic equivalents (e.g. `دالة` for `fn`, `لكل` for `for`, `بينما` for `while`, `أرجع` for `return`). The lexer accepts either form; identifiers may freely mix Arabic and Latin characters (e.g. `اسم_المتغير`).
 - **Pipe operator `|>`** - new infix operator that desugars `a |> f(args)` into `a.f(args)`. The left-hand side becomes the receiver of the method call. Chaining is supported: `a |> f() |> g()` becomes `a.f().g()`.
 - **Optional semicolons** - statements can now optionally end with `;`. Semicolons are silently consumed by the parser, so `dec int x = 10;` and `dec int x = 10` are both valid.
