@@ -19,6 +19,7 @@ pub fn stdlib_entries() -> Vec<&'static StdEntry> {
         &stdlib::gui::GUI,
         &stdlib::http::HTTP,
         &stdlib::io::IO,
+        &stdlib::len::LEN,
         &stdlib::math::MATH,
         &stdlib::math_consts::MATH_CONSTS,
         &stdlib::net::NET,
