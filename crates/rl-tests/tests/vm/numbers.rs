@@ -127,3 +127,99 @@ fn convert_attribute_is_discarded_before_runtime() {
 
     assert_eq!(result, VmValue::Float(2.5));
 }
+
+#[test]
+fn suffix_u8_literal() {
+    let result = common::compile_and_run("10_u8").expect("vm run failed");
+    assert_eq!(result, VmValue::Byte(10));
+}
+
+#[test]
+fn suffix_i8_literal() {
+    let result = common::compile_and_run("10_i8").expect("vm run failed");
+    assert_eq!(result, VmValue::SByte(10));
+}
+
+#[test]
+fn suffix_u16_literal() {
+    let result = common::compile_and_run("1000_u16").expect("vm run failed");
+    assert_eq!(result, VmValue::BByte(1000));
+}
+
+#[test]
+fn suffix_i16_literal() {
+    let result = common::compile_and_run("1000_i16").expect("vm run failed");
+    assert_eq!(result, VmValue::BSByte(1000));
+}
+
+#[test]
+fn suffix_i32_literal() {
+    let result = common::compile_and_run("100_i32").expect("vm run failed");
+    assert_eq!(result, VmValue::SInt(100));
+}
+
+#[test]
+fn suffix_u32_literal() {
+    let result = common::compile_and_run("100_u32").expect("vm run failed");
+    assert_eq!(result, VmValue::SUInt(100));
+}
+
+#[test]
+fn suffix_f32_literal() {
+    let result = common::compile_and_run("3.14_f32").expect("vm run failed");
+    assert!(matches!(result, VmValue::SFloat(v) if (v - 3.14).abs() < 0.001));
+}
+
+#[test]
+fn suffix_i64_literal() {
+    let result = common::compile_and_run("100_i64").expect("vm run failed");
+    assert_eq!(result, VmValue::Int(100));
+}
+
+#[test]
+fn suffix_u64_literal() {
+    let result = common::compile_and_run("100_u64").expect("vm run failed");
+    assert_eq!(result, VmValue::UInt(100));
+}
+
+#[test]
+fn suffix_f64_literal() {
+    let result = common::compile_and_run("3.14_f64").expect("vm run failed");
+    assert_eq!(result, VmValue::Float(3.14));
+}
+
+#[test]
+fn suffix_u8_arithmetic() {
+    let result = common::compile_and_run("10_u8 + 5_u8").expect("vm run failed");
+    assert_eq!(result, VmValue::Byte(15));
+}
+
+#[test]
+fn suffix_i64_arithmetic() {
+    let result = common::compile_and_run("100_i64 + 50_i64").expect("vm run failed");
+    assert_eq!(result, VmValue::Int(150));
+}
+
+#[test]
+fn suffix_u8_overflow_is_error() {
+    assert!(common::compile_and_run("255_u8 + 1_u8").is_err());
+}
+
+#[test]
+fn suffix_sbyte_negative() {
+    let result = common::compile_and_run("-10_i8").expect("vm run failed");
+    assert_eq!(result, VmValue::SByte(-10));
+}
+
+#[test]
+fn suffix_matches_as_cast() {
+    let result = common::compile_and_run(
+        r#"
+dec byte a = 10_u8
+dec byte b = 10 as byte
+a == b
+"#,
+    )
+    .expect("vm run failed");
+    assert_eq!(result, VmValue::Bool(true));
+}
