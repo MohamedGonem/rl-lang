@@ -28,7 +28,7 @@ pub mod units;
 use crate::structs::CheckType;
 use rl_ast::{
     Ast,
-    statements::{ProgramAttribute, Statement, StatementKind},
+    statements::{Lint, ProgramAttribute, Statement, StatementKind},
 };
 use rl_docs::find_fn_doc;
 use rl_utils::{
@@ -74,6 +74,7 @@ impl TypeChecker {
             tags: HashMap::new(),
             methods: HashMap::new(),
             conversions: crate::units::ConversionTable::default(),
+            allow_stack: Vec::new(),
         }
     }
 
@@ -155,6 +156,15 @@ impl TypeChecker {
     pub fn warn(&mut self, message: impl Into<String>, span: Span) {
         self.warnings
             .push(self.err(message.into(), span).as_warning());
+    }
+
+    /// Emits a warning only if the given `lint` is not suppressed by an
+    /// enclosing `!#[allow(...)]` attribute.
+    pub fn warn_lint(&mut self, lint: Lint, message: impl Into<String>, span: Span) {
+        let suppressed = self.allow_stack.iter().any(|set| set.contains(&lint));
+        if !suppressed {
+            self.warn(message, span);
+        }
     }
 
     // transforms arguments into Error type

@@ -13,7 +13,7 @@
 //! preceded by a `!#[entry]` attribute, marking it as the program entry point.
 
 use crate::parser_logic::Parser;
-use rl_ast::statements::{FunctionAttribute, Param, Statement, StatementKind, TypeAnnotation};
+use rl_ast::statements::{FunctionAttribute, ItemAttribute, Param, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::{errors::Error, span::Span};
 
@@ -46,6 +46,7 @@ impl Parser {
         &mut self,
         start: Span,
         attribute: Option<FunctionAttribute>,
+        item_attributes: Vec<ItemAttribute>,
     ) -> Result<Statement, Error> {
         let name = match self.peek() {
             TokenType::Identifier(n) => {
@@ -96,6 +97,7 @@ impl Parser {
                 return_type,
                 body,
                 attribute,
+                item_attributes,
             },
             span,
         ))

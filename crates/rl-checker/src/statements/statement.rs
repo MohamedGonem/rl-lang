@@ -4,14 +4,58 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use crate::{TypeChecker, structs::CheckType, units::Unit};
-use rl_ast::statements::{MatchPattern, Statement, StatementKind, TypeAnnotation};
+use rl_ast::statements::{ItemAttribute, Lint, MatchPattern, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::{source::SourceFile, span::Span};
 
 impl TypeChecker {
+    /// Collects `Lint` values from a statement's `item_attributes`.
+    fn collect_allowed_lints(stmt: &Statement) -> HashSet<Lint> {
+        let mut lints = HashSet::new();
+        let attrs = match &stmt.kind {
+            StatementKind::VariableDeclaration { item_attributes, .. } => item_attributes,
+            StatementKind::ConstantDeclaration { item_attributes, .. } => item_attributes,
+            StatementKind::FunctionDeclaration { item_attributes, .. } => item_attributes,
+            _ => return lints,
+        };
+        for attr in attrs {
+            if let ItemAttribute::Allow(lints_vec) = attr {
+                lints.extend(lints_vec);
+            }
+        }
+        lints
+    }
+
     // checks the current statement and push errors via error() if any found
     pub fn check_statement(&mut self, statement: &Statement) {
+        let allowed = Self::collect_allowed_lints(statement);
+        let pushed = !allowed.is_empty();
+        if pushed {
+            self.allow_stack.push(allowed.clone());
+        }
+
+        self.check_statement_inner(statement);
+
+        // For variable/constant declarations, attach suppressed lints to the
+        // scope item so unused-variable checks can honour them later.
+        if !allowed.is_empty() {
+            let name = match &statement.kind {
+                StatementKind::VariableDeclaration { name, .. } => Some(name.as_str()),
+                StatementKind::ConstantDeclaration { name, .. } => Some(name.as_str()),
+                _ => None,
+            };
+            if let Some(n) = name {
+                self.set_suppressed_lints_for_last_declared(n, allowed);
+            }
+        }
+
+        if pushed {
+            self.allow_stack.pop();
+        }
+    }
+
+    fn check_statement_inner(&mut self, statement: &Statement) {
         match &statement.kind {
             // checks if the type null or same type then declare it as variable
             // otherwise pushs error
@@ -20,6 +64,7 @@ impl TypeChecker {
                 type_annotation,
                 unit_annotation,
                 value,
+                item_attributes: _,
             } => {
                 let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                 let value_typed = self.check_expression_typed(*value);
@@ -112,6 +157,7 @@ impl TypeChecker {
                 type_annotation,
                 unit_annotation,
                 value,
+                item_attributes: _,
             } => {
                 let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                 let value_typed = self.check_expression_typed(*value).into_const();
@@ -874,6 +920,7 @@ impl TypeChecker {
                     type_annotation,
                     unit_annotation,
                     value,
+                    item_attributes: _,
                 } if wanted(name) => {
                     let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                     let declared = if *type_annotation == TypeAnnotation::Infer {

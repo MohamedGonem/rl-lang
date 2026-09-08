@@ -143,6 +143,7 @@ impl Parser {
                 return_type,
                 body,
                 attribute: None as Option<FunctionAttribute>,
+                item_attributes: Vec::new(),
             },
             span,
         ))

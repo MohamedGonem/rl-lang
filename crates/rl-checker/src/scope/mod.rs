@@ -5,6 +5,7 @@ mod call;
 mod declare;
 
 use crate::structs::{CheckType, CheckedExpr, TypeChecker};
+use rl_ast::statements::Lint;
 use rl_utils::{span::Span, suggest::closest_match};
 
 use std::collections::HashMap;
@@ -18,8 +19,10 @@ impl TypeChecker {
     pub fn pop_scope(&mut self) {
         if let Some(scope) = self.scopes.pop() {
             for (name, item) in scope.iter() {
-                if !item.used && !item.is_const && !name.starts_with('_') {
-                    self.warn(format!("unused variable '{}'", name), item.decl_span);
+                if !item.used && !item.is_const && !name.starts_with('_')
+                    && !item.suppressed_lints.contains(&Lint::Unused)
+                {
+                    self.warn_lint(Lint::Unused, format!("unused variable '{}'", name), item.decl_span);
                 }
             }
         }
@@ -32,11 +35,14 @@ impl TypeChecker {
         if let Some(scope) = self.scopes.first() {
             let unused: Vec<(String, Span)> = scope
                 .iter()
-                .filter(|(name, item)| !item.used && !item.is_const && !name.starts_with('_'))
+                .filter(|(name, item)| {
+                    !item.used && !item.is_const && !name.starts_with('_')
+                        && !item.suppressed_lints.contains(&Lint::Unused)
+                })
                 .map(|(name, item)| (name.clone(), item.decl_span))
                 .collect();
             for (name, span) in unused {
-                self.warn(format!("unused variable '{}'", name), span);
+                self.warn_lint(Lint::Unused, format!("unused variable '{}'", name), span);
             }
         }
     }

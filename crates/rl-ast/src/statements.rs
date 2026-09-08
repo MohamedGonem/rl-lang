@@ -85,6 +85,8 @@ pub enum StatementKind {
         /// Compile-time-only unit annotation (`dec float speed: m/s = ...`).
         /// Discarded by the resolver before execution.
         unit_annotation: Option<UnitAnnotation>,
+        /// Item-level attributes (e.g. `!#[allow(unused)]`).
+        item_attributes: Vec<ItemAttribute>,
     },
     /// Resolver-annotated mutable variable declaration. `slot` is the index
     /// in the current environment frame.
@@ -102,6 +104,8 @@ pub enum StatementKind {
         /// Compile-time-only unit annotation (`const float SPEED: m/s = 12.5`).
         /// Discarded by the resolver before execution.
         unit_annotation: Option<UnitAnnotation>,
+        /// Item-level attributes (e.g. `!#[allow(unused)]`).
+        item_attributes: Vec<ItemAttribute>,
     },
     /// Resolver-annotated constant declaration.
     ResolvedConstantDeclaration {
@@ -261,6 +265,8 @@ pub enum StatementKind {
         body: Vec<Statement>,
         /// `true` when the function is marked with `!#[entry]`.
         attribute: Option<FunctionAttribute>,
+        /// Item-level attributes (e.g. `!#[allow(unused)]`).
+        item_attributes: Vec<ItemAttribute>,
     },
     /// Resolver-annotated function declaration. `slot` is the function's
     /// index in the current environment frame.
@@ -362,6 +368,23 @@ pub enum FunctionAttribute {
     /// `!#[final]` (no priority) or `!#[final=n]` (same ordering as `init`).
     Final(Option<u32>),
     Test,
+}
+
+/// A lint name recognized by `!#[allow(...)]`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Lint {
+    Unused,
+    Deprecated,
+}
+
+/// A general item-level attribute — as opposed to [`FunctionAttribute`], which
+/// only covers the four function-lifecycle markers (`entry`/`init`/`final`/`test`).
+/// Attached to whichever `fn`/`dec`/`const` immediately follows it.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ItemAttribute {
+    /// `!#[allow(unused)]`, `!#[allow(deprecated)]`, or both:
+    /// `!#[allow(unused, deprecated)]`
+    Allow(Vec<Lint>),
 }
 
 /// The type of a variable, constant, or parameter binding.

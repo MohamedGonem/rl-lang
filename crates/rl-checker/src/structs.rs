@@ -1,7 +1,10 @@
 //! Core data structures for the type checker.
 //!
 use crate::units::{ConversionTable, Unit};
-use rl_ast::{Ast, statements::TypeAnnotation};
+use rl_ast::{
+    Ast,
+    statements::{Lint, TypeAnnotation},
+};
 use rl_commons::ModuleNames;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
 use std::{
@@ -55,6 +58,8 @@ pub struct TypeChecker {
     /// Conversion registry built from `#![convert(symbol=factor(base))]`
     /// program attributes, used to treat convertible unit symbols as equal.
     pub conversions: ConversionTable,
+    /// Stack of suppressed lints, pushed/popped around attributed statements.
+    pub allow_stack: Vec<HashSet<Lint>>,
 }
 
 /// A single entry in a type checker scope.
@@ -68,6 +73,8 @@ pub struct ScopeItem {
     pub is_const: bool,
     pub decl_span: Span,
     pub used: bool,
+    /// Lints suppressed for this binding (e.g. `!#[allow(unused)]`).
+    pub suppressed_lints: HashSet<Lint>,
 }
 
 /// The type of a value as seen by the static checker.

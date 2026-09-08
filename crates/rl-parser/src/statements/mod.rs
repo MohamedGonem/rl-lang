@@ -25,7 +25,7 @@ mod while_statement;
 use crate::parser_logic::Parser;
 use rl_ast::{
     nodes::ExpressionKind,
-    statements::{FunctionAttribute, Statement, StatementKind},
+    statements::{FunctionAttribute, ItemAttribute, Lint, Statement, StatementKind},
 };
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::{errors::Error, span::Span};
@@ -136,7 +136,7 @@ impl Parser {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found 'fn' while parsing");
-                self.parse_function(start, None)?
+                self.parse_function(start, None, Vec::new())?
             }
 
             TokenType::BangHash => {
@@ -255,47 +255,144 @@ impl Parser {
 
         while self.match_type(&[TokenType::Newline]) {}
 
-        let attribute = match self.peek() {
-            TokenType::Identifier(name) if name == "entry" => {
-                self.advance();
-                if self.check(&TokenType::Assign) {
-                    return Err(self.err("`!#[entry]` does not take a priority", self.peek_span()));
+        let mut function_attr: Option<FunctionAttribute> = None;
+        let mut item_attrs: Vec<ItemAttribute> = Vec::new();
+
+        loop {
+            match self.peek() {
+                // existing function lifecycle attributes
+                TokenType::Identifier(name) if name == "entry" => {
+                    self.advance();
+                    if self.check(&TokenType::Assign) {
+                        return Err(self.err("`!#[entry]` does not take a priority", self.peek_span()));
+                    }
+                    function_attr = Some(FunctionAttribute::Entry);
                 }
-                FunctionAttribute::Entry
-            }
-            TokenType::Identifier(name) if name == "init" => {
-                self.advance();
-                FunctionAttribute::Init(self.parse_optional_priority()?)
-            }
-            TokenType::Identifier(name) if name == "final" => {
-                self.advance();
-                FunctionAttribute::Final(self.parse_optional_priority()?)
-            }
-            TokenType::Identifier(name) if name == "test" => {
-                self.advance();
-                if self.check(&TokenType::Assign) {
-                    return Err(self.err("`!#[test]` does not take a priority", self.peek_span()));
+                TokenType::Identifier(name) if name == "init" => {
+                    self.advance();
+                    function_attr = Some(FunctionAttribute::Init(self.parse_optional_priority()?));
                 }
-                FunctionAttribute::Test
+                TokenType::Identifier(name) if name == "final" => {
+                    self.advance();
+                    function_attr = Some(FunctionAttribute::Final(self.parse_optional_priority()?));
+                }
+                TokenType::Identifier(name) if name == "test" => {
+                    self.advance();
+                    if self.check(&TokenType::Assign) {
+                        return Err(self.err("`!#[test]` does not take a priority", self.peek_span()));
+                    }
+                    function_attr = Some(FunctionAttribute::Test);
+                }
+                // new: allow(unused, deprecated, ...)
+                TokenType::Identifier(name) if name == "allow" => {
+                    self.advance();
+                    let lints = self.parse_lint_list()?;
+                    item_attrs.push(ItemAttribute::Allow(lints));
+                }
+                _ => return Err(self.err("expected valid attribute", self.peek_span())),
             }
-            _ => return Err(self.err("expected valid attribute", self.peek_span())),
-        };
+
+            while self.match_type(&[TokenType::Newline]) {}
+            if self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                continue;
+            }
+            break;
+        }
 
         while self.match_type(&[TokenType::Newline]) {}
 
         if !self.match_type(&[TokenType::RightBracket]) {
-            return Err(self.err("expected `]` after entry attribute", self.peek_span()));
+            return Err(self.err("expected `]` after attribute", self.peek_span()));
         }
 
         while self.match_type(&[TokenType::Newline]) {}
 
-        if !self.match_type(&[TokenType::Fn]) {
-            return Err(self.err(
-                "expected function declaration after `!#[<attribute>]`",
+        // dispatch on whichever item follows
+        match self.peek() {
+            TokenType::Fn => {
+                self.advance();
+                self.parse_function(start, function_attr, item_attrs)
+            }
+            TokenType::Dec => {
+                self.advance();
+                let is_inferred = if let TokenType::Identifier(name) = self.peek() {
+                    !self.record_names.contains(&name) && !self.tag_names.contains(&name)
+                } else {
+                    false
+                };
+                let mut stmt = if is_inferred {
+                    self.parse_infer_declaration(start)?
+                } else {
+                    self.parse_variable_declartion(start)?
+                };
+                Self::inject_item_attributes(&mut stmt, item_attrs);
+                Ok(stmt)
+            }
+            TokenType::Const => {
+                self.advance();
+                let mut stmt = self.parse_const_declartion(start)?;
+                Self::inject_item_attributes(&mut stmt, item_attrs);
+                Ok(stmt)
+            }
+            _ => Err(self.err(
+                "expected fn, dec, or const after `!#[...]`",
                 self.peek_span(),
-            ));
+            )),
         }
-        self.parse_function(start, Some(attribute))
+    }
+
+    /// Injects `item_attributes` into the returned statement's kind.
+    fn inject_item_attributes(stmt: &mut Statement, attrs: Vec<ItemAttribute>) {
+        if attrs.is_empty() {
+            return;
+        }
+        match &mut stmt.kind {
+            StatementKind::VariableDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            StatementKind::ConstantDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            StatementKind::FunctionDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            _ => {}
+        }
+    }
+
+    /// Parses `(ident, ident, ...)` for `!#[allow(...)]`, validating each name
+    /// against the known `Lint` set at parse time.
+    fn parse_lint_list(&mut self) -> Result<Vec<Lint>, Error> {
+        if !self.match_type(&[TokenType::LeftParen]) {
+            return Err(self.err("expected `(` after `allow`", self.peek_span()));
+        }
+        let mut lints = Vec::new();
+        loop {
+            match self.peek() {
+                TokenType::Identifier(name) if name == "unused" => {
+                    self.advance();
+                    lints.push(Lint::Unused);
+                }
+                TokenType::Identifier(name) if name == "deprecated" => {
+                    self.advance();
+                    lints.push(Lint::Deprecated);
+                }
+                TokenType::Identifier(name) => {
+                    return Err(self.err(format!("unknown lint `{}`", name), self.peek_span()));
+                }
+                _ => return Err(self.err("expected a lint name", self.peek_span())),
+            }
+            if self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                continue;
+            }
+            break;
+        }
+        if !self.match_type(&[TokenType::RightParen]) {
+            return Err(self.err("expected `)` after lint list", self.peek_span()));
+        }
+        Ok(lints)
     }
 
     /// Parses an optional `=n` priority suffix for `!#[init=n]` / `!#[final=n]`.

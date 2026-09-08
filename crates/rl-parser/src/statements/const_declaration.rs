@@ -84,6 +84,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CTuple(Rc::new(types)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -255,6 +256,7 @@ impl Parser {
                         type_annotation: annoation_type,
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -324,6 +326,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CSet(Box::new(annoation_type)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -394,6 +397,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CArray(Box::new(annoation_type)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -445,6 +449,7 @@ impl Parser {
                 type_annotation: const_type,
                 unit_annotation,
                 value,
+                item_attributes: Vec::new(),
             },
             span,
         ))
