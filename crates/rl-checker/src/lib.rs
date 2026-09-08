@@ -28,7 +28,7 @@ pub mod units;
 use crate::structs::CheckType;
 use rl_ast::{
     Ast,
-    statements::{Lint, ProgramAttribute, Statement, StatementKind},
+    statements::{FunctionAttribute, Lint, ProgramAttribute, Statement, StatementKind},
 };
 use rl_docs::find_fn_doc;
 use rl_utils::{
@@ -75,6 +75,7 @@ impl TypeChecker {
             methods: HashMap::new(),
             conversions: crate::units::ConversionTable::default(),
             allow_stack: Vec::new(),
+            has_explicit_entry: false,
         }
     }
 
@@ -111,9 +112,13 @@ impl TypeChecker {
                 name,
                 params,
                 return_type,
+                attribute,
                 ..
             } = &statement.kind
             {
+                if matches!(attribute, Some(FunctionAttribute::Entry)) {
+                    self.has_explicit_entry = true;
+                }
                 let fn_type = CheckType::Function {
                     params: params.iter().map(|p| p.param_type.clone()).collect(),
                     return_type: return_type.clone(),

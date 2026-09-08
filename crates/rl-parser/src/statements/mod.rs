@@ -289,6 +289,12 @@ impl Parser {
                     let lints = self.parse_lint_list()?;
                     item_attrs.push(ItemAttribute::Allow(lints));
                 }
+                // new: deprecated or deprecated("msg")
+                TokenType::Identifier(name) if name == "deprecated" => {
+                    self.advance();
+                    let msg = self.parse_optional_string_arg()?.or_else(|| Some(String::new()));
+                    item_attrs.push(ItemAttribute::Deprecated(msg));
+                }
                 _ => return Err(self.err("expected valid attribute", self.peek_span())),
             }
 
@@ -393,6 +399,25 @@ impl Parser {
             return Err(self.err("expected `)` after lint list", self.peek_span()));
         }
         Ok(lints)
+    }
+
+    /// Parses `("literal")` or nothing, for `!#[deprecated]` / `!#[deprecated("msg")]`.
+    fn parse_optional_string_arg(&mut self) -> Result<Option<String>, Error> {
+        if !self.match_type(&[TokenType::LeftParen]) {
+            return Ok(None);
+        }
+        let msg = match self.peek() {
+            TokenType::StringLiteral(s) => {
+                let s = s.clone();
+                self.advance();
+                s
+            }
+            _ => return Err(self.err("expected a string literal", self.peek_span())),
+        };
+        if !self.match_type(&[TokenType::RightParen]) {
+            return Err(self.err("expected `)`", self.peek_span()));
+        }
+        Ok(Some(msg))
     }
 
     /// Parses an optional `=n` priority suffix for `!#[init=n]` / `!#[final=n]`.

@@ -80,4 +80,14 @@ impl TypeChecker {
             }
         }
     }
+
+    /// Sets the deprecation message on the most recently declared variable
+    /// in the current scope.
+    pub fn set_deprecated_for_last_declared(&mut self, name: &str, msg: Option<String>) {
+        if let Some(scope) = self.scopes.last_mut() {
+            if let Some(item) = scope.get_mut(name) {
+                item.deprecated = msg;
+            }
+        }
+    }
 }

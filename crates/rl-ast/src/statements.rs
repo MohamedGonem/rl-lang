@@ -385,6 +385,8 @@ pub enum ItemAttribute {
     /// `!#[allow(unused)]`, `!#[allow(deprecated)]`, or both:
     /// `!#[allow(unused, deprecated)]`
     Allow(Vec<Lint>),
+    /// `!#[deprecated]` or `!#[deprecated("use foo() instead")]`
+    Deprecated(Option<String>),
 }
 
 /// The type of a variable, constant, or parameter binding.

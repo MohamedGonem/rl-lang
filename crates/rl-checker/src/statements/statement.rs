@@ -10,26 +10,28 @@ use rl_parser::parser_logic::Parser;
 use rl_utils::{source::SourceFile, span::Span};
 
 impl TypeChecker {
-    /// Collects `Lint` values from a statement's `item_attributes`.
-    fn collect_allowed_lints(stmt: &Statement) -> HashSet<Lint> {
+    /// Collects `Lint` values and deprecated message from a statement's `item_attributes`.
+    fn collect_item_attrs(stmt: &Statement) -> (HashSet<Lint>, Option<String>) {
         let mut lints = HashSet::new();
+        let mut deprecated = None;
         let attrs = match &stmt.kind {
             StatementKind::VariableDeclaration { item_attributes, .. } => item_attributes,
             StatementKind::ConstantDeclaration { item_attributes, .. } => item_attributes,
             StatementKind::FunctionDeclaration { item_attributes, .. } => item_attributes,
-            _ => return lints,
+            _ => return (lints, deprecated),
         };
         for attr in attrs {
-            if let ItemAttribute::Allow(lints_vec) = attr {
-                lints.extend(lints_vec);
+            match attr {
+                ItemAttribute::Allow(lints_vec) => lints.extend(lints_vec),
+                ItemAttribute::Deprecated(msg) => deprecated = msg.clone(),
             }
         }
-        lints
+        (lints, deprecated)
     }
 
     // checks the current statement and push errors via error() if any found
     pub fn check_statement(&mut self, statement: &Statement) {
-        let allowed = Self::collect_allowed_lints(statement);
+        let (allowed, deprecated) = Self::collect_item_attrs(statement);
         let pushed = !allowed.is_empty();
         if pushed {
             self.allow_stack.push(allowed.clone());
@@ -37,16 +39,20 @@ impl TypeChecker {
 
         self.check_statement_inner(statement);
 
-        // For variable/constant declarations, attach suppressed lints to the
-        // scope item so unused-variable checks can honour them later.
-        if !allowed.is_empty() {
-            let name = match &statement.kind {
-                StatementKind::VariableDeclaration { name, .. } => Some(name.as_str()),
-                StatementKind::ConstantDeclaration { name, .. } => Some(name.as_str()),
-                _ => None,
-            };
-            if let Some(n) = name {
+        // For variable/constant/function declarations, attach suppressed lints
+        // and deprecation message to the scope item.
+        let name = match &statement.kind {
+            StatementKind::VariableDeclaration { name, .. } => Some(name.as_str()),
+            StatementKind::ConstantDeclaration { name, .. } => Some(name.as_str()),
+            StatementKind::FunctionDeclaration { name, .. } => Some(name.as_str()),
+            _ => None,
+        };
+        if let Some(n) = name {
+            if !allowed.is_empty() {
                 self.set_suppressed_lints_for_last_declared(n, allowed);
+            }
+            if deprecated.is_some() {
+                self.set_deprecated_for_last_declared(n, deprecated);
             }
         }
 

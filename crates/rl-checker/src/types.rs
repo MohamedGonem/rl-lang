@@ -4,7 +4,7 @@ use crate::{
     structs::{CheckType, ScopeItem},
     units::Unit,
 };
-use rl_ast::statements::{Lint, TypeAnnotation};
+use rl_ast::statements::TypeAnnotation;
 use rl_utils::span::Span;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -27,6 +27,7 @@ impl ScopeItem {
             decl_span,
             used: false,
             suppressed_lints: HashSet::new(),
+            deprecated: None,
         }
     }
 }

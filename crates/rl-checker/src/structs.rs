@@ -60,6 +60,8 @@ pub struct TypeChecker {
     pub conversions: ConversionTable,
     /// Stack of suppressed lints, pushed/popped around attributed statements.
     pub allow_stack: Vec<HashSet<Lint>>,
+    /// Whether any top-level function is explicitly marked `!#[entry]`.
+    pub has_explicit_entry: bool,
 }
 
 /// A single entry in a type checker scope.
@@ -75,6 +77,8 @@ pub struct ScopeItem {
     pub used: bool,
     /// Lints suppressed for this binding (e.g. `!#[allow(unused)]`).
     pub suppressed_lints: HashSet<Lint>,
+    /// Deprecation message, if declared with `!#[deprecated("msg")]`.
+    pub deprecated: Option<String>,
 }
 
 /// The type of a value as seen by the static checker.

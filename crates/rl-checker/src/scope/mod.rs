@@ -36,8 +36,18 @@ impl TypeChecker {
             let unused: Vec<(String, Span)> = scope
                 .iter()
                 .filter(|(name, item)| {
-                    !item.used && !item.is_const && !name.starts_with('_')
+                    if !item.used && !item.is_const && !name.starts_with('_')
                         && !item.suppressed_lints.contains(&Lint::Unused)
+                    {
+                        // Skip "main" if no explicit !#[entry] exists —
+                        // main is the implicit entry point.
+                        if name.as_str() == "main" && !self.has_explicit_entry {
+                            return false;
+                        }
+                        true
+                    } else {
+                        false
+                    }
                 })
                 .map(|(name, item)| (name.clone(), item.decl_span))
                 .collect();
@@ -62,11 +72,25 @@ impl TypeChecker {
                     item.unit.clone(),
                     item.is_const,
                     item.decl_span,
+                    item.deprecated.clone(),
+                    item.suppressed_lints.clone(),
                 )
             })
         });
 
-        if let Some((item_type, unit, is_const, decl_span)) = found {
+        if let Some((item_type, unit, is_const, decl_span, deprecated, suppressed)) = found {
+            // Warn on deprecated usage (suppressed by !#[allow(deprecated)])
+            if let Some(msg) = &deprecated {
+                let text = if msg.is_empty() {
+                    format!("'{}' is deprecated", name)
+                } else {
+                    format!("'{}' is deprecated: {}", name, msg)
+                };
+                if !suppressed.contains(&Lint::Deprecated) {
+                    self.warn_lint(Lint::Deprecated, text, span);
+                }
+            }
+
             let kind = if is_const { "const" } else { "variable" };
             let unit_suffix = unit
                 .as_ref()
