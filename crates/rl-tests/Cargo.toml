@@ -11,7 +11,6 @@ rl-lexer.workspace = true
 rl-parser.workspace = true
 rl-utils.workspace = true
 rl-vm.workspace = true
-rl-cc.workspace = true
 rl-checker.workspace = true
 rl-commons.workspace = true
 rl-tooling.workspace = true

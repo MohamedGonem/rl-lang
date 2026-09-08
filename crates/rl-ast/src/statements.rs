@@ -377,7 +377,7 @@ pub enum Lint {
     Deprecated,
 }
 
-/// A general item-level attribute — as opposed to [`FunctionAttribute`], which
+/// A general item-level attribute - as opposed to [`FunctionAttribute`], which
 /// only covers the four function-lifecycle markers (`entry`/`init`/`final`/`test`).
 /// Attached to whichever `fn`/`dec`/`const` immediately follows it.
 #[derive(Debug, Clone, PartialEq)]

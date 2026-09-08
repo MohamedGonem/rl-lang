@@ -1,3 +1,5 @@
+#![cfg(feature = "cc")]
+
 use rl_checker::TypeChecker;
 use rl_resolver::Resolver;
 use rl_utils::source::SourceFile;

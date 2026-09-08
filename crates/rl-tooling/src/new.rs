@@ -62,7 +62,7 @@ pub fn try_create_script(name: &str) -> io::Result<()> {
 
 /// Finds the path to the `rl` binary.
 ///
-/// 1. Try `current_exe()` — resolves the running binary's own path
+/// 1. Try `current_exe()` - resolves the running binary's own path
 /// 2. Scan `PATH` for an executable named `rl`
 /// 3. Fall back to scanning for `rlc` (the transpiler-only variant)
 /// 4. Return `None` if nothing found

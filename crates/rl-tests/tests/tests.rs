@@ -1,4 +1,3 @@
-mod cc;
 mod checker;
 mod common;
 mod commons;

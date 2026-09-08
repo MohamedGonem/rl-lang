@@ -32,8 +32,11 @@ log = { workspace = true, optional = true }
 env_logger = { workspace = true, optional = true }
 rl-cc = { workspace = true, optional = true }
 
+[dev-dependencies]
+tempfile.workspace = true
+
 [features]
-default = ["repl", "vm", "docs", "docs-tui", "cc"]
+default = ["repl", "vm", "docs", "docs-tui"]
 run = []
 vm = ["rl-repl/vm"]
 cranelift = ["vm", "rl-cranelift"]
@@ -43,3 +46,8 @@ docs-tui = ["docs", "rl-docs/tui"]
 debug = ["dep:env_logger", "dep:log"]
 lsp = ["dep:rl-lsp", "dep:tokio"]
 cc = ["dep:rl-cc"]
+
+[[test]]
+name = "cc"
+path = "tests/cc.rs"
+required-features = ["cc"]

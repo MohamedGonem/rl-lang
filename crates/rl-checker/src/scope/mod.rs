@@ -47,7 +47,7 @@ impl TypeChecker {
                     if !item.used && !item.is_const && !name.starts_with('_')
                         && !item.suppressed_lints.contains(&Lint::Unused)
                     {
-                        // Skip "main" if no explicit !#[entry] exists —
+                        // Skip "main" if no explicit !#[entry] exists -
                         // main is the implicit entry point.
                         if name.as_str() == "main" && !self.has_explicit_entry {
                             return false;

@@ -6,9 +6,9 @@ use rl_utils::errors::Error;
 impl Parser {
     /// Parses the `|>` pipe operator.
     ///
-    /// - `a |> f(args)` desugars to `a.f(args)` — the left-hand side becomes the
+    /// - `a |> f(args)` desugars to `a.f(args)` - the left-hand side becomes the
     ///   receiver of the method call.
-    /// - `a |> obj.method(args)` desugars to `obj.method(a, args)` — the LHS is
+    /// - `a |> obj.method(args)` desugars to `obj.method(a, args)` - the LHS is
     ///   injected as the first argument.
     pub fn parse_pipe(&mut self) -> Result<ExprId, Error> {
         let mut left = self.parse_logical()?;

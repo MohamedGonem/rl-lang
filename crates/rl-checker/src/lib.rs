@@ -223,7 +223,7 @@ impl TypeChecker {
                 };
                 self.declare(name.clone(), fn_type, false, statement.span);
                 // Runtime-called attributes: these are invoked by the runtime,
-                // not user code — mark as used to suppress unused warnings.
+                // not user code - mark as used to suppress unused warnings.
                 if matches!(
                     attribute,
                     Some(FunctionAttribute::Entry | FunctionAttribute::Init(_) | FunctionAttribute::Final(_) | FunctionAttribute::Test)
