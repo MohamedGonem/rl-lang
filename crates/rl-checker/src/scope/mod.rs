@@ -16,7 +16,29 @@ impl TypeChecker {
     }
     /// Pops the innermost scope from the stack.
     pub fn pop_scope(&mut self) {
-        self.scopes.pop();
+        if let Some(scope) = self.scopes.pop() {
+            for (name, item) in scope.iter() {
+                if !item.used && !item.is_const && !name.starts_with('_') {
+                    self.warn(format!("unused variable '{}'", name), item.decl_span);
+                }
+            }
+        }
+    }
+
+    /// Reports unused variables in the root (index 0) scope without popping it.
+    /// Called at the end of [`TypeChecker::check`] so top-level unused variables
+    /// are reported while the scope remains available for post-check inspection.
+    pub fn report_unused_in_root_scope(&mut self) {
+        if let Some(scope) = self.scopes.first() {
+            let unused: Vec<(String, Span)> = scope
+                .iter()
+                .filter(|(name, item)| !item.used && !item.is_const && !name.starts_with('_'))
+                .map(|(name, item)| (name.clone(), item.decl_span))
+                .collect();
+            for (name, span) in unused {
+                self.warn(format!("unused variable '{}'", name), span);
+            }
+        }
     }
 
     /// Looks up `name` in all scopes from innermost to outermost.
@@ -26,8 +48,9 @@ impl TypeChecker {
     /// an undefined variable error with a "did you mean?" suggestion and
     /// returns [`CheckType::Unknown`] with no unit.
     pub fn lookup(&mut self, name: &str, span: Span) -> CheckedExpr {
-        let found = self.scopes.iter().rev().find_map(|scope| {
-            scope.get(name).map(|item| {
+        let found = self.scopes.iter_mut().rev().find_map(|scope| {
+            scope.get_mut(name).map(|item| {
+                item.used = true;
                 (
                     item.type_annotation.clone(),
                     item.unit.clone(),

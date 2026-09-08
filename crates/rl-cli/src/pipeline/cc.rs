@@ -49,9 +49,12 @@ pub fn transpile_loop(
         .with_source_file(source.clone())
         .with_ast_arena(checker_ast)
         .with_base_dir(base_dir.clone());
-    let errors = checker.check(&checker_statements);
-    if !errors.is_empty() {
-        for e in errors {
+    checker.check(&checker_statements);
+    for w in &checker.warnings {
+        w.report_to_stderr();
+    }
+    if !checker.errors.is_empty() {
+        for e in &checker.errors {
             e.report_to_stderr();
         }
         std::process::exit(1);

@@ -57,6 +57,7 @@ impl TypeChecker {
             source_file: None,
             root_module: rl_commons::stdlib_names(),
             errors: Vec::new(),
+            warnings: Vec::new(),
             return_type_stack: Vec::new(),
             loop_depth: 0,
             stdlib_fn_names,
@@ -147,7 +148,13 @@ impl TypeChecker {
         for statement in statements {
             self.check_statement(statement);
         }
+        self.report_unused_in_root_scope();
         &self.errors
+    }
+
+    pub fn warn(&mut self, message: impl Into<String>, span: Span) {
+        self.warnings
+            .push(self.err(message.into(), span).as_warning());
     }
 
     // transforms arguments into Error type

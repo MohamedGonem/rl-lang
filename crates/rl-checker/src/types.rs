@@ -25,6 +25,7 @@ impl ScopeItem {
             unit,
             is_const,
             decl_span,
+            used: false,
         }
     }
 }

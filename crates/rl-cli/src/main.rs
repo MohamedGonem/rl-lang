@@ -407,9 +407,12 @@ fn main() {
                         .with_source_file(source.clone())
                         .with_ast_arena(checker_ast)
                         .with_base_dir(std::path::PathBuf::from("."));
-                    let errors = checker.check(&checker_statements);
-                    if !errors.is_empty() {
-                        for e in errors {
+                    checker.check(&checker_statements);
+                    for w in &checker.warnings {
+                        w.report_to_stderr();
+                    }
+                    if !checker.errors.is_empty() {
+                        for e in &checker.errors {
                             e.report_to_stderr();
                         }
                         std::process::exit(1);
@@ -490,9 +493,12 @@ fn main() {
                     .with_source_file(source.clone())
                     .with_ast_arena(checker_ast)
                     .with_base_dir(base_dir);
-                let errors = checker.check(&checker_statements);
-                if !errors.is_empty() {
-                    for e in errors {
+                checker.check(&checker_statements);
+                for w in &checker.warnings {
+                    w.report_to_stderr();
+                }
+                if !checker.errors.is_empty() {
+                    for e in &checker.errors {
                         e.report_to_stderr();
                     }
                     std::process::exit(1);
@@ -601,11 +607,14 @@ fn main() {
                 .with_source_file(source)
                 .with_ast_arena(ast)
                 .with_base_dir(base_dir);
-            let errors = checker.check(&statements);
-            if errors.is_empty() {
+            checker.check(&statements);
+            for w in &checker.warnings {
+                w.report_to_stderr();
+            }
+            if checker.errors.is_empty() {
                 println!("ok");
             } else {
-                for e in errors {
+                for e in &checker.errors {
                     e.report_to_stderr();
                 }
                 std::process::exit(1);
@@ -670,11 +679,14 @@ fn main() {
                                 .unwrap_or_else(|| std::path::Path::new("."))
                                 .to_path_buf(),
                         );
-                    let errors = checker.check(&statements);
-                    if errors.is_empty() {
+                    checker.check(&statements);
+                    for w in &checker.warnings {
+                        w.report_to_stderr();
+                    }
+                    if checker.errors.is_empty() {
                         println!("check complete");
                     } else {
-                        for e in errors {
+                        for e in &checker.errors {
                             e.report_to_stderr();
                         }
                         std::process::exit(1);
@@ -998,9 +1010,12 @@ fn main() {
                         .with_source_file(source.clone())
                         .with_ast_arena(checker_ast)
                         .with_base_dir(base_dir);
-                    let errors = checker.check(&checker_statements);
-                    if !errors.is_empty() {
-                        for e in errors {
+                    checker.check(&checker_statements);
+                    for w in &checker.warnings {
+                        w.report_to_stderr();
+                    }
+                    if !checker.errors.is_empty() {
+                        for e in &checker.errors {
                             e.report_to_stderr();
                         }
                         std::process::exit(1);
@@ -1084,9 +1099,12 @@ fn main() {
                     .with_source_file(source.clone())
                     .with_ast_arena(checker_ast)
                     .with_base_dir(base_dir);
-                let errors = checker.check(&checker_statements);
-                if !errors.is_empty() {
-                    for e in errors {
+                checker.check(&checker_statements);
+                for w in &checker.warnings {
+                    w.report_to_stderr();
+                }
+                if !checker.errors.is_empty() {
+                    for e in &checker.errors {
                         e.report_to_stderr();
                     }
                     std::process::exit(1);
@@ -1126,9 +1144,12 @@ fn main() {
                     .with_source_file(source.clone())
                     .with_ast_arena(checker_ast)
                     .with_base_dir(base_dir);
-                let errors = checker.check(&checker_statements);
-                if !errors.is_empty() {
-                    for e in errors {
+                checker.check(&checker_statements);
+                for w in &checker.warnings {
+                    w.report_to_stderr();
+                }
+                if !checker.errors.is_empty() {
+                    for e in &checker.errors {
                         e.report_to_stderr();
                     }
                     std::process::exit(1);

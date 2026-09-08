@@ -19,6 +19,8 @@ pub struct TypeChecker {
     pub root_module: ModuleNames,
     /// All type errors accumulated during the check pass.
     pub errors: Vec<Error>,
+    /// Warnings accumulated during the check pass (e.g. unused variables).
+    pub warnings: Vec<Error>,
     /// Stack of expected return types, pushed/popped on function and lambda entry/exit.
     pub return_type_stack: Vec<TypeAnnotation>,
     /// Nesting depth of loops - used to validate `break` and `continue`.
@@ -65,6 +67,7 @@ pub struct ScopeItem {
     /// Whether this binding is immutable (`CONST`).
     pub is_const: bool,
     pub decl_span: Span,
+    pub used: bool,
 }
 
 /// The type of a value as seen by the static checker.
