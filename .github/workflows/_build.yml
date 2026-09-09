@@ -22,61 +22,181 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-msvc
-          - aarch64-unknown-linux-gnu
-          - aarch64-pc-windows-msvc
-          - aarch64-linux-android
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-        group: [g1, g2, g3, g4]
         include:
+          # g1 variants
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             platform: linux
             arch: x86_64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             platform: windows
             arch: x86_64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             platform: linux
             arch: aarch64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: aarch64-pc-windows-msvc
             os: windows-latest
             platform: windows
             arch: aarch64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: aarch64-linux-android
             os: ubuntu-latest
             platform: android
             arch: aarch64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: x86_64-apple-darwin
             os: macos-latest
             platform: macos
             arch: x86_64
-
+            group: g1
+            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
           - target: aarch64-apple-darwin
             os: macos-latest
             platform: macos
             arch: aarch64
-
-          - group: g1
+            group: g1
             variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
 
-          - group: g2
+          # g2 variants
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: x86_64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: aarch64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+            platform: android
+            arch: aarch64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: x86_64
+            group: g2
+            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: aarch64
+            group: g2
             variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
 
-          - group: g3
+          # g3 variants
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: x86_64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: aarch64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+            platform: android
+            arch: aarch64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: x86_64
+            group: g3
+            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: aarch64
+            group: g3
             variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
 
-          - group: g4
+          # g4 variants
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            group: g4
+            variants: "rl_lsp"
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: x86_64
+            group: g4
+            variants: "rl_lsp"
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+            group: g4
+            variants: "rl_lsp"
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            platform: windows
+            arch: aarch64
+            group: g4
+            variants: "rl_lsp"
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+            platform: android
+            arch: aarch64
+            group: g4
+            variants: "rl_lsp"
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: x86_64
+            group: g4
+            variants: "rl_lsp"
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            platform: macos
+            arch: aarch64
+            group: g4
             variants: "rl_lsp"
 
     runs-on: ${{ matrix.os }}
