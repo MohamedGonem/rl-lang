@@ -233,7 +233,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBrace]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBrace]) {
+                    return Err(self.err("expected `}` after map literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::Map {
@@ -302,7 +305,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBrace]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBrace]) {
+                    return Err(self.err("expected `}` after set literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::Set {
@@ -373,7 +379,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBracket]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBracket]) {
+                    return Err(self.err("expected `]` after array literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::Array {

@@ -479,8 +479,8 @@ impl<'a> CCodegen<'a> {
         use rl_ast::nodes::ExpressionKind;
         use rl_ast::statements::TypeAnnotation;
         let expr = self.ast.exprs.get(arg_id);
-        if let ExpressionKind::ResolvedIdentifier { name, .. } = &expr.kind {
-            if let Some(TypeAnnotation::Result(inner)) = self.var_types.get(name) {
+        if let ExpressionKind::ResolvedIdentifier { name, .. } = &expr.kind
+            && let Some(TypeAnnotation::Result(inner)) = self.var_types.get(name) {
                 return match inner.as_ref() {
                     TypeAnnotation::Float | TypeAnnotation::SFloat => "rl_result_unwrap_f64",
                     TypeAnnotation::Bool => "rl_result_unwrap_bool",
@@ -488,7 +488,6 @@ impl<'a> CCodegen<'a> {
                     _ => "rl_result_unwrap_i64",
                 };
             }
-        }
         "rl_result_unwrap_i64"
     }
 }

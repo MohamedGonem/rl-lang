@@ -6,16 +6,13 @@ use crate::source::SourceFile;
 use crate::span::Span;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum Severity {
+    #[default]
     Error,
     Warning,
 }
 
-impl Default for Severity {
-    fn default() -> Self {
-        Severity::Error
-    }
-}
 
 /// heavy optional fields, heap-allocated so `Error` stays small on the stack
 #[derive(Debug, Clone)]

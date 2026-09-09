@@ -227,13 +227,11 @@ impl TypeChecker {
                 if matches!(
                     attribute,
                     Some(FunctionAttribute::Entry | FunctionAttribute::Init(_) | FunctionAttribute::Final(_) | FunctionAttribute::Test)
-                ) {
-                    if let Some(scope) = self.scopes.last_mut() {
-                        if let Some(item) = scope.get_mut(name) {
+                )
+                    && let Some(scope) = self.scopes.last_mut()
+                        && let Some(item) = scope.get_mut(name) {
                             item.used = true;
                         }
-                    }
-                }
             }
             if let StatementKind::RecordDeclaration { name, fields } = &statement.kind {
                 self.records.insert(name.clone(), fields.clone());

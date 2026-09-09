@@ -2117,7 +2117,7 @@ impl<'a> CCodegen<'a> {
                 self.writer.write(&format!("memcpy({} + {} * {}.elem_size * 2 + {}.elem_size, {} + {} * {}.elem_size, {}.elem_size); ", buf_temp, i_temp, a_temp, a_temp, b_elems_temp, i_temp, b_temp, b_temp));
                 self.writer.write("} ");
                 self.writer.write(&format!("rl_array _zr = {{ .data = {}, .len = {}, .cap = {}, .elem_size = {}.elem_size * 2, .type_tag = {}.type_tag }}; ", buf_temp, n_temp, n_temp, a_temp, a_temp));
-                self.writer.write(&format!("rl_ok_arr(_zr); }}"));
+                self.writer.write("rl_ok_arr(_zr); }");
                 return Ok(());
             }
             "arr_push" => {

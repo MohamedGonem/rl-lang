@@ -45,7 +45,7 @@ impl TypeChecker {
                 if !self
                     .allow_stack
                     .last()
-                    .map_or(false, |s| s.contains(&Lint::Deprecated))
+                    .is_some_and(|s| s.contains(&Lint::Deprecated))
                 {
                     self.warn_lint(Lint::Deprecated, text, span);
                 }

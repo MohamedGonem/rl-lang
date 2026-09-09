@@ -63,6 +63,9 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Fixed
 
+- **Parser missing closing delimiter errors** - the parser now reports errors for missing `]`, `}`, and `)` in array literals, map literals, set literals, grouped expressions, index access, function parameters, method parameters, lambda parameters, for-loop headers, for-range inline arrays, and type annotations (`arr[T]`, `map[K,V]`, `set[T]`, `result[T]`). Previously these were silently accepted.
+- **Parser missing newline skipping** - added newline tolerance in function declarations (before `(`, between parameters, before `->`, before `{`), impl method declarations (same locations), lambda parameters, for-range `..` operator, `as` cast in postfix, and `get` imports. Multi-line function/method declarations and lambdas now parse correctly.
+- **Clippy warnings** - resolved all clippy warnings across the workspace (collapsible `if`, redundant closures, `format!` misuse, derivable `Default` impl, `map_or` simplification).
 - **P1: map::get aborts on missing key** - returns `err("key not found in map")` instead of aborting.
 - **P2: res::unwrap no error checking** - new `rl_result_unwrap_i64/f64/bool/str` functions abort on err.
 - **P3: math::abs truncates floats** - dispatches `fabs()` for `RL_TAG_F64`.

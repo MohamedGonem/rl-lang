@@ -388,11 +388,11 @@ fn fmt_type(t: &TypeAnnotation) -> String {
         TypeAnnotation::Result(inner) => format!("result[{}]", fmt_type(inner)),
         TypeAnnotation::CResult(inner) => format!("c_result[{}]", fmt_type(inner)),
         TypeAnnotation::Tuple(elems) => {
-            let s: Vec<String> = elems.iter().map(|e| fmt_type(e)).collect();
+            let s: Vec<String> = elems.iter().map(fmt_type).collect();
             format!("({})", s.join(", "))
         }
         TypeAnnotation::CTuple(elems) => {
-            let s: Vec<String> = elems.iter().map(|e| fmt_type(e)).collect();
+            let s: Vec<String> = elems.iter().map(fmt_type).collect();
             format!("({})", s.join(", "))
         }
         TypeAnnotation::Record(name) => name.clone(),
@@ -401,7 +401,7 @@ fn fmt_type(t: &TypeAnnotation) -> String {
         TypeAnnotation::CEnum(name) => name.clone(),
         TypeAnnotation::Generic(name) => format!("<{}>", name),
         TypeAnnotation::Callback(params, ret) => {
-            let p: Vec<String> = params.iter().map(|t| fmt_type(t)).collect();
+            let p: Vec<String> = params.iter().map(fmt_type).collect();
             format!("fn({}) -> {}", p.join(", "), fmt_type(ret))
         }
         TypeAnnotation::Handle(h) => format!("handle({:?})", h),

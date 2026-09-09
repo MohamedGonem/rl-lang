@@ -74,20 +74,18 @@ impl TypeChecker {
     /// current scope. Called after `declare*` when the statement carries
     /// `!#[allow(...)]`.
     pub fn set_suppressed_lints_for_last_declared(&mut self, name: &str, lints: HashSet<Lint>) {
-        if let Some(scope) = self.scopes.last_mut() {
-            if let Some(item) = scope.get_mut(name) {
+        if let Some(scope) = self.scopes.last_mut()
+            && let Some(item) = scope.get_mut(name) {
                 item.suppressed_lints = lints;
             }
-        }
     }
 
     /// Sets the deprecation message on the most recently declared variable
     /// in the current scope.
     pub fn set_deprecated_for_last_declared(&mut self, name: &str, msg: Option<String>) {
-        if let Some(scope) = self.scopes.last_mut() {
-            if let Some(item) = scope.get_mut(name) {
+        if let Some(scope) = self.scopes.last_mut()
+            && let Some(item) = scope.get_mut(name) {
                 item.deprecated = msg;
             }
-        }
     }
 }

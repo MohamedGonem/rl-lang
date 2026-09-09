@@ -248,7 +248,7 @@ impl Tokenizer {
                     self.add_token(TokenType::Pipe);
                 } else {
                     return Err(self.err(
-                        format!("unexpected character `|`"),
+                        "unexpected character `|`".to_string(),
                         self.current_span(),
                     ));
                 }

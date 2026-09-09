@@ -80,6 +80,7 @@ impl Parser {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `get` for import while parsing");
+                while self.match_type(&[TokenType::Newline]) {}
                 self.parse_import(start)?
             }
             TokenType::Dec => {
