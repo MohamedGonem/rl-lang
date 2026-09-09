@@ -32,6 +32,7 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 - **Nightly changelog** - nightly releases now include a commit-based changelog since the last nightly build.
 - **Skip unchanged nightlies** - nightly builds skip when the `dev` branch hasn't changed since the last build.
 - **Installer improvements** - `install.sh` and `install.ps1` now support `--help`, `--prefix`/`-p`, `--force`/`-f`, `--variant`/`-v`, and `--uninstall` flags.
+- **Man page and info page** - `rl.1` (groff) and `rl.info` (texinfo) are now included in the repository under `man/`. Install scripts automatically install them to `share/man/man1/` and `share/info/` when present in the release archive.
 
 ### Changed
 

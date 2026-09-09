@@ -83,7 +83,7 @@ Options:
   -v, --variant VARIANTS  Comma-separated list of variants to install
                           (default: interactive picker)
                           Use "all" to install all variants
-  --uninstall             Remove installed binaries
+  --uninstall             Remove installed binaries, man pages, and info pages
 
 Environment variables:
   RL_INSTALL_DIR          Same as --prefix
@@ -404,9 +404,48 @@ install_one() {
     chmod +x "$INSTALL_DIR/${actual}"
   fi
 
+  # Install man/info pages if present in the archive
+  install_man_info "$tmpdir" "$platform"
+
   rm -rf "$tmpdir"
 
   ok "Installed: $INSTALL_DIR/${actual}"
+}
+
+# --- Man/Info page installation ---
+
+install_man_info() {
+  local tmpdir="$1" platform="$2"
+
+  # Windows has no man/info infrastructure
+  if [ "$platform" = "windows" ]; then
+    return 0
+  fi
+
+  # Derive share prefix from INSTALL_DIR (e.g. ~/.local/bin -> ~/.local/share)
+  local share_dir="${INSTALL_DIR%/*}"
+  if [ "$share_dir" = "$INSTALL_DIR" ]; then
+    # No parent (e.g. INSTALL_DIR is already a top-level path)
+    share_dir="$INSTALL_DIR/share"
+  else
+    share_dir="${share_dir}/share"
+  fi
+
+  # Install man page
+  if [ -f "$tmpdir/rl.1" ]; then
+    local man_dir="$share_dir/man/man1"
+    mkdir -p "$man_dir"
+    cp "$tmpdir/rl.1" "$man_dir/rl.1"
+    ok "Installed man page: $man_dir/rl.1"
+  fi
+
+  # Install info page
+  if [ -f "$tmpdir/rl.info" ]; then
+    local info_dir="$share_dir/info"
+    mkdir -p "$info_dir"
+    cp "$tmpdir/rl.info" "$info_dir/rl.info"
+    ok "Installed info page: $info_dir/rl.info"
+  fi
 }
 
 # --- Uninstall ---
@@ -427,6 +466,30 @@ do_uninstall() {
         removed=$((removed + 1))
       fi
     done
+  done
+
+  # Remove man/info pages
+  local share_dir="${INSTALL_DIR%/*}"
+  if [ "$share_dir" != "$INSTALL_DIR" ]; then
+    share_dir="${share_dir}/share"
+  else
+    share_dir="$INSTALL_DIR/share"
+  fi
+
+  for manpage in "$share_dir/man/man1/rl.1"; do
+    if [ -f "$manpage" ]; then
+      rm -f "$manpage"
+      ok "Removed: $manpage"
+      removed=$((removed + 1))
+    fi
+  done
+
+  for infopage in "$share_dir/info/rl.info"; do
+    if [ -f "$infopage" ]; then
+      rm -f "$infopage"
+      ok "Removed: $infopage"
+      removed=$((removed + 1))
+    fi
   done
 
   msg ""
