@@ -417,45 +417,61 @@ pub fn realpath(path: String) -> Result<String, String> {
 
 #[native_fn(module = "fs")]
 pub fn lock_file(path: String) -> Result<(), String> {
-    use std::os::unix::io::AsRawFd;
-    let file = match std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(&path)
+    #[cfg(unix)]
     {
-        Ok(f) => f,
-        Err(e) => return Err(format!("lock_file: failed to open \"{}\": {}", path, e)),
-    };
-    let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) };
-    if ret == 0 {
-        std::mem::forget(file);
-        Ok(())
-    } else {
-        Err(format!("lock_file: failed to lock \"{}\"", path))
+        use std::os::unix::io::AsRawFd;
+        let file = match std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(&path)
+        {
+            Ok(f) => f,
+            Err(e) => return Err(format!("lock_file: failed to open \"{}\": {}", path, e)),
+        };
+        let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) };
+        if ret == 0 {
+            std::mem::forget(file);
+            Ok(())
+        } else {
+            Err(format!("lock_file: failed to lock \"{}\"", path))
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Err("lock_file: not supported on this platform".to_string())
     }
 }
 
 #[native_fn(module = "fs")]
 pub fn unlock_file(path: String) -> Result<(), String> {
-    use std::os::unix::io::AsRawFd;
-    let file = match std::fs::OpenOptions::new()
-        .write(true)
-        .open(&path)
+    #[cfg(unix)]
     {
-        Ok(f) => f,
-        Err(e) => {
-            return Err(format!(
-                "unlock_file: failed to open \"{}\": {}",
-                path, e
-            ))
+        use std::os::unix::io::AsRawFd;
+        let file = match std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+        {
+            Ok(f) => f,
+            Err(e) => {
+                return Err(format!(
+                    "unlock_file: failed to open \"{}\": {}",
+                    path, e
+                ))
+            }
+        };
+        let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_UN) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            Err(format!("unlock_file: failed to unlock \"{}\"", path))
         }
-    };
-    let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_UN) };
-    if ret == 0 {
-        Ok(())
-    } else {
-        Err(format!("unlock_file: failed to unlock \"{}\"", path))
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Err("unlock_file: not supported on this platform".to_string())
     }
 }
 
@@ -560,10 +576,15 @@ pub fn path_absolute(path: String) -> Result<String, String> {
 
 #[native_fn(module = "fs")]
 pub fn path_expand_home(path: String) -> String {
-    if path.starts_with('~')
-        && let Ok(home) = std::env::var("HOME")
-    {
-        return path.replacen('~', &home, 1);
+    if path.starts_with('~') {
+        #[cfg(unix)]
+        if let Ok(home) = std::env::var("HOME") {
+            return path.replacen('~', &home, 1);
+        }
+        #[cfg(windows)]
+        if let Ok(home) = std::env::var("USERPROFILE") {
+            return path.replacen('~', &home, 1);
+        }
     }
     path
 }

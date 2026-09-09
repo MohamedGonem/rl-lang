@@ -145,7 +145,15 @@ pub fn parent_pid() -> i64 {
 
 #[native_fn(module = "process")]
 pub fn process_exists(pid: i64) -> bool {
-    unsafe { libc::kill(pid as i32, 0) == 0 }
+    #[cfg(unix)]
+    {
+        unsafe { libc::kill(pid as i32, 0) == 0 }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        false
+    }
 }
 
 #[native_fn(module = "process")]
@@ -534,21 +542,37 @@ pub fn wait_pid(pid: i64) -> Result<i64, String> {
 
 #[native_fn(module = "process")]
 pub fn term_pid(pid: i64) -> Result<(), String> {
-    let ret = unsafe { libc::kill(pid as i32, libc::SIGTERM) };
-    if ret == 0 {
-        Ok(())
-    } else {
-        Err(format!("term_pid: failed to send SIGTERM to pid {}", pid))
+    #[cfg(unix)]
+    {
+        let ret = unsafe { libc::kill(pid as i32, libc::SIGTERM) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            Err(format!("term_pid: failed to send SIGTERM to pid {}", pid))
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        Err("term_pid: not supported on this platform".to_string())
     }
 }
 
 #[native_fn(module = "process")]
 pub fn kill_pid(pid: i64) -> Result<(), String> {
-    let ret = unsafe { libc::kill(pid as i32, libc::SIGKILL) };
-    if ret == 0 {
-        Ok(())
-    } else {
-        Err(format!("kill_pid: failed to send SIGKILL to pid {}", pid))
+    #[cfg(unix)]
+    {
+        let ret = unsafe { libc::kill(pid as i32, libc::SIGKILL) };
+        if ret == 0 {
+            Ok(())
+        } else {
+            Err(format!("kill_pid: failed to send SIGKILL to pid {}", pid))
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        Err("kill_pid: not supported on this platform".to_string())
     }
 }
 

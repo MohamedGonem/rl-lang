@@ -18,31 +18,6 @@ BUILD_PROFILE="${RL_BUILD_PROFILE:-auto}"
 # Set via RL_PARALLEL_JOBS, or auto-detect from nproc.
 PARALLEL_JOBS="${RL_PARALLEL_JOBS:-}"
 
-declare -A ENGINE_FEATURES=(
-  ["rl"]="vm"
-  ["rl_vm"]="vm"
-)
-
-declare -A ACTUAL_NAME=(
-  ["rl"]="rl"
-  ["rl_no_docs"]="rl_nd"
-  ["rl_no_repl"]="rl_nr"
-  ["rl_no_docs_repl"]="rl_ndr"
-  ["rl_debug"]="rld"
-  ["rl_debug_no_docs"]="rld_nd"
-  ["rl_debug_no_repl"]="rld_nr"
-  ["rl_debug_no_docs_repl"]="rld_ndr"
-  ["rl_vm"]="rlc"
-  ["rl_vm_no_docs"]="rlc_nd"
-  ["rl_vm_no_repl"]="rlc_nr"
-  ["rl_vm_no_docs_repl"]="rlc_ndr"
-  ["rl_vm_debug"]="rlcd"
-  ["rl_vm_debug_no_docs"]="rlcd_nd"
-  ["rl_vm_debug_no_repl"]="rlcd_nr"
-  ["rl_vm_debug_no_docs_repl"]="rlcd_ndr"
-  ["rl_lsp"]="rlsp"
-)
-
 BASES=(rl rl_debug rl_vm rl_vm_debug)
 SUFFIXES=("" "_no_docs" "_no_repl" "_no_docs_repl")
 
@@ -53,6 +28,38 @@ build_variant_list() {
     done
   done
   echo "rl_lsp"
+}
+
+# bash 3.2 (macOS default) doesn't support declare -A, so use case statements.
+
+actual_name_for() {
+  case "$1" in
+    rl)                          echo "rl" ;;
+    rl_no_docs)                  echo "rl_nd" ;;
+    rl_no_repl)                  echo "rl_nr" ;;
+    rl_no_docs_repl)             echo "rl_ndr" ;;
+    rl_debug)                    echo "rld" ;;
+    rl_debug_no_docs)            echo "rld_nd" ;;
+    rl_debug_no_repl)            echo "rld_nr" ;;
+    rl_debug_no_docs_repl)       echo "rld_ndr" ;;
+    rl_vm)                       echo "rlc" ;;
+    rl_vm_no_docs)               echo "rlc_nd" ;;
+    rl_vm_no_repl)               echo "rlc_nr" ;;
+    rl_vm_no_docs_repl)          echo "rlc_ndr" ;;
+    rl_vm_debug)                 echo "rlcd" ;;
+    rl_vm_debug_no_docs)         echo "rlcd_nd" ;;
+    rl_vm_debug_no_repl)         echo "rlcd_nr" ;;
+    rl_vm_debug_no_docs_repl)    echo "rlcd_ndr" ;;
+    rl_lsp)                      echo "rlsp" ;;
+    *)                           echo "" ;;
+  esac
+}
+
+engine_features_for() {
+  case "$1" in
+    rl|rl_vm)  echo "vm" ;;
+    *)         echo "" ;;
+  esac
 }
 
 features_for() {
@@ -84,7 +91,8 @@ features_for() {
     base="${base%_debug}"
   fi
 
-  local feats="${ENGINE_FEATURES[$base]:-}"
+  local feats
+  feats="$(engine_features_for "$base")"
   if [ -z "$feats" ]; then
     echo "unknown base '$base' derived from variant '$variant'" >&2
     exit 1
@@ -161,7 +169,7 @@ build_one() {
   local variant="$1" target="$2" platform="$3" arch="$4" out_dir="$5"
   local actual feats bin_src profile profile_flag profile_dir
 
-  actual="${ACTUAL_NAME[$variant]:-}"
+  actual="$(actual_name_for "$variant")"
   if [ -z "$actual" ]; then
     echo "unknown variant '$variant'" >&2
     return 1

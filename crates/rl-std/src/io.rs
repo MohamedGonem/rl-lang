@@ -319,7 +319,14 @@ pub fn encode_utf8(string: String) -> Vec<u8> {
 
 #[native_fn(module = "io")]
 pub fn isatty() -> bool {
-    unsafe { libc::isatty(libc::STDIN_FILENO) != 0 }
+    #[cfg(unix)]
+    {
+        unsafe { libc::isatty(libc::STDIN_FILENO) != 0 }
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
 }
 
 // ---- stderr ---------------------------------------------------------------
