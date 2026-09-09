@@ -165,6 +165,7 @@ fn suffix_u32_literal() {
 }
 
 #[test]
+#[allow(clippy::approx_constant)]
 fn suffix_f32_literal() {
     let result = common::compile_and_run("3.14_f32").expect("vm run failed");
     assert!(matches!(result, VmValue::SFloat(v) if (v - 3.14).abs() < 0.001));
@@ -183,6 +184,7 @@ fn suffix_u64_literal() {
 }
 
 #[test]
+#[allow(clippy::approx_constant)]
 fn suffix_f64_literal() {
     let result = common::compile_and_run("3.14_f64").expect("vm run failed");
     assert_eq!(result, VmValue::Float(3.14));

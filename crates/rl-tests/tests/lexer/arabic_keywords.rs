@@ -952,6 +952,7 @@ fn arabic_char_literal() {
 }
 
 #[test]
+#[allow(clippy::approx_constant)]
 fn arabic_float_literal() {
     let tokens = common::lex("3.14");
     assert_eq!(tokens[0].token, TokenType::FloatLiteral(3.14));
