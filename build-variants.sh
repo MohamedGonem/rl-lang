@@ -222,21 +222,19 @@ main() {
     fi
   fi
 
-  echo "::group::Building variants (parallel=${PARALLEL_JOBS})"
-  export -f build_one features_for profile_for cargo_profile_flag cargo_profile_dir
-  export -A ACTUAL_NAME ENGINE_FEATURES
-  export TARGET PLATFORM ARCH OUT_DIR BUILD_PROFILE
+  echo "::group::Building variants"
 
-  # Use xargs for parallel execution when more than 1 job, otherwise sequential
-  if [ "$PARALLEL_JOBS" -gt 1 ] && command -v xargs &>/dev/null; then
-    printf '%s\n' "$variants" | grep -v '^$' | \
-      xargs -I{} -P "$PARALLEL_JOBS" bash -c 'build_one "$@"' _ "{}" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
-  else
+  # fix later: xargs parallel execution causes silent failures (exit 123)
+  # with exported functions and associative arrays. Fall back to sequential.
+  # if [ "$PARALLEL_JOBS" -gt 1 ] && command -v xargs &>/dev/null; then
+  #   printf '%s\n' "$variants" | grep -v '^$' | \
+  #     xargs -I{} -P "$PARALLEL_JOBS" bash -c 'build_one "$@"' _ "{}" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
+  # else
     while IFS= read -r variant; do
       [ -z "$variant" ] && continue
       build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
     done <<<"$variants"
-  fi
+  # fi
   echo "::endgroup::"
 }
 
