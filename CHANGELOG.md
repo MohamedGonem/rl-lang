@@ -2,7 +2,7 @@
 
 All notable changes to the rl-lang toolchain are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/) (see [VERSIONING.md](VERSIONING.md)). Full per-commit history is available on the [GitHub Releases](https://github.com/rl-lang/rl-lang/releases) page.
 
-## [Unreleased]
+## [2.1.0] - 2026-09-09
 
 ### Added
 
@@ -49,7 +49,9 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 - **`std::io` handle-based I/O** - `open`, `close`, `read_handle`, `write_handle`, `seek`, `flush`, `read_all`, `readline` with proper `HandleKind::File` variant in the handle system. Also `read_all_stdin`, `decode_utf8`, `encode_utf8`, `isatty`.
 - **`HandleKind::File`** - new handle variant in `rl-ast` for file I/O resources, following the same `IoStore` trait pattern as `NetStore`/`HttpStore`/etc.
 - **Bytecode deserialization fix** - added missing `4 => HandleKind::Gui` and `5 => HandleKind::File` to the handle kind deserialization match.
-
+- **`rl_result` rewritten (rl-cc)** - tagged union with `enum rl_type_tag`, type-safe constructors (`rl_ok_null`, `rl_ok_i64`, `rl_ok_f64`, etc.), and `_Generic` macro dispatch.
+- **Tuple dedup fixed (rl-cc)** - dedup by full field-type layout, not arity.
+- **Map/set storage (rl-cc)** - uses `rl_map *map` and `rl_set *set` pointers (not by-value) via `rl_value` tagged union.
 - **Shebang support** - `.rl` files starting with `#!` are valid; the lexer strips the shebang line before tokenizing. `rl new --script <name>` creates a standalone executable `.rl` script with a shebang header pointing to the `rl` binary (detected via `current_exe` / PATH scan, falls back to `rlc`), a hello world body, and executable permissions (`0755`). Scripts can be run directly: `chmod +x hello.rl && ./hello.rl`.
 - **Program attributes fixed** - `#![convert(kg=1000(g))]` now parses correctly. The lexer's `BangHash` token now properly consumes both characters, the shebang stripper no longer eats `#![...]` inner attributes, and the parser handles both `BangHash` and separate `Hash`+`Bang` token sequences.
 - **`result_unwrap` type dispatch** - `result_unwrap`, `result_unwrap_err`, and `result_unwrap_or` now emit the correct type-specific unwrap function (`rl_result_unwrap_str`, `_f64`, `_bool`, `_i64`) based on the result's inner type. Previously all three hardcoded `rl_result_unwrap_i64`.
@@ -64,12 +66,6 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 - **Enum display (rl-cc)** - generates `rl_print_Enum_{name}()` with static string table per enum type.
 - **Float precision (rl-cc)** - strtod round-trip approach for shortest representation.
 - **Record/tuple print for nested types (rl-cc)** - `emit_field_print()` helper for nested records and tuples in print statements.
-
-### Changed
-
-- **`rl_result` rewritten (rl-cc)** - tagged union with `enum rl_type_tag`, type-safe constructors (`rl_ok_null`, `rl_ok_i64`, `rl_ok_f64`, etc.), and `_Generic` macro dispatch.
-- **Tuple dedup fixed (rl-cc)** - dedup by full field-type layout, not arity.
-- **Map/set storage (rl-cc)** - uses `rl_map *map` and `rl_set *set` pointers (not by-value) via `rl_value` tagged union.
 
 ### Fixed
 
@@ -105,8 +101,6 @@ The bytecode VM is now the sole execution backend; the tree-walking interpreter 
 
 - `rl run` / `rl dev` default to the bytecode VM backend.
 - The VM now resolves programs directly via `rl-resolver` (previously it borrowed the interpreter's `Evaluator` as a resolver+stdlib holder).
-
-[2.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.0.0
 
 ## [1.0.0] - 2026-08-06
 
@@ -149,4 +143,6 @@ First stable release. The workspace is now a set of 1.0.0 crates, and the byteco
 - Optimized the VM dispatch loop (lazy spans, unchecked operands, cached frame base).
 - Bench suite now simulates release mode with corrected programs.
 
+[2.1.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.1.0
+[2.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.0.0
 [1.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v1.0.0
