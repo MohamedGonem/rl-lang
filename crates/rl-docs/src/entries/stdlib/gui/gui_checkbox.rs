@@ -15,4 +15,6 @@ dec handle checkbox = result_unwrap(gui_checkbox(window, "Enable feature", 20, 2
     ),
     see_also: &["gui_is_checked", "gui_set_checked", "gui_on_change"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

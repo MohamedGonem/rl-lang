@@ -17,4 +17,6 @@ term_prev_line(1)?"#,
     ),
     see_also: &["term_next_line"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

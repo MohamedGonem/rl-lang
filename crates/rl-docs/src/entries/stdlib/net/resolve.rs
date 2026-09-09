@@ -11,4 +11,6 @@ dec array[string] ips = result_unwrap(resolve("example.com:80"))"#,
     errors: Some("Err(string) when the host can't be resolved"),
     see_also: &["tcp_connect"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

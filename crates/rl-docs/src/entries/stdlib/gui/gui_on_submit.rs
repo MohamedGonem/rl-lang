@@ -23,4 +23,6 @@ gui_on_submit(search, fn(string text) {
     ),
     see_also: &["gui_textbox", "gui_on_change", "gui_on_key"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

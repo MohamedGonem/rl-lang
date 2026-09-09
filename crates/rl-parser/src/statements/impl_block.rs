@@ -87,6 +87,7 @@ impl Parser {
             _ => return Err(self.err("expected method name", self.peek_span())),
         };
 
+        while self.match_type(&[TokenType::Newline]) {}
         if !self.match_type(&[TokenType::LeftParen]) {
             return Err(self.err("expected `(` after method name", self.peek_span()));
         }
@@ -95,6 +96,7 @@ impl Parser {
 
         // bare `self` as the first parameter - implicitly typed as the
         // enclosing record.
+        while self.match_type(&[TokenType::Newline]) {}
         if let TokenType::Identifier(p) = self.peek()
             && p == "self"
         {
@@ -103,11 +105,14 @@ impl Parser {
                 param_name: "self".to_string(),
                 param_type: TypeAnnotation::Record(record.clone()),
             });
+            while self.match_type(&[TokenType::Newline]) {}
             self.match_type(&[TokenType::Comma]);
         }
 
+        while self.match_type(&[TokenType::Newline]) {}
         while !self.match_type(&[TokenType::RightParen]) {
             let param_type = self.parse_param_type()?;
+            while self.match_type(&[TokenType::Newline]) {}
             match self.peek() {
                 TokenType::Identifier(p) => {
                     self.advance();
@@ -118,13 +123,20 @@ impl Parser {
                 }
                 _ => return Err(self.err("expected parameter name", self.peek_span())),
             }
+            while self.match_type(&[TokenType::Newline]) {}
             if !self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightParen]) {
+                    return Err(self.err("expected `)` after method parameters", self.peek_span()));
+                }
                 break;
             }
+            while self.match_type(&[TokenType::Newline]) {}
         }
-        self.match_type(&[TokenType::RightParen]);
 
+        while self.match_type(&[TokenType::Newline]) {}
         let return_type = if self.match_type(&[TokenType::Arrow]) {
+            while self.match_type(&[TokenType::Newline]) {}
             match self.parse_param_type() {
                 Ok(a) => a,
                 Err(_) => TypeAnnotation::Null,
@@ -133,6 +145,7 @@ impl Parser {
             TypeAnnotation::Null
         };
 
+        while self.match_type(&[TokenType::Newline]) {}
         let body = self.parse_block()?;
 
         let span = start.join(self.previous_span());
@@ -143,6 +156,7 @@ impl Parser {
                 return_type,
                 body,
                 attribute: None as Option<FunctionAttribute>,
+                item_attributes: Vec::new(),
             },
             span,
         ))

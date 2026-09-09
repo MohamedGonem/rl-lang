@@ -1,0 +1,31 @@
+name: rl
+version: 2.1.0
+summary: Programming language with first-class VM and C transpiler
+description: |
+  rl-lang is a modern programming language featuring a bytecode VM,
+  optional cranelift JIT, and C99 transpilation. It includes a REPL,
+  language server, and standard library.
+base: core24
+confinement: classic
+license: MIT
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+parts:
+  rl:
+    plugin: rust
+    source: https://github.com/rl-lang/rl-lang.git
+    source-tag: v2.1.0
+    build-packages:
+      - pkg-config
+      - libssl-dev
+
+apps:
+  rl:
+    command: bin/rl
+  rlc:
+    command: bin/rlc
+  rld:
+    command: bin/rld

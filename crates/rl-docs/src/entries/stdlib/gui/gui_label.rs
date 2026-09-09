@@ -15,4 +15,6 @@ dec handle label = result_unwrap(gui_label(window, "Hello!", 20, 20))"#,
     ),
     see_also: &["gui_set_text", "gui_get_text", "gui_set_pos"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

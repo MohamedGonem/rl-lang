@@ -13,4 +13,6 @@ dec handle stream = result_unwrap(tcp_accept(listener))"#,
     errors: Some("Err(string) on accept failure"),
     see_also: &["tcp_listen", "tcp_read", "tcp_write"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

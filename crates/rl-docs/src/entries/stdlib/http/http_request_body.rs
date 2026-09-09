@@ -15,4 +15,6 @@ dec string body = result_unwrap(http_request_body(req))"#,
     errors: Some("Err(string) on a read error"),
     see_also: &["http_request_header"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

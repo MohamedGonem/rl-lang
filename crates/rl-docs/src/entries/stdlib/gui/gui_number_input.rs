@@ -20,4 +20,6 @@ dec handle age = result_unwrap(gui_number_input(window, 18.0, 0.0, 120.0, 20, 20
         "gui_on_change",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

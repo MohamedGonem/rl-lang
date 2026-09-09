@@ -9,4 +9,6 @@ pub static ATAN: FnEntry = FnEntry {
     errors: None,
     see_also: &["asin", "acos", "atan2"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

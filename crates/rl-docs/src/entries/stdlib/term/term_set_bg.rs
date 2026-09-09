@@ -16,4 +16,6 @@ term_set_bg(0, 0, 0)?"#,
     ),
     see_also: &["term_set_fg", "term_bg", "term_reset_color"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -15,4 +15,6 @@ dec handle button = result_unwrap(gui_button(window, "Click me", 20, 20))"#,
     ),
     see_also: &["gui_on_click", "gui_set_text", "gui_set_pos", "gui_remove"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

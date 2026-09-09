@@ -13,4 +13,6 @@ gui_window_set_title(window, "My App - unsaved changes")?"#,
     errors: Some("err(string) for an unknown handle, or a handle that isn't a window"),
     see_also: &["gui_window", "gui_run"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

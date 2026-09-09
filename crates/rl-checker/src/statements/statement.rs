@@ -4,14 +4,64 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use crate::{TypeChecker, structs::CheckType, units::Unit};
-use rl_ast::statements::{MatchPattern, Statement, StatementKind, TypeAnnotation};
+use rl_ast::statements::{ItemAttribute, Lint, MatchPattern, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokenizer::Tokenizer;
 use rl_parser::parser_logic::Parser;
 use rl_utils::{source::SourceFile, span::Span};
 
 impl TypeChecker {
+    /// Collects `Lint` values and deprecated message from a statement's `item_attributes`.
+    fn collect_item_attrs(stmt: &Statement) -> (HashSet<Lint>, Option<String>) {
+        let mut lints = HashSet::new();
+        let mut deprecated = None;
+        let attrs = match &stmt.kind {
+            StatementKind::VariableDeclaration { item_attributes, .. } => item_attributes,
+            StatementKind::ConstantDeclaration { item_attributes, .. } => item_attributes,
+            StatementKind::FunctionDeclaration { item_attributes, .. } => item_attributes,
+            _ => return (lints, deprecated),
+        };
+        for attr in attrs {
+            match attr {
+                ItemAttribute::Allow(lints_vec) => lints.extend(lints_vec),
+                ItemAttribute::Deprecated(msg) => deprecated = msg.clone(),
+            }
+        }
+        (lints, deprecated)
+    }
+
     // checks the current statement and push errors via error() if any found
     pub fn check_statement(&mut self, statement: &Statement) {
+        let (allowed, deprecated) = Self::collect_item_attrs(statement);
+        let pushed = !allowed.is_empty();
+        if pushed {
+            self.allow_stack.push(allowed.clone());
+        }
+
+        self.check_statement_inner(statement);
+
+        // For variable/constant/function declarations, attach suppressed lints
+        // and deprecation message to the scope item.
+        let name = match &statement.kind {
+            StatementKind::VariableDeclaration { name, .. } => Some(name.as_str()),
+            StatementKind::ConstantDeclaration { name, .. } => Some(name.as_str()),
+            StatementKind::FunctionDeclaration { name, .. } => Some(name.as_str()),
+            _ => None,
+        };
+        if let Some(n) = name {
+            if !allowed.is_empty() {
+                self.set_suppressed_lints_for_last_declared(n, allowed);
+            }
+            if deprecated.is_some() {
+                self.set_deprecated_for_last_declared(n, deprecated);
+            }
+        }
+
+        if pushed {
+            self.allow_stack.pop();
+        }
+    }
+
+    fn check_statement_inner(&mut self, statement: &Statement) {
         match &statement.kind {
             // checks if the type null or same type then declare it as variable
             // otherwise pushs error
@@ -20,6 +70,7 @@ impl TypeChecker {
                 type_annotation,
                 unit_annotation,
                 value,
+                item_attributes: _,
             } => {
                 let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                 let value_typed = self.check_expression_typed(*value);
@@ -112,6 +163,7 @@ impl TypeChecker {
                 type_annotation,
                 unit_annotation,
                 value,
+                item_attributes: _,
             } => {
                 let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                 let value_typed = self.check_expression_typed(*value).into_const();
@@ -874,6 +926,7 @@ impl TypeChecker {
                     type_annotation,
                     unit_annotation,
                     value,
+                    item_attributes: _,
                 } if wanted(name) => {
                     let declared_unit = unit_annotation.as_ref().map(Unit::from_annotation);
                     let declared = if *type_annotation == TypeAnnotation::Infer {

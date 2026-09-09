@@ -240,6 +240,19 @@ impl Tokenizer {
             '0'..='9' => self.number_literal(),
 
             '_' | 'a'..='z' | 'A'..='Z' => self.identifier(),
+            c if c.is_alphabetic() => self.identifier(),
+
+            '|' => {
+                if self.peek() == '>' {
+                    self.advance();
+                    self.add_token(TokenType::Pipe);
+                } else {
+                    return Err(self.err(
+                        "unexpected character `|`".to_string(),
+                        self.current_span(),
+                    ));
+                }
+            }
 
             other => {
                 return Err(self.err(

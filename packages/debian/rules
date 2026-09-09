@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export RUSTFLAGS?=
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --all-features
+
+override_dh_auto_test:
+	cargo test --all-features
+
+override_dh_auto_install:
+	install -Dm755 target/release/rl debian/rl-lang/usr/bin/rl
+	install -Dm755 target/release/rlc debian/rl-lang/usr/bin/rlc || true
+	install -Dm755 target/release/rld debian/rl-lang/usr/bin/rld || true
+	install -Dm644 man/rl.1 debian/rl-lang/usr/share/man/man1/rl.1
+	install -Dm644 man/rl.info debian/rl-lang/usr/share/info/rl.info

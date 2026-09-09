@@ -9,4 +9,6 @@ pub static UNWRAP_ERROR: FnEntry = FnEntry {
     errors: Some("Will return err when x is not error type"),
     see_also: &["is_error"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

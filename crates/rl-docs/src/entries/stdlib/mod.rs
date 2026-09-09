@@ -9,6 +9,7 @@ pub mod fs;
 pub mod gui;
 pub mod http;
 pub mod io;
+pub mod len;
 pub mod math;
 pub mod math_consts;
 pub mod net;

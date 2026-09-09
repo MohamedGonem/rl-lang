@@ -18,4 +18,6 @@ copy_file("a.txt", "b.txt")?"#,
     ),
     see_also: &["move_file"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

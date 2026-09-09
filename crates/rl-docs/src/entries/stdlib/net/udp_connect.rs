@@ -13,4 +13,6 @@ result_unwrap(udp_connect(socket, "127.0.0.1:9001"))"#,
     errors: Some("Err(string) on failure"),
     see_also: &["udp_send", "udp_recv"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

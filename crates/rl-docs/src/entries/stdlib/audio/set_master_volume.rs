@@ -12,4 +12,6 @@ result_unwrap(set_master_volume(0.5))"#,
     errors: None,
     see_also: &["sound_set_volume"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

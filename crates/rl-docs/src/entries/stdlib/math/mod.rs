@@ -37,7 +37,7 @@ pub static MATH: StdEntry = StdEntry {
     name: "math",
     description: "functions for math",
     functions: FUNCTIONS,
-    since: None,
+    since: Some("v2.1.0"),
     unstable: false,
 };
 
@@ -61,8 +61,8 @@ static FUNCTIONS: &[&FnEntry] = &[
     &lcm::LCM,
     &lerp::LERP,
     &log::LOG,
-    &log2::LOG2,
     &log10::LOG10,
+    &log2::LOG2,
     &map_range::MAP_RANGE,
     &max::MAX,
     &min::MIN,

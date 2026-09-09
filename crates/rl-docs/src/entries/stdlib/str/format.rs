@@ -11,4 +11,6 @@ pub static FORMAT: FnEntry = FnEntry {
     ),
     see_also: &["concat"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

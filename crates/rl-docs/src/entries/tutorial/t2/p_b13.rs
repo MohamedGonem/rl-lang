@@ -46,5 +46,5 @@ pub static ADV_HELP_POLISH: ConceptEntry = ConceptEntry {
     pitfalls: &[],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

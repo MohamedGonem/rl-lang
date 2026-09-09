@@ -5,6 +5,15 @@ use ariadne::{Color, Label, Report, ReportKind, Source};
 use crate::source::SourceFile;
 use crate::span::Span;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
+pub enum Severity {
+    #[default]
+    Error,
+    Warning,
+}
+
+
 /// heavy optional fields, heap-allocated so `Error` stays small on the stack
 #[derive(Debug, Clone)]
 struct ErrorDetail {
@@ -37,6 +46,7 @@ pub struct Error {
     /// `LineIndex` but not the original source). Used by [`Error::fallback_text`]
     /// to print a `file:line:col` diagnostic instead of a bare message.
     location: Option<(Arc<str>, usize, usize)>,
+    severity: Severity,
 }
 
 /// provides an error category with optional error context
@@ -86,7 +96,17 @@ impl Error {
                 help: None,
             })),
             location: None,
+            severity: Severity::Error,
         }
+    }
+
+    pub fn as_warning(mut self) -> Self {
+        self.severity = Severity::Warning;
+        self
+    }
+
+    pub fn severity(&self) -> Severity {
+        self.severity
     }
 
     /// Attaches a `file:line:col` fallback location, resolved from a
@@ -190,12 +210,20 @@ impl Error {
         {
             let name: &str = d.source_name.as_deref().unwrap_or("<source>");
             let (sp, primary_label) = &d.primary;
-            let mut builder = Report::build(ReportKind::Error, (name, sp.start..sp.end))
+            let kind = match self.severity {
+                Severity::Error => ReportKind::Error,
+                Severity::Warning => ReportKind::Warning,
+            };
+            let label_color = match self.severity {
+                Severity::Error => Color::Red,
+                Severity::Warning => Color::Yellow,
+            };
+            let mut builder = Report::build(kind, (name, sp.start..sp.end))
                 .with_message(&self.message)
                 .with_label(
                     Label::new((name, sp.start..sp.end))
                         .with_message(primary_label)
-                        .with_color(Color::Red),
+                        .with_color(label_color),
                 );
             for (lsp, label) in &d.labels {
                 builder = builder.with_label(
@@ -220,12 +248,16 @@ impl Error {
     /// `[N) Error: ...]` / `[Error: ...]` format, which is now only a
     /// fallback for errors that have neither source nor a line index.
     fn fallback_text(&self) {
+        let prefix = match self.severity {
+            Severity::Error => "Error",
+            Severity::Warning => "Warning",
+        };
         match (&self.location, &self.line) {
             (Some((name, line, col)), _) => {
-                println!("{}:{}:{}: [Error: {}]", name, line, col, self.message)
+                println!("{}:{}:{}: [{}: {}]", name, line, col, prefix, self.message)
             }
-            (None, Some(l)) => println!("[{}) Error: {}]", l, self.message),
-            (None, None) => println!("[Error: {}]", self.message),
+            (None, Some(l)) => println!("[{}) {}: {}]", l, prefix, self.message),
+            (None, None) => println!("[{}: {}]", prefix, self.message),
         }
 
         if let Some(r) = &self.reason {

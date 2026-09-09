@@ -94,6 +94,7 @@ impl Resolver {
                 type_annotation,
                 unit_annotation: _,
                 value,
+                item_attributes: _,
             } => {
                 let value = self.resolve_expression(value);
                 let slot = self.declare(name.clone());
@@ -109,6 +110,7 @@ impl Resolver {
                 type_annotation,
                 unit_annotation: _,
                 value,
+                item_attributes: _,
             } => {
                 let value = self.resolve_expression(value);
                 let slot = self.declare(name.clone());
@@ -255,6 +257,7 @@ impl Resolver {
                 return_type,
                 body,
                 attribute,
+                item_attributes: _,
             } => {
                 let slot = self.declare(name.clone());
                 self.push_scope();
@@ -284,6 +287,7 @@ impl Resolver {
                                 return_type,
                                 body,
                                 attribute,
+                                item_attributes: _,
                             } => {
                                 self.push_scope();
                                 for p in &params {

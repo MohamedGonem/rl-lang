@@ -43,5 +43,5 @@ pub static STEP_FOR_LOOPS: ConceptEntry = ConceptEntry {
     pitfalls: &[],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

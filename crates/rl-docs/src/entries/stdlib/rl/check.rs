@@ -18,4 +18,6 @@ err(" ... type mismatch ... ")
     ),
     see_also: &["lex", "eval"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

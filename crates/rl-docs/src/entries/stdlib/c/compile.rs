@@ -13,4 +13,6 @@ dec handle h = std::res::result_unwrap(compile("int add(int a, int b) { return a
     ),
     see_also: &["load", "call", "close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

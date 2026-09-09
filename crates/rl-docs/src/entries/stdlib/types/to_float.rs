@@ -9,4 +9,6 @@ pub static TO_FLOAT: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to float"),
     see_also: &["is_float"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

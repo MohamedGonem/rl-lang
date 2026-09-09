@@ -20,31 +20,33 @@ members = [
     "crates/rl-std",
     "crates/rl-tests",
     "crates/rl-benches",
+    "crates/rl-cc"
 ]
 
 [workspace.package]
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rl-lang/rl-lang"
 
 [workspace.dependencies]
-rl-commons = { path = "crates/rl-commons", version = "2.0.0" }
-rl-std-core = { path = "crates/rl-std-core", version = "2.0.0" }
-rl-std-macros = { path = "crates/rl-std-macros", version = "2.0.0" }
-rl-std = { path = "crates/rl-std", version = "2.0.0" }
-rl-utils = { path = "crates/rl-utils", version = "2.0.0" }
-rl-lexer = { path = "crates/rl-lexer", version = "2.0.0" }
-rl-ast = { path = "crates/rl-ast", version = "2.0.0" }
-rl-parser = { path = "crates/rl-parser", version = "2.0.0" }
-rl-resolver = { path = "crates/rl-resolver", version = "2.0.0" }
-rl-vm = { path = "crates/rl-vm", version = "2.0.0" }
-rl-cranelift = { path = "crates/rl-cranelift", version = "2.0.0" }
-rl-checker = { path = "crates/rl-checker", version = "2.0.0" }
-rl-docs = { path = "crates/rl-docs", version = "2.0.0" }
-rl-tooling = { path = "crates/rl-tooling", version = "2.0.0" }
-rl-repl = { path = "crates/rl-repl", default-features = false, version = "2.0.0" }
-rl-lsp = { path = "crates/rl-lsp", version = "2.0.0" }
+rl-commons = { path = "crates/rl-commons", version = "2.1.0" }
+rl-std-core = { path = "crates/rl-std-core", version = "2.1.0" }
+rl-std-macros = { path = "crates/rl-std-macros", version = "2.1.0" }
+rl-std = { path = "crates/rl-std", version = "2.1.0" }
+rl-utils = { path = "crates/rl-utils", version = "2.1.0" }
+rl-lexer = { path = "crates/rl-lexer", version = "2.1.0" }
+rl-ast = { path = "crates/rl-ast", version = "2.1.0" }
+rl-parser = { path = "crates/rl-parser", version = "2.1.0" }
+rl-resolver = { path = "crates/rl-resolver", version = "2.1.0" }
+rl-vm = { path = "crates/rl-vm", version = "2.1.0" }
+rl-cranelift = { path = "crates/rl-cranelift", version = "2.1.0" }
+rl-checker = { path = "crates/rl-checker", version = "2.1.0" }
+rl-docs = { path = "crates/rl-docs", version = "2.1.0" }
+rl-tooling = { path = "crates/rl-tooling", version = "2.1.0" }
+rl-repl = { path = "crates/rl-repl", default-features = false, version = "2.1.0" }
+rl-lsp = { path = "crates/rl-lsp", version = "2.1.0" }
+rl-cc = { path = "crates/rl-cc", version = "2.1.0" }
 
 criterion = { version = "0.5", features = ["html_reports"] }
 syn = { version = "2", features = ["full"] }
@@ -76,12 +78,30 @@ cpal = "0.17"
 symphonia = { version = "0.5", features = ["all"] }
 eframe = { version = "0.35", features = ["android-game-activity"] }
 shell-words = "1.1"
+libc = "0.2"
 tempfile = "3.27.0"
+glob = "0.3"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
+
+# Nightly/dev builds: thin LTO + more codegen units = much faster builds.
+# Quality is slightly lower than release but still optimized.
+[profile.nightly]
+inherits = "release"
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+
+# Debug-optimized builds: fast compilation, no LTO.
+# Good for testing and development without waiting for LTO.
+[profile.dev-release]
+inherits = "dev"
+opt-level = 3
+lto = false
+codegen-units = 16
 
 # Benchmarks should reflect the same optimisations as shipped releases,
 # otherwise the numbers misrepresent the real binaries.

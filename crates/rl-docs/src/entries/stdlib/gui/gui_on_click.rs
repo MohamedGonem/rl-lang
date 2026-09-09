@@ -25,4 +25,6 @@ gui_on_click(button, fn() {
     ),
     see_also: &["gui_button", "gui_on_change", "gui_run"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -15,4 +15,6 @@ gui_set_visible(label, false)?"#,
     errors: Some("err(string) for an unknown handle"),
     see_also: &["gui_is_visible", "gui_remove", "gui_close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -11,4 +11,6 @@ pub static READ_BYTES: FnEntry = FnEntry {
     ),
     see_also: &["read_file", "read_lines"],
     since: Some("v0.1.5"),
+    deprecated: Some("moved to std::fs::read_bytes"),
+    updated: Some("v0.1.5"),
 };

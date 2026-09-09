@@ -1,0 +1,37 @@
+app-id: io.github.rl-lang.rl
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: rl
+
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/rl/cargo
+    CARGO_NET_OFFLINE: 'true'
+
+finish-args: []
+
+modules:
+  - name: rl
+    buildsystem: simple
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo build --offline --release --all-features
+      - install -Dm0755 target/release/rl ${FLATPAK_DEST}/bin/rl
+      - install -Dm0755 target/release/rlc ${FLATPAK_DEST}/bin/rlc || true
+      - install -Dm0755 target/release/rld ${FLATPAK_DEST}/bin/rld || true
+      - install -Dm0644 man/rl.1 ${FLATPAK_DEST}/share/man/man1/rl.1
+      - install -Dm0644 man/rl.info ${FLATPAK_DEST}/share/info/rl.info
+    sources:
+      - type: archive
+        url: https://github.com/rl-lang/rl-lang/archive/refs/tags/v2.1.0.tar.gz
+        sha256: REPLACE_WITH_ACTUAL_SHA256
+      - cargo-sources.json
+      - type: shell
+        commands:
+          - mkdir -p .cargo
+          - cp -vf cargo/config .cargo/config.toml

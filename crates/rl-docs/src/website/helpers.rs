@@ -117,6 +117,15 @@ pub fn render_fn_entry(func: &FnEntry, fn_link_map: &HashMap<String, String>) ->
     if let Some(since) = func.since {
         out.push_str(&format!("<p><em>since {}</em></p>\n", html_escape(since)));
     }
+    if let Some(updated) = func.updated {
+        out.push_str(&format!("<p><em>updated {}</em></p>\n", html_escape(updated)));
+    }
+    if let Some(deprecated) = func.deprecated {
+        out.push_str(&format!(
+            "<p class=\"deprecated\"><strong>Deprecated:</strong> {}</p>\n",
+            html_escape(deprecated)
+        ));
+    }
 
     out.push_str(&format!(
         "<p>{}</p>\n<p><strong>Returns:</strong> {}</p>\n",

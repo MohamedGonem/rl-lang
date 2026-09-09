@@ -15,4 +15,6 @@ ceil(2.12)?"#,
     ),
     see_also: &["floor", "round"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

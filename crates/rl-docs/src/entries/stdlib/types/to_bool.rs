@@ -9,4 +9,6 @@ pub static TO_BOOL: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to boolean"),
     see_also: &["is_bool"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

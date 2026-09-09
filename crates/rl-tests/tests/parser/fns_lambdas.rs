@@ -17,6 +17,7 @@ fn fn_simple() {
             return_type,
             attribute,
             body,
+            item_attributes: _,
         } => {
             assert_eq!(name, "x");
             assert_eq!(
@@ -56,6 +57,7 @@ fn fn_fn_param() {
             return_type,
             attribute,
             body,
+            item_attributes: _,
         } => {
             assert_eq!(name, "x");
             assert_eq!(

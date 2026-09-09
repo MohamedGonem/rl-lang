@@ -11,4 +11,6 @@ pub static LEADING_ZEROS: FnEntry = FnEntry {
     ),
     see_also: &["trailing_zeros", "count_bits"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

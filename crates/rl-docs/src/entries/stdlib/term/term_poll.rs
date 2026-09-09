@@ -16,4 +16,6 @@ term_poll(100)?"#,
     ),
     see_also: &["term_read_key"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

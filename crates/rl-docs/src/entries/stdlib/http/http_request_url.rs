@@ -15,4 +15,6 @@ http_request_url(req)"#,
     errors: None,
     see_also: &["http_request_method"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

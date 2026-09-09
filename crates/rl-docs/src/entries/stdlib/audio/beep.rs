@@ -12,4 +12,6 @@ result_unwrap(beep(440.0, 250))"#,
     errors: Some("err(string) when no output device is available"),
     see_also: &["play_file"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

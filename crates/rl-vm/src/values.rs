@@ -267,6 +267,7 @@ impl VmValue {
                 HandleKind::Http => "http handle",
                 HandleKind::Audio => "audio handle",
                 HandleKind::Gui => "gui handle",
+                HandleKind::File => "file handle",
             },
         }
     }

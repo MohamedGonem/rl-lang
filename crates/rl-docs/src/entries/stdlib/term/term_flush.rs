@@ -11,4 +11,6 @@ term_flush()?"#,
     errors: Some(r#"Will return error if flushing stdout fails"#),
     see_also: &["term_print"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

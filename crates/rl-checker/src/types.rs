@@ -6,7 +6,7 @@ use crate::{
 };
 use rl_ast::statements::TypeAnnotation;
 use rl_utils::span::Span;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 impl ScopeItem {
@@ -25,6 +25,9 @@ impl ScopeItem {
             unit,
             is_const,
             decl_span,
+            used: false,
+            suppressed_lints: HashSet::new(),
+            deprecated: None,
         }
     }
 }

@@ -10,6 +10,14 @@ VARIANT_LIST="${5:-}"
 mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 
+# Build profile: "release", "nightly", or "dev-release"
+# Set via RL_BUILD_PROFILE env var, or auto-detect from variant name.
+BUILD_PROFILE="${RL_BUILD_PROFILE:-auto}"
+
+# Parallel jobs: number of variants to build simultaneously.
+# Set via RL_PARALLEL_JOBS, or auto-detect from nproc.
+PARALLEL_JOBS="${RL_PARALLEL_JOBS:-}"
+
 declare -A ENGINE_FEATURES=(
   ["rl"]="vm"
   ["rl_vm"]="vm"
@@ -89,6 +97,47 @@ features_for() {
   echo "$feats"
 }
 
+# Determine the cargo profile for a given variant.
+# Auto-detect: debug variants -> dev-release, nightly env -> nightly, else release.
+profile_for() {
+  local variant="$1"
+
+  case "$BUILD_PROFILE" in
+    release|nightly|dev-release)
+      echo "$BUILD_PROFILE"
+      return
+      ;;
+  esac
+
+  # Auto-detect from variant name
+  if [[ "$variant" == *"_debug"* ]]; then
+    echo "dev-release"
+  else
+    echo "release"
+  fi
+}
+
+cargo_profile_flag() {
+  local profile="$1"
+  case "$profile" in
+    release)    echo "--release" ;;
+    nightly)    echo "--profile nightly" ;;
+    dev-release) echo "--profile dev-release" ;;
+    *)          echo "--release" ;;
+  esac
+}
+
+# Map a profile name to the target directory subfolder cargo uses.
+cargo_profile_dir() {
+  local profile="$1"
+  case "$profile" in
+    release)     echo "release" ;;
+    nightly)     echo "nightly" ;;
+    dev-release) echo "dev-release" ;;
+    *)           echo "release" ;;
+  esac
+}
+
 package_elf() {
   local actual="$1" bin_path="$2" label="$3"
   local stage
@@ -108,45 +157,34 @@ package_windows() {
   rm -rf "$stage"
 }
 
-main() {
-  local variant actual feats bin_src
-
-  if [ -n "$VARIANT_LIST" ]; then
-    while IFS= read -r variant; do
-      [ -n "$variant" ] || continue
-      build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
-    done <<<"$(printf '%s\n' "$VARIANT_LIST" | tr ',' '\n' | sed 's/^ *//; s/ *$//')"
-  else
-    while IFS= read -r variant; do
-      build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
-    done < <(build_variant_list)
-  fi
-}
-
 build_one() {
   local variant="$1" target="$2" platform="$3" arch="$4" out_dir="$5"
-  local actual feats bin_src
+  local actual feats bin_src profile profile_flag profile_dir
 
   actual="${ACTUAL_NAME[$variant]:-}"
   if [ -z "$actual" ]; then
     echo "unknown variant '$variant'" >&2
-    exit 1
+    return 1
   fi
   feats="$(features_for "$variant")"
+  profile="$(profile_for "$variant")"
+  profile_flag="$(cargo_profile_flag "$profile")"
+  profile_dir="$(cargo_profile_dir "$profile")"
 
-  echo "=== Building ${variant} (${actual}) [features: ${feats}] ==="
-  cargo build --release --no-default-features --features "$feats" \
+  echo "=== Building ${variant} (${actual}) [features: ${feats}, profile: ${profile}] ==="
+  # shellcheck disable=SC2086
+  cargo build $profile_flag --no-default-features --features "$feats" \
     --target "$target" -p rl-cli
 
   if [ "$platform" = "windows" ]; then
-    bin_src="target/${target}/release/rl.exe"
+    bin_src="target/${target}/${profile_dir}/rl.exe"
   else
-    bin_src="target/${target}/release/rl"
+    bin_src="target/${target}/${profile_dir}/rl"
   fi
 
   if [ ! -f "$bin_src" ]; then
     echo "expected binary not found at $bin_src" >&2
-    exit 1
+    return 1
   fi
 
   if [ "$platform" = "windows" ]; then
@@ -154,8 +192,52 @@ build_one() {
   elif [ "$platform" = "android" ]; then
     package_elf "$actual" "$bin_src" "android"
   else
-    package_elf "$actual" "$bin_src" "linux"
+    package_elf "$actual" "$bin_src" "$platform"
   fi
+
+  echo "=== Done: ${variant} (${actual}) ==="
+}
+
+main() {
+  local variants
+
+  if [ -n "$VARIANT_LIST" ]; then
+    variants="$(printf '%s\n' "$VARIANT_LIST" | tr ',' '\n' | sed 's/^ *//; s/ *$//')"
+  else
+    variants="$(build_variant_list)"
+  fi
+
+  # Determine parallelism
+  if [ -z "$PARALLEL_JOBS" ]; then
+    if command -v nproc &>/dev/null; then
+      PARALLEL_JOBS="$(nproc)"
+    elif [ -f /proc/cpuinfo ]; then
+      PARALLEL_JOBS="$(grep -c ^processor /proc/cpuinfo)"
+    else
+      PARALLEL_JOBS=2
+    fi
+    # Cap at 4 to avoid excessive memory usage
+    if [ "$PARALLEL_JOBS" -gt 4 ]; then
+      PARALLEL_JOBS=4
+    fi
+  fi
+
+  echo "::group::Building variants (parallel=${PARALLEL_JOBS})"
+  export -f build_one features_for profile_for cargo_profile_flag cargo_profile_dir
+  export -A ACTUAL_NAME ENGINE_FEATURES
+  export TARGET PLATFORM ARCH OUT_DIR BUILD_PROFILE
+
+  # Use xargs for parallel execution when more than 1 job, otherwise sequential
+  if [ "$PARALLEL_JOBS" -gt 1 ] && command -v xargs &>/dev/null; then
+    printf '%s\n' "$variants" | grep -v '^$' | \
+      xargs -I{} -P "$PARALLEL_JOBS" bash -c 'build_one "$@"' _ "{}" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
+  else
+    while IFS= read -r variant; do
+      [ -z "$variant" ] && continue
+      build_one "$variant" "$TARGET" "$PLATFORM" "$ARCH" "$OUT_DIR"
+    done <<<"$variants"
+  fi
+  echo "::endgroup::"
 }
 
 main

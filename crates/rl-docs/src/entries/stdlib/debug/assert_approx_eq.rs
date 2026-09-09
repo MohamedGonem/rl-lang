@@ -14,4 +14,6 @@ assert_approx_eq(1.0, 1.1, 0.2)"#,
     ),
     see_also: &["assert_eq"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

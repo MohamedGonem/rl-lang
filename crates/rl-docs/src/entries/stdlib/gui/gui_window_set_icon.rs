@@ -21,4 +21,6 @@ gui_window_set_icon(window, 2, 2, pixels)?"#,
     ),
     see_also: &["gui_window", "gui_window_set_decorated", "gui_run"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

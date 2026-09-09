@@ -25,7 +25,7 @@ mod while_statement;
 use crate::parser_logic::Parser;
 use rl_ast::{
     nodes::ExpressionKind,
-    statements::{FunctionAttribute, Statement, StatementKind},
+    statements::{FunctionAttribute, ItemAttribute, Lint, Statement, StatementKind},
 };
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::{errors::Error, span::Span};
@@ -62,25 +62,26 @@ impl Parser {
     /// [`parse_expression`]: Parser::parse_expression
     pub fn parse_statement_to_ast(&mut self) -> Result<Statement, Error> {
         let start = self.peek_span();
-        match self.peek() {
+        let result = match self.peek() {
             TokenType::Newline => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found newline while parsing... skipping");
                 let span = self.previous_span();
-                Ok(Statement::new(
+                Statement::new(
                     StatementKind::Expression(
                         self.ast_arena.alloc_expr(ExpressionKind::Integer(0), span),
                     ),
                     span,
-                ))
+                )
             }
 
             TokenType::Get => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `get` for import while parsing");
-                self.parse_import(start)
+                while self.match_type(&[TokenType::Newline]) {}
+                self.parse_import(start)?
             }
             TokenType::Dec => {
                 self.advance();
@@ -94,54 +95,54 @@ impl Parser {
                 if is_inferred {
                     #[cfg(feature = "debug")]
                     log::info!("found `dec` for inferred variable while parsing");
-                    self.parse_infer_declaration(start)
+                    self.parse_infer_declaration(start)?
                 } else {
                     #[cfg(feature = "debug")]
                     log::info!("found `dec` for variable (record|tag) while parsing");
-                    self.parse_variable_declartion(start)
+                    self.parse_variable_declartion(start)?
                 }
             }
             TokenType::Const => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `declaration` for constant while parsing");
-                self.parse_const_declartion(start)
+                self.parse_const_declartion(start)?
             }
             TokenType::While => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `while` while parsing");
-                self.parse_while(start)
+                self.parse_while(start)?
             }
             TokenType::Loop => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `loop` while parsing");
-                self.parse_loop(start)
+                self.parse_loop(start)?
             }
             TokenType::For => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `for` while parsing");
-                self.parse_for(start)
+                self.parse_for(start)?
             }
             TokenType::If => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `if` while parsing");
-                self.parse_if(start)
+                self.parse_if(start)?
             }
 
             TokenType::Fn => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found 'fn' while parsing");
-                self.parse_function(start, None)
+                self.parse_function(start, None, Vec::new())?
             }
 
             TokenType::BangHash => {
                 self.advance();
-                self.parse_entry_attribute(start)
+                self.parse_entry_attribute(start)?
             }
             TokenType::Return => {
                 self.advance();
@@ -155,45 +156,45 @@ impl Parser {
                     None
                 };
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Return(expr), span))
+                Statement::new(StatementKind::Return(expr), span)
             }
 
             TokenType::Break => {
                 self.advance();
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Break, span))
+                Statement::new(StatementKind::Break, span)
             }
 
             TokenType::Continue => {
                 self.advance();
                 let span = start.join(self.previous_span());
-                Ok(Statement::new(StatementKind::Continue, span))
+                Statement::new(StatementKind::Continue, span)
             }
 
             TokenType::Match => {
                 self.advance();
-                self.parse_match(start)
+                self.parse_match(start)?
             }
 
             TokenType::Record => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `record` while parsing");
-                self.parse_record_declaration(start)
+                self.parse_record_declaration(start)?
             }
 
             TokenType::Tag => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `tag` while parsing");
-                self.parse_tag_declaration(start)
+                self.parse_tag_declaration(start)?
             }
 
             TokenType::Impl => {
                 self.advance();
                 #[cfg(feature = "debug")]
                 log::info!("found `impl` while parsing");
-                self.parse_impl_block(start)
+                self.parse_impl_block(start)?
             }
 
             _ => {
@@ -201,9 +202,12 @@ impl Parser {
                 log::info!("parsing the current tokens as expression");
                 let expr = self.parse_expression()?;
                 let span = self.ast_arena.exprs.get(expr).span;
-                Ok(Statement::new(StatementKind::Expression(expr), span))
+                Statement::new(StatementKind::Expression(expr), span)
             }
-        }
+        };
+
+        self.match_type(&[TokenType::Semicolon]);
+        Ok(result)
     }
 
     /// Parses a brace-delimited block `{ stmts* }` into a [`Vec<Statement>`].
@@ -252,47 +256,169 @@ impl Parser {
 
         while self.match_type(&[TokenType::Newline]) {}
 
-        let attribute = match self.peek() {
-            TokenType::Identifier(name) if name == "entry" => {
-                self.advance();
-                if self.check(&TokenType::Assign) {
-                    return Err(self.err("`!#[entry]` does not take a priority", self.peek_span()));
+        let mut function_attr: Option<FunctionAttribute> = None;
+        let mut item_attrs: Vec<ItemAttribute> = Vec::new();
+
+        loop {
+            match self.peek() {
+                // existing function lifecycle attributes
+                TokenType::Identifier(name) if name == "entry" => {
+                    self.advance();
+                    if self.check(&TokenType::Assign) {
+                        return Err(self.err("`!#[entry]` does not take a priority", self.peek_span()));
+                    }
+                    function_attr = Some(FunctionAttribute::Entry);
                 }
-                FunctionAttribute::Entry
-            }
-            TokenType::Identifier(name) if name == "init" => {
-                self.advance();
-                FunctionAttribute::Init(self.parse_optional_priority()?)
-            }
-            TokenType::Identifier(name) if name == "final" => {
-                self.advance();
-                FunctionAttribute::Final(self.parse_optional_priority()?)
-            }
-            TokenType::Identifier(name) if name == "test" => {
-                self.advance();
-                if self.check(&TokenType::Assign) {
-                    return Err(self.err("`!#[test]` does not take a priority", self.peek_span()));
+                TokenType::Identifier(name) if name == "init" => {
+                    self.advance();
+                    function_attr = Some(FunctionAttribute::Init(self.parse_optional_priority()?));
                 }
-                FunctionAttribute::Test
+                TokenType::Identifier(name) if name == "final" => {
+                    self.advance();
+                    function_attr = Some(FunctionAttribute::Final(self.parse_optional_priority()?));
+                }
+                TokenType::Identifier(name) if name == "test" => {
+                    self.advance();
+                    if self.check(&TokenType::Assign) {
+                        return Err(self.err("`!#[test]` does not take a priority", self.peek_span()));
+                    }
+                    function_attr = Some(FunctionAttribute::Test);
+                }
+                // new: allow(unused, deprecated, ...)
+                TokenType::Identifier(name) if name == "allow" => {
+                    self.advance();
+                    let lints = self.parse_lint_list()?;
+                    item_attrs.push(ItemAttribute::Allow(lints));
+                }
+                // new: deprecated or deprecated("msg")
+                TokenType::Identifier(name) if name == "deprecated" => {
+                    self.advance();
+                    let msg = self.parse_optional_string_arg()?.or_else(|| Some(String::new()));
+                    item_attrs.push(ItemAttribute::Deprecated(msg));
+                }
+                _ => return Err(self.err("expected valid attribute", self.peek_span())),
             }
-            _ => return Err(self.err("expected valid attribute", self.peek_span())),
-        };
+
+            while self.match_type(&[TokenType::Newline]) {}
+            if self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                continue;
+            }
+            break;
+        }
 
         while self.match_type(&[TokenType::Newline]) {}
 
         if !self.match_type(&[TokenType::RightBracket]) {
-            return Err(self.err("expected `]` after entry attribute", self.peek_span()));
+            return Err(self.err("expected `]` after attribute", self.peek_span()));
         }
 
         while self.match_type(&[TokenType::Newline]) {}
 
-        if !self.match_type(&[TokenType::Fn]) {
-            return Err(self.err(
-                "expected function declaration after `!#[<attribute>]`",
+        // dispatch on whichever item follows
+        match self.peek() {
+            TokenType::Fn => {
+                self.advance();
+                self.parse_function(start, function_attr, item_attrs)
+            }
+            TokenType::Dec => {
+                self.advance();
+                let is_inferred = if let TokenType::Identifier(name) = self.peek() {
+                    !self.record_names.contains(&name) && !self.tag_names.contains(&name)
+                } else {
+                    false
+                };
+                let mut stmt = if is_inferred {
+                    self.parse_infer_declaration(start)?
+                } else {
+                    self.parse_variable_declartion(start)?
+                };
+                Self::inject_item_attributes(&mut stmt, item_attrs);
+                Ok(stmt)
+            }
+            TokenType::Const => {
+                self.advance();
+                let mut stmt = self.parse_const_declartion(start)?;
+                Self::inject_item_attributes(&mut stmt, item_attrs);
+                Ok(stmt)
+            }
+            _ => Err(self.err(
+                "expected fn, dec, or const after `!#[...]`",
                 self.peek_span(),
-            ));
+            )),
         }
-        self.parse_function(start, Some(attribute))
+    }
+
+    /// Injects `item_attributes` into the returned statement's kind.
+    fn inject_item_attributes(stmt: &mut Statement, attrs: Vec<ItemAttribute>) {
+        if attrs.is_empty() {
+            return;
+        }
+        match &mut stmt.kind {
+            StatementKind::VariableDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            StatementKind::ConstantDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            StatementKind::FunctionDeclaration { item_attributes, .. } => {
+                *item_attributes = attrs;
+            }
+            _ => {}
+        }
+    }
+
+    /// Parses `(ident, ident, ...)` for `!#[allow(...)]`, validating each name
+    /// against the known `Lint` set at parse time.
+    fn parse_lint_list(&mut self) -> Result<Vec<Lint>, Error> {
+        if !self.match_type(&[TokenType::LeftParen]) {
+            return Err(self.err("expected `(` after `allow`", self.peek_span()));
+        }
+        let mut lints = Vec::new();
+        loop {
+            match self.peek() {
+                TokenType::Identifier(name) if name == "unused" => {
+                    self.advance();
+                    lints.push(Lint::Unused);
+                }
+                TokenType::Identifier(name) if name == "deprecated" => {
+                    self.advance();
+                    lints.push(Lint::Deprecated);
+                }
+                TokenType::Identifier(name) => {
+                    return Err(self.err(format!("unknown lint `{}`", name), self.peek_span()));
+                }
+                _ => return Err(self.err("expected a lint name", self.peek_span())),
+            }
+            if self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                continue;
+            }
+            break;
+        }
+        if !self.match_type(&[TokenType::RightParen]) {
+            return Err(self.err("expected `)` after lint list", self.peek_span()));
+        }
+        Ok(lints)
+    }
+
+    /// Parses `("literal")` or nothing, for `!#[deprecated]` / `!#[deprecated("msg")]`.
+    fn parse_optional_string_arg(&mut self) -> Result<Option<String>, Error> {
+        if !self.match_type(&[TokenType::LeftParen]) {
+            return Ok(None);
+        }
+        let msg = match self.peek() {
+            TokenType::StringLiteral(s) => {
+                let s = s.clone();
+                self.advance();
+                s
+            }
+            _ => return Err(self.err("expected a string literal", self.peek_span())),
+        };
+        if !self.match_type(&[TokenType::RightParen]) {
+            return Err(self.err("expected `)`", self.peek_span()));
+        }
+        Ok(Some(msg))
     }
 
     /// Parses an optional `=n` priority suffix for `!#[init=n]` / `!#[final=n]`.

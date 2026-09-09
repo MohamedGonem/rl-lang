@@ -13,4 +13,6 @@ dec handle req = result_unwrap(http_server_recv(server))"#,
     errors: Some("Err(string) on a server error"),
     see_also: &["http_server_try_recv", "http_respond"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

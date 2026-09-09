@@ -23,10 +23,10 @@ pub static RL: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
-    &LEX,
     &CHECK,
     &EVAL,
     &EVAL_ISOLATED,
+    &LEX,
     &RL_VERSION,
     &SOURCE_NAME,
 ];

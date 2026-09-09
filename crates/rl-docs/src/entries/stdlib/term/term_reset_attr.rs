@@ -19,4 +19,6 @@ term_reset_attr()?"#,
         "term_crossed_out",
     ],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

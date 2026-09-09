@@ -39,5 +39,5 @@ pub static ADV_CSV_IO: ConceptEntry = ConceptEntry {
     ],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

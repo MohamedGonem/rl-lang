@@ -71,6 +71,7 @@ fn extract_handle<R: NetStore>(v: &R::Value, name: &str) -> Result<u64, String> 
             .or_else(|| R::as_handle(v, HandleKind::Http).map(|_| HandleKind::Http))
             .or_else(|| R::as_handle(v, HandleKind::Audio).map(|_| HandleKind::Audio))
             .or_else(|| R::as_handle(v, HandleKind::Gui).map(|_| HandleKind::Gui))
+            .or_else(|| R::as_handle(v, HandleKind::File).map(|_| HandleKind::File))
         {
             Some(kind) => Err(format!(
                 "{}: expected a {:?} handle, got a {:?} handle",
@@ -139,7 +140,7 @@ pub fn tcp_connect<R: NetStore>(cx: &mut R::Cx, address: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), handle(Net) -> result[string]))]
+#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), int -> result[string]))]
 pub fn tcp_read<R: NetStore>(cx: &mut R::Cx, handle: R::Value, max_bytes: R::Value) -> R::Value {
     use std::io::Read;
 
@@ -261,7 +262,7 @@ pub fn tcp_local_addr<R: NetStore>(cx: &mut R::Cx, handle: R::Value) -> R::Value
     }
 }
 
-#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), handle(Net) -> result[null]))]
+#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), int -> result[null]))]
 pub fn tcp_set_timeout<R: NetStore>(
     cx: &mut R::Cx,
     handle: R::Value,
@@ -521,7 +522,7 @@ pub fn udp_send_to<R: NetStore>(
     }
 }
 
-#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), handle(Net) -> result[string]))]
+#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), int -> result[string]))]
 pub fn udp_recv<R: NetStore>(cx: &mut R::Cx, handle: R::Value, max_bytes: R::Value) -> R::Value {
     let id = match extract_handle::<R>(&handle, "udp_recv") {
         Ok(id) => id,
@@ -552,7 +553,7 @@ pub fn udp_recv<R: NetStore>(cx: &mut R::Cx, handle: R::Value, max_bytes: R::Val
     }
 }
 
-#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), handle(Net) -> result[tuple[string, string]]))]
+#[native_fn(module = "net", bound = "NetStore", sig(handle(Net), int -> result[tuple[string, string]]))]
 pub fn udp_recv_from<R: NetStore>(
     cx: &mut R::Cx,
     handle: R::Value,

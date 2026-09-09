@@ -23,11 +23,11 @@ fn rejects_unknown_path() {
 }
 
 #[test]
-fn pow_has_four_overloads() {
+fn pow_has_twelve_overloads() {
     let tree = stdlib_names();
     let path = vec!["math".to_string(), "pow".to_string()];
     let f = tree.resolve(&path).expect("pow should resolve");
-    assert_eq!(f.signatures.len(), 4);
+    assert_eq!(f.signatures.len(), 12);
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn bitwise_bit_and_resolves_with_signatures() {
     let tree = stdlib_names();
     let path = vec!["bitwise".to_string(), "bit_and".to_string()];
     let f = tree.resolve(&path).expect("bit_and should resolve");
-    assert_eq!(f.signatures.len(), 4);
+    assert_eq!(f.signatures.len(), 10);
 }
 
 #[test]
@@ -83,31 +83,31 @@ fn terminal_get_size_returns_result_array_int() {
 }
 
 #[test]
-fn math_sin_returns_plain_float_not_result() {
+fn math_sin_returns_result_float() {
     let tree = stdlib_names();
     let path = vec!["math".to_string(), "sin".to_string()];
     let f = tree.resolve(&path).expect("sin should resolve");
-    assert_eq!(f.signatures.len(), 1);
+    assert_eq!(f.signatures.len(), 10);
     assert_eq!(
         f.signatures[0],
-        (params(vec![TypeAnnotation::Float]), TypeAnnotation::Float)
+        (params(vec![TypeAnnotation::Int]), TypeAnnotation::Result(Box::new(TypeAnnotation::Float)))
     );
 }
 
 #[test]
-fn math_max_has_no_mixed_overload() {
+fn math_max_has_all_numeric_overloads() {
     let tree = stdlib_names();
     let path = vec!["math".to_string(), "max".to_string()];
     let f = tree.resolve(&path).expect("max should resolve");
-    assert_eq!(f.signatures.len(), 2);
+    assert_eq!(f.signatures.len(), 10);
 }
 
 #[test]
-fn math_log_always_returns_float() {
+fn math_log_returns_result_float() {
     let tree = stdlib_names();
     let path = vec!["math".to_string(), "log".to_string()];
     let f = tree.resolve(&path).expect("log should resolve");
-    assert_eq!(f.signatures.len(), 4);
+    assert_eq!(f.signatures.len(), 12);
     assert!(
         f.signatures
             .iter()

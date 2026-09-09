@@ -22,7 +22,7 @@
 //!
 //!
 //! The magic + length are appended *after* the payload so detection only
-//! needs to read the last few bytes — no full scan required.
+//! needs to read the last few bytes - no full scan required.
 
 use std::collections::HashSet;
 use std::io::Write;

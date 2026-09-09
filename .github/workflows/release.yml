@@ -23,161 +23,30 @@ jobs:
             exit 1
           fi
 
-  release:
-    name: Release
+  build:
+    name: Build
     needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu, aarch64-pc-windows-msvc, aarch64-linux-android]
-        group: [g1, g2, g3, g4]
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            platform: linux
-            arch: x86_64
-
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            platform: windows
-            arch: x86_64
-
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            platform: linux
-            arch: aarch64
-
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            platform: windows
-            arch: aarch64
-
-          - target: aarch64-linux-android
-            os: ubuntu-latest
-            platform: android
-            arch: aarch64
-
-          - group: g1
-            variants: "rl,rl_no_docs,rl_no_repl,rl_no_docs_repl,rl_debug,rl_debug_no_docs"
-
-          - group: g2
-            variants: "rl_debug_no_repl,rl_debug_no_docs_repl,rl_vm,rl_vm_no_docs,rl_vm_no_repl,rl_vm_no_docs_repl"
-
-          - group: g3
-            variants: "rl_vm_debug,rl_vm_debug_no_docs,rl_vm_debug_no_repl,rl_vm_debug_no_docs_repl"
-
-          - group: g4
-            variants: "rl_lsp"
-
-    runs-on: ${{ matrix.os }}
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_GHA_CACHE_TAG: rl-v1-${{ matrix.target }}-${{ matrix.group }}
-      RUSTC_WRAPPER: "sccache"
-    steps:
-      - name: Install build deps (linux)
-        if: matrix.os == 'ubuntu-latest' && matrix.platform != 'android'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libasound2-dev
-          if [ "${{ matrix.arch }}" = "aarch64" ]; then
-            sudo dpkg --add-architecture arm64
-            sudo printf '%s\n' \
-              'Types: deb' \
-              'URIs: http://archive.ubuntu.com/ubuntu/' \
-              'Suites: noble noble-updates noble-backports' \
-              'Components: main restricted universe multiverse' \
-              'Architectures: amd64' \
-              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
-              '' \
-              'Types: deb' \
-              'URIs: http://security.ubuntu.com/ubuntu/' \
-              'Suites: noble-security' \
-              'Components: main restricted universe multiverse' \
-              'Architectures: amd64' \
-              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
-              '' \
-              'Types: deb' \
-              'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
-              'Suites: noble noble-updates noble-backports' \
-              'Components: main restricted universe multiverse' \
-              'Architectures: arm64' \
-              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
-              '' \
-              'Types: deb' \
-              'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
-              'Suites: noble-security' \
-              'Components: main restricted universe multiverse' \
-              'Architectures: arm64' \
-              'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
-              | sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null
-            sudo apt-get update
-            sudo apt-get install -y gcc-aarch64-linux-gnu libasound2-dev:arm64
-          fi
-
-      - name: Set up Android SDK
-        if: matrix.platform == 'android'
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android NDK
-        if: matrix.platform == 'android'
-        run: sdkmanager "ndk;27.0.12077973"
-
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install zip (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install zip -y
-
-      - name: Start sccache
-        uses: mozilla/sccache-action@v0.0.11
-
-      - name: Build variants (${{ matrix.group }})
-        shell: bash
-        run: |
-          if [ "${{ matrix.platform }}" = "android" ]; then
-            NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
-            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
-              NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
-            fi
-            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
-              NDK_ROOT="$(ls -d "$ANDROID_HOME"/ndk/* "$ANDROID_SDK_ROOT"/ndk/* 2>/dev/null | head -n1)"
-            fi
-            if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
-              echo "Android NDK not found" >&2
-              exit 1
-            fi
-            export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
-            export CC_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
-            export CXX_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
-            export AR_aarch64_linux_android="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-          elif [ "${{ matrix.arch }}" = "aarch64" ]; then
-            export PKG_CONFIG_ALLOW_CROSS=1
-            export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          fi
-          bash build-variants.sh ${{ matrix.target }} ${{ matrix.platform }} ${{ matrix.arch }} dist "${{ matrix.variants }}"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.target }}-${{ matrix.group }}
-          path: dist/*
+    uses: ./.github/workflows/_build.yml
+    with:
+      ref: ${{ github.ref }}
+      build-profile: "release"
+    permissions:
+      contents: read
 
   publish:
     name: Publish Release
-    needs: release
+    needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
+          name: all-artifacts
           path: artifacts
 
       - name: Detect pre-release
@@ -192,11 +61,8 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/**/*
+          files: artifacts/*
           generate_release_notes: true
-          # Flags the release as a pre-release when the tag has a SemVer
-          # pre-release part (e.g. v0.3.0-rc.1, v0.2.0-beta.2). The input is
-          # a strict boolean - it is computed here instead of in YAML.
           prerelease: ${{ steps.detect.outputs.value }}
 
   announce:
@@ -209,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # need full tag history to find the previous tag
+          fetch-depth: 0
 
       - name: Classify release
         id: classify
@@ -218,7 +84,6 @@ jobs:
           VERSION="${TAG#v}"
           CORE="${VERSION%%-*}"
 
-          # split off a pre-release identifier if one exists (alpha/beta/rc/dev/...)
           if [[ "$VERSION" == *-* ]]; then
             PRE="${VERSION#*-}"
             PRE_KIND=$(echo "$PRE" | cut -d. -f1 | tr '[:upper:]' '[:lower:]')
@@ -228,15 +93,14 @@ jobs:
           fi
 
           case "$PRE_KIND" in
-            alpha)       LABEL="🧪 Alpha pre-release"; COLOR=15105570 ;;
-            beta)        LABEL="🧬 Beta pre-release";  COLOR=15844367 ;;
-            rc)          LABEL="🚦 Release candidate"; COLOR=3447003 ;;
-            dev|nightly) LABEL="🌙 Dev build";          COLOR=9807270 ;;
-            "")          LABEL=""; COLOR=3066993 ;; # stable — label set below once bump type is known
-            *)           LABEL="🔖 Pre-release ($PRE_KIND)"; COLOR=10181046 ;;
+            alpha)       LABEL="Alpha pre-release"; COLOR=15105570 ;;
+            beta)        LABEL="Beta pre-release";  COLOR=15844367 ;;
+            rc)          LABEL="Release candidate"; COLOR=3447003 ;;
+            dev|nightly) LABEL="Dev build";          COLOR=9807270 ;;
+            "")          LABEL=""; COLOR=3066993 ;;
+            *)           LABEL="Pre-release ($PRE_KIND)"; COLOR=10181046 ;;
           esac
 
-          # find the previous tag (excluding this one) to compute the bump type
           PREV_TAG=$(git for-each-ref refs/tags --sort=-v:refname --format='%(refname:short)' \
             | grep -v "^${TAG}$" | head -n 1 || true)
 
@@ -254,10 +118,10 @@ jobs:
 
           if [[ -z "$PRE_KIND" ]]; then
             case "$BUMP" in
-              major) LABEL="🎉 Major release" ;;
-              minor) LABEL="✨ Minor release" ;;
-              patch) LABEL="🐛 Patch release" ;;
-              *)     LABEL="✅ Stable release" ;;
+              major) LABEL="Major release" ;;
+              minor) LABEL="Minor release" ;;
+              patch) LABEL="Patch release" ;;
+              *)     LABEL="Stable release" ;;
             esac
             COLOR=3066993
           fi
@@ -283,7 +147,7 @@ jobs:
           PAYLOAD=$(cat <<EOF
           {
             "embeds": [{
-              "title": "$LABEL — $TAG",
+              "title": "$LABEL -- $TAG",
               "url": "$RELEASE_URL",
               "color": $COLOR,
               "description": "rl-lang $TAG is out. Check the release page for the changelog and prebuilt binaries.",

@@ -22,4 +22,6 @@ gui_run(window)?"#,
     errors: None,
     see_also: &["gui_close", "gui_run"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

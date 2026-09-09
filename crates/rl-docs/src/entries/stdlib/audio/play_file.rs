@@ -14,4 +14,6 @@ result_unwrap(play_file("assets/beep.wav"))"#,
     ),
     see_also: &["play_file_async", "beep"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

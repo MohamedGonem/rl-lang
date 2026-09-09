@@ -15,4 +15,6 @@ gui_window_set_background(window, 30, 60, 90)?"#,
     ),
     see_also: &["gui_window", "gui_window_set_title", "gui_run"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

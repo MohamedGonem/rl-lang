@@ -68,7 +68,7 @@ pub static CONTROL_FLOW: ConceptEntry = ConceptEntry {
     ],
     related: &["for loops", "match", "operators", "logical operators"],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };
 
 pub static FOR_LOOPS: ConceptEntry = ConceptEntry {

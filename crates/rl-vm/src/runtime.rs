@@ -30,10 +30,16 @@ impl Runtime for VmRuntime {
     }
 
     fn as_i64(v: &Self::Value) -> Option<i64> {
-        if let VmValue::Int(x) = v {
-            Some(*x)
-        } else {
-            None
+        match v {
+            VmValue::Int(x) => Some(*x),
+            VmValue::UInt(x) => Some(*x as i64),
+            VmValue::Byte(x) => Some(*x as i64),
+            VmValue::SByte(x) => Some(*x as i64),
+            VmValue::BByte(x) => Some(*x as i64),
+            VmValue::BSByte(x) => Some(*x as i64),
+            VmValue::SInt(x) => Some(*x as i64),
+            VmValue::SUInt(x) => Some(*x as i64),
+            _ => None,
         }
     }
     fn as_u64(v: &Self::Value) -> Option<u64> {
@@ -86,10 +92,18 @@ impl Runtime for VmRuntime {
         }
     }
     fn as_f64(v: &Self::Value) -> Option<f64> {
-        if let VmValue::Float(x) = v {
-            Some(*x)
-        } else {
-            None
+        match v {
+            VmValue::Float(x) => Some(*x),
+            VmValue::SFloat(x) => Some(*x as f64),
+            VmValue::Int(x) => Some(*x as f64),
+            VmValue::UInt(x) => Some(*x as f64),
+            VmValue::Byte(x) => Some(*x as f64),
+            VmValue::SByte(x) => Some(*x as f64),
+            VmValue::BByte(x) => Some(*x as f64),
+            VmValue::BSByte(x) => Some(*x as f64),
+            VmValue::SInt(x) => Some(*x as f64),
+            VmValue::SUInt(x) => Some(*x as f64),
+            _ => None,
         }
     }
     fn as_f32(v: &Self::Value) -> Option<f32> {
@@ -543,5 +557,23 @@ impl rl_std::gui::GuiStore for VmRuntime {
     }
     fn gui_quit_requested(cx: &mut Vm) -> &mut bool {
         &mut cx.gui_quit_requested
+    }
+}
+
+impl rl_std::io::IoStore for VmRuntime {
+    fn io_insert(cx: &mut Vm, h: rl_std::io::IoFileHandle) -> u64 {
+        let id = cx.io_next_handle;
+        cx.io_next_handle += 1;
+        cx.io_handles.insert(id, h);
+        id
+    }
+    fn io_get(cx: &Vm, id: u64) -> Option<&rl_std::io::IoFileHandle> {
+        cx.io_handles.get(&id)
+    }
+    fn io_get_mut(cx: &mut Vm, id: u64) -> Option<&mut rl_std::io::IoFileHandle> {
+        cx.io_handles.get_mut(&id)
+    }
+    fn io_remove(cx: &mut Vm, id: u64) -> Option<rl_std::io::IoFileHandle> {
+        cx.io_handles.remove(&id)
     }
 }

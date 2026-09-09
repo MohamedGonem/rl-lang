@@ -9,4 +9,6 @@ pub static ASIN: FnEntry = FnEntry {
     errors: None,
     see_also: &["acos", "atan"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

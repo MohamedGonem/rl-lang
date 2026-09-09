@@ -9,4 +9,6 @@ pub static MAP_RANGE: FnEntry = FnEntry {
     errors: None,
     see_also: &["lerp", "clamp"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

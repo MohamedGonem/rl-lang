@@ -9,4 +9,6 @@ pub static MAP_LEN: FnEntry = FnEntry {
     errors: Some("Will return error if `map` is not a map"),
     see_also: &["map_is_empty", "map_to_array"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

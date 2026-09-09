@@ -13,4 +13,6 @@ result_unwrap(tcp_shutdown(stream, "both"))"#,
     errors: Some("Err(string) on shutdown failure"),
     see_also: &["tcp_close"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

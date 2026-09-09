@@ -11,4 +11,6 @@ dec int code = with_exec_code("ls", "/nonexistent")?"#,
     errors: Some("Will return error on invalid arguments or failed command run"),
     see_also: &["with_exec", "with_exec_lines"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

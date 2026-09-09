@@ -11,4 +11,6 @@ pub static RAND_RANGE_STEP: FnEntry = FnEntry {
     ),
     see_also: &["rand_range"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

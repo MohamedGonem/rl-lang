@@ -18,12 +18,12 @@ pub static TIME: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
+    &date_str::DATE_STR,
+    &format_time::FORMAT_TIME,
     &now::NOW,
     &now_ms::NOW_MS,
-    &format_time::FORMAT_TIME,
-    &date_str::DATE_STR,
-    &time_str::TIME_STR,
     &time_add::TIME_ADD,
     &time_diff::TIME_DIFF,
     &time_parts::TIME_PARTS,
+    &time_str::TIME_STR,
 ];

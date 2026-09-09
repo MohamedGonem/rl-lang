@@ -13,4 +13,6 @@ dec bool paused = result_unwrap(sound_is_paused(sound))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["sound_pause", "sound_resume"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

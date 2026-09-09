@@ -13,4 +13,6 @@ dec string data = result_unwrap(udp_recv(socket, 1024))"#,
     errors: Some("Err(string) on receive failure"),
     see_also: &["udp_recv_from", "udp_send"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -11,4 +11,6 @@ assert_ne(1, 2)"#,
     errors: Some("raises a runtime error when `a == b`"),
     see_also: &["assert_eq"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

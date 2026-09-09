@@ -17,4 +17,6 @@ gui_set_text(label, "Done!")?"#,
     ),
     see_also: &["gui_get_text", "gui_button", "gui_label", "gui_textbox"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

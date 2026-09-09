@@ -13,4 +13,6 @@ result_unwrap(sound_stop(sound))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["sound_pause", "play_file_async"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

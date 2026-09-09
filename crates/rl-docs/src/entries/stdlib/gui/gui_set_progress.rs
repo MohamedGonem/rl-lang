@@ -15,4 +15,6 @@ gui_set_progress(bar, 0.75)?"#,
     errors: Some("err(string) for an unknown handle, or a handle that isn't a progress bar"),
     see_also: &["gui_get_progress", "gui_progress_bar"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

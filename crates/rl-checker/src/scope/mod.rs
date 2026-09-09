@@ -5,9 +5,17 @@ mod call;
 mod declare;
 
 use crate::structs::{CheckType, CheckedExpr, TypeChecker};
+use rl_ast::statements::Lint;
 use rl_utils::{span::Span, suggest::closest_match};
 
 use std::collections::HashMap;
+
+/// Returns "function" or "variable" depending on the item's type.
+fn unused_kind(item: &crate::structs::ScopeItem) -> &'static str {
+    matches!(item.type_annotation, CheckType::Function { .. })
+        .then(|| "function")
+        .unwrap_or("variable")
+}
 
 impl TypeChecker {
     /// Pushes a new empty scope onto the scope stack.
@@ -16,7 +24,45 @@ impl TypeChecker {
     }
     /// Pops the innermost scope from the stack.
     pub fn pop_scope(&mut self) {
-        self.scopes.pop();
+        if let Some(scope) = self.scopes.pop() {
+            for (name, item) in scope.iter() {
+                if !item.used && !item.is_const && !name.starts_with('_')
+                    && !item.suppressed_lints.contains(&Lint::Unused)
+                {
+                    let kind = unused_kind(item);
+                    self.warn_lint(Lint::Unused, format!("unused {} '{}'", kind, name), item.decl_span);
+                }
+            }
+        }
+    }
+
+    /// Reports unused variables in the root (index 0) scope without popping it.
+    /// Called at the end of [`TypeChecker::check`] so top-level unused variables
+    /// are reported while the scope remains available for post-check inspection.
+    pub fn report_unused_in_root_scope(&mut self) {
+        if let Some(scope) = self.scopes.first() {
+            let unused: Vec<(String, Span, &str)> = scope
+                .iter()
+                .filter(|(name, item)| {
+                    if !item.used && !item.is_const && !name.starts_with('_')
+                        && !item.suppressed_lints.contains(&Lint::Unused)
+                    {
+                        // Skip "main" if no explicit !#[entry] exists -
+                        // main is the implicit entry point.
+                        if name.as_str() == "main" && !self.has_explicit_entry {
+                            return false;
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .map(|(name, item)| (name.clone(), item.decl_span, unused_kind(item)))
+                .collect();
+            for (name, span, kind) in unused {
+                self.warn_lint(Lint::Unused, format!("unused {} '{}'", kind, name), span);
+            }
+        }
     }
 
     /// Looks up `name` in all scopes from innermost to outermost.
@@ -26,18 +72,33 @@ impl TypeChecker {
     /// an undefined variable error with a "did you mean?" suggestion and
     /// returns [`CheckType::Unknown`] with no unit.
     pub fn lookup(&mut self, name: &str, span: Span) -> CheckedExpr {
-        let found = self.scopes.iter().rev().find_map(|scope| {
-            scope.get(name).map(|item| {
+        let found = self.scopes.iter_mut().rev().find_map(|scope| {
+            scope.get_mut(name).map(|item| {
+                item.used = true;
                 (
                     item.type_annotation.clone(),
                     item.unit.clone(),
                     item.is_const,
                     item.decl_span,
+                    item.deprecated.clone(),
+                    item.suppressed_lints.clone(),
                 )
             })
         });
 
-        if let Some((item_type, unit, is_const, decl_span)) = found {
+        if let Some((item_type, unit, is_const, decl_span, deprecated, suppressed)) = found {
+            // Warn on deprecated usage (suppressed by !#[allow(deprecated)])
+            if let Some(msg) = &deprecated {
+                let text = if msg.is_empty() {
+                    format!("'{}' is deprecated", name)
+                } else {
+                    format!("'{}' is deprecated: {}", name, msg)
+                };
+                if !suppressed.contains(&Lint::Deprecated) {
+                    self.warn_lint(Lint::Deprecated, text, span);
+                }
+            }
+
             let kind = if is_const { "const" } else { "variable" };
             let unit_suffix = unit
                 .as_ref()

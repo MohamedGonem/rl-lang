@@ -1,0 +1,24 @@
+PackageIdentifier: rl-lang.rl
+PackageVersion: 2.1.0
+PackageLocale: en-US
+Publisher: rl-lang
+PublisherUrl: https://github.com/rl-lang/rl-lang
+PublisherSupportUrl: https://github.com/rl-lang/rl-lang/issues
+PackageName: rl-lang
+PackageUrl: https://github.com/rl-lang/rl-lang
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/rl-lang/rl-lang/blob/main/LICENSE-MIT
+ShortDescription: Programming language with first-class VM and C transpiler
+Description: |
+  rl-lang is a modern programming language featuring a bytecode VM,
+  optional cranelift JIT, and C99 transpilation. It includes a REPL,
+  language server, and standard library.
+Tags:
+  - programming-language
+  - vm
+  - compiler
+  - transpiler
+  - cli
+  - developer-tools
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0

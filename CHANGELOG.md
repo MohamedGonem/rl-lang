@@ -2,11 +2,90 @@
 
 All notable changes to the rl-lang toolchain are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/) (see [VERSIONING.md](VERSIONING.md)). Full per-commit history is available on the [GitHub Releases](https://github.com/rl-lang/rl-lang/releases) page.
 
-## [Unreleased]
+## [2.1.0] - 2026-09-09
 
 ### Added
 
+- **`std::fs` reorganization** - the `fs` module is now the single home for everything disk-facing:
+  - File I/O functions (`read_file`, `read_lines`, `read_bytes`, `write_file`, `append_file`, `delete_file`) moved from `std::io`.
+  - Handle-based streaming I/O (`open`, `close`, `read_handle`, `write_handle`, `seek`, `flush`, `read_all`, `readline`) moved from `std::io`.
+  - Path filesystem predicates (`path_exists`, `path_is_dir`, `path_is_file`, `path_canonicalize`, `path_absolute`, `path_expand_home`) moved from `std::path`.
+  - `path_relative` moved from `std::path` (uses `getcwd` syscall).
+  - Old paths still work but emit deprecation warnings. `std::io` is now console-only; `std::path` is now pure string manipulation only.
+- **Numeric suffix sugar** - write `10_u8`, `3.14_f32`, `100_i32` etc. to create typed literals directly without `as` casts. Supported suffixes: `_u8`, `_i8`, `_u16`, `_i16`, `_i32`, `_u32`, `_f32`, `_i64`, `_u64`, `_f64`. Equivalent to `10 as byte`, `3.14 as small float`, etc.
+- **Extended numeric support for stdlib functions** - math and bitwise functions now accept all 10 numeric types (`byte`, `sbyte`, `bbyte`, `bsbyte`, `int`, `uint`, `sint`, `suint`, `float`, `sfloat`):
+  - Math: `abs`, `ceil`, `floor`, `round`, `clamp`, `max`, `min`, `mod`, `pow`, `log`, `sqrt`, `log2`, `log10`, `sin`, `cos`, `tan`, `atan`, `acos`, `asin`, `degrees`, `radians`, `exp`, `sign`, `atan2`, `hypot`, `lerp`, `map_range`.
+  - Integer helpers: `factorial`, `fibonacci`, `gcd`, `lcm`, `is_prime`.
+  - Bitwise: `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `bit_shift_left`, `bit_shift_right`, `count_bits`, `leading_zeros`, `trailing_zeros`.
+  - `Runtime::as_i64` now returns all integer-type variants (`byte`, `uint`, `sbyte`, etc.) but NOT floats. `Runtime::as_f64` returns all numeric variants (integer and float).
+- **Warning severity system** - the type-checker now emits warnings (yellow) that don't block execution, separate from errors (red) that do. Warnings are reported via `checker.warnings` alongside `checker.errors`, and include colored output with `[Warning: ...]` labels.
+- **Unused variable/function warnings** - the checker reports unused variables and functions at the end of scope. Functions with `!#[entry]`, `!#[init]`, `!#[final]`, or `!#[test]` attributes are automatically marked as used. When no `!#[entry]` exists, `main` is treated as the implicit entry point and won't warn.
+- **`!#[allow(unused)]`** - suppresses unused variable/function warnings for the annotated declaration. Works on `dec`, `const`, and `fn` declarations.
+- **`!#[deprecated("msg")]`** - marks variables, constants, and functions as deprecated. Using a deprecated item emits a yellow warning. Works on user-defined items and stdlib functions. `!#[deprecated]` (without message) also works.
+- **`!#[allow(deprecated)]`** - suppresses deprecation warnings for the annotated declaration or scope.
+- **`std::len`** - new top-level stdlib function for getting the length of strings, arrays, and tuples. `std::array::len` is now deprecated in favor of `std::len`.
+- **Stdlib deprecation checking** - the checker warns when calling deprecated stdlib functions (e.g. `std::array::len`). The deprecation map is in `rl-checker/src/lib.rs`.
+- **`deprecated` and `updated` fields for doc entries** - `FnEntry` now has `deprecated: Option<&str>` and `updated: Option<&str>` fields. The markdown and HTML doc renderers display deprecation notices and version metadata.
+- **Faster builds** - new `nightly` Cargo profile (thin LTO, codegen-units=4) and `dev-release` profile (no LTO, codegen-units=16). Nightly and debug builds are significantly faster. `build-variants.sh` now builds variants in parallel.
+- **macOS builds** - release and nightly now produce x86_64 and aarch64 macOS binaries.
+- **SHA256 checksums** - release artifacts include `.sha256` files. Install scripts verify checksums before extracting.
+- **Nightly changelog** - nightly releases now include a commit-based changelog since the last nightly build.
+- **Skip unchanged nightlies** - nightly builds skip when the `dev` branch hasn't changed since the last build.
+- **Installer improvements** - `install.sh` and `install.ps1` now support `--help`, `--prefix`/`-p`, `--force`/`-f`, `--variant`/`-v`, and `--uninstall` flags.
+- **Man page and info page** - `rl.1` (groff) and `rl.info` (texinfo) are now included in the repository under `man/`. Install scripts automatically install them to `share/man/man1/` and `share/info/` when present in the release archive.
+- **Package templates** - packaging templates added under `packages/` for Debian, Fedora RPM, Arch PKGBUILD, Gentoo ebuild, Nix derivation, Homebrew formula, Chocolatey, WinGet, Snap, and Flatpak. Includes `PUBLISHING.md` with per-platform submission steps.
+
+### Changed
+
+- **`term_set_title` accepts any string** - `std::term::term_set_title` now takes a `string` argument instead of `int`/`byte`. Any value can be set as the terminal window title, not just numeric byte values.
+- **GitHub issue/PR templates** - issue templates converted from Markdown to YAML forms with structured inputs (dropdowns, required fields, syntax-highlighted code blocks). PR template cleaned up with a type checklist.
+- **CLI help colors** - `rl` CLI help output is now colorized using clap's styling API: cyan headers, green literals, yellow placeholders, and red errors.
+- **Arabic keyword aliases** - all 38 language keywords have Arabic equivalents (e.g. `دالة` for `fn`, `لكل` for `for`, `بينما` for `while`, `أرجع` for `return`). The lexer accepts either form; identifiers may freely mix Arabic and Latin characters (e.g. `اسم_المتغير`).
+- **Pipe operator `|>`** - new infix operator that desugars `a |> f(args)` into `a.f(args)`. The left-hand side becomes the receiver of the method call. Chaining is supported: `a |> f() |> g()` becomes `a.f().g()`.
+- **Optional semicolons** - statements can now optionally end with `;`. Semicolons are silently consumed by the parser, so `dec int x = 10;` and `dec int x = 10` are both valid.
+- **`std::process` new functions** - `set_env`, `remove_env`, `env_keys`, `os_name`, `arch`, `num_cpus`, `parent_pid`, `process_exists`, `exec_with_stdin`, `with_exec_with_stdin`, `exec_with_env`, `with_exec_with_env`, `exec_with_cwd`, `with_exec_with_cwd`, `exec_with_timeout`, `exec_background`, `with_exec_background`, `wait_pid`, `term_pid`, `kill_pid`, `pipe`, `pipe_all`.
+- **`std::path` new functions** - `path_is_absolute`, `path_is_relative`, `path_starts_with`, `path_ends_with`, `path_normalize`, `path_absolute`, `path_canonicalize`, `path_expand_home`, `path_split`, `path_split_extension`, `path_components`, `path_with_file_name`, `path_relative`, `path_join_many`.
+- **`std::fs` new functions** - `touch`, `truncate_file`, `glob`, `walk_dir`, `symlink`, `readlink`, `hardlink`, `temp_file`, `temp_file_in`, `file_created`, `file_accessed`, `file_permissions`, `set_permissions`, `list_dir_names`, `realpath`, `lock_file`, `unlock_file`.
+- **`std::io` handle-based I/O** - `open`, `close`, `read_handle`, `write_handle`, `seek`, `flush`, `read_all`, `readline` with proper `HandleKind::File` variant in the handle system. Also `read_all_stdin`, `decode_utf8`, `encode_utf8`, `isatty`.
+- **`HandleKind::File`** - new handle variant in `rl-ast` for file I/O resources, following the same `IoStore` trait pattern as `NetStore`/`HttpStore`/etc.
+- **Bytecode deserialization fix** - added missing `4 => HandleKind::Gui` and `5 => HandleKind::File` to the handle kind deserialization match.
+- **`rl_result` rewritten (rl-cc)** - tagged union with `enum rl_type_tag`, type-safe constructors (`rl_ok_null`, `rl_ok_i64`, `rl_ok_f64`, etc.), and `_Generic` macro dispatch.
+- **Tuple dedup fixed (rl-cc)** - dedup by full field-type layout, not arity.
+- **Map/set storage (rl-cc)** - uses `rl_map *map` and `rl_set *set` pointers (not by-value) via `rl_value` tagged union.
+- **Shebang support** - `.rl` files starting with `#!` are valid; the lexer strips the shebang line before tokenizing. `rl new --script <name>` creates a standalone executable `.rl` script with a shebang header pointing to the `rl` binary (detected via `current_exe` / PATH scan, falls back to `rlc`), a hello world body, and executable permissions (`0755`). Scripts can be run directly: `chmod +x hello.rl && ./hello.rl`.
+- **Program attributes fixed** - `#![convert(kg=1000(g))]` now parses correctly. The lexer's `BangHash` token now properly consumes both characters, the shebang stripper no longer eats `#![...]` inner attributes, and the parser handles both `BangHash` and separate `Hash`+`Bang` token sequences.
+- **`result_unwrap` type dispatch** - `result_unwrap`, `result_unwrap_err`, and `result_unwrap_or` now emit the correct type-specific unwrap function (`rl_result_unwrap_str`, `_f64`, `_bool`, `_i64`) based on the result's inner type. Previously all three hardcoded `rl_result_unwrap_i64`.
+- **C transpiler (`rl-cc`)** - transpiles rl to C99. Full pipeline works end-to-end: lex, parse, resolve, type-check, C codegen, optional `cc` compilation. Supported features: types, arithmetic, booleans, comparisons, control flow (if/else, while, for, foreach, forrange, loop, break, continue), functions, casts, println/print, tuples, tuple destruction, arrays, maps, sets, records/structs, enums/tags, match, result type (ok/err/error), error propagation (`?`), impl methods, escape sequences, closures, lambda expressions, multi-file imports (resolved at resolve time, inlined into generated C), `std::c` FFI module (compile, load, call, has_symbol, close, clear_cache), `std::net` module (tcp_listen, tcp_accept, tcp_connect, tcp_read, tcp_write, tcp_peer_addr, tcp_local_addr, tcp_set_timeout, tcp_set_nonblocking, tcp_shutdown, tcp_close, udp_bind, udp_connect, udp_send, udp_send_to, udp_recv, udp_recv_from, udp_close, resolve). Runtime includes `rl_string`, `rl_result` (tagged union with type tag enum), `rl_value` (tagged union for map/set storage), `rl_array`, `rl_map`, `rl_set`, `rl_closure`, and per-program record/tuple/enum print functions. CLI: `rl transpile file.rl --compile`.
 - **Escape sequences** - string and character literals now support the full set of escape sequences: `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'`, `\a`, `\b`, `\f`, `\v`, `\e`, plus `\xHH` hex byte escapes (1–2 hex digits, e.g. `\x41`, `\xff`) and `\uHHHH` / `\u{HHHH...}` unicode codepoint escapes (e.g. `\u0041`, `\u{1F600}`).
+- **`rl print` command** - `rl print <file> --tokens` prints the token stream, `--parser` prints the parsed statement tree, `--ast` prints the type-checked/resolved tree. Uses box-drawing characters for nested output.
+- **`rl run -c` flag** - execute inline rl code directly: `rl run -c 'println("hello")'`.
+- **Tree print module** (`rl-tooling`) - box-drawing character tree printer for tokens, parser statements, and resolved statements. Used by `rl print`.
+- **Closure support (rl-cc)** - `rl_closure` struct with `rl_closure_new`, `rl_closure_call`, `rl_ok_closure`, `RL_TAG_CLOSURE`, `rl_print_closure`, and 9 closure-consuming runtime functions (`arr_for_each`, `arr_all`, `arr_any`, `arr_find_index`, `arr_sort_by`, `arr_flat_map`, `result_map`, `result_map_err`, `bench`).
+- **Null printing fix (rl-cc)** - nullable variables tracked via `nullable_vars` set; `dec int x = null` now stores `rl_result x = rl_ok_null();`. Read/write/print correctly unwrap and re-wrap. New `rl_print_raw`/`rl_println_raw` runtime functions print inner values without `ok()`/`err()` wrapper.
+- **10 missing stdlib functions (rl-cc)** - `io::read_bytes`, `types::error_unwrap`, `types::to_byte`, `types::to_char`, `random::rand_dices`, `random::rand_bytes`, `random::rand_choice`, `random::rand_choices`, `random::rand_sample`, `random::rand_shuffle`.
+- **Enum display (rl-cc)** - generates `rl_print_Enum_{name}()` with static string table per enum type.
+- **Float precision (rl-cc)** - strtod round-trip approach for shortest representation.
+- **Record/tuple print for nested types (rl-cc)** - `emit_field_print()` helper for nested records and tuples in print statements.
+
+### Fixed
+
+- **Parser missing closing delimiter errors** - the parser now reports errors for missing `]`, `}`, and `)` in array literals, map literals, set literals, grouped expressions, index access, function parameters, method parameters, lambda parameters, for-loop headers, for-range inline arrays, and type annotations (`arr[T]`, `map[K,V]`, `set[T]`, `result[T]`). Previously these were silently accepted.
+- **Parser missing newline skipping** - added newline tolerance in function declarations (before `(`, between parameters, before `->`, before `{`), impl method declarations (same locations), lambda parameters, for-range `..` operator, `as` cast in postfix, and `get` imports. Multi-line function/method declarations and lambdas now parse correctly.
+- **Clippy warnings** - resolved all clippy warnings across the workspace (collapsible `if`, redundant closures, `format!` misuse, derivable `Default` impl, `map_or` simplification).
+- **P1: map::get aborts on missing key** - returns `err("key not found in map")` instead of aborting.
+- **P2: res::unwrap no error checking** - new `rl_result_unwrap_i64/f64/bool/str` functions abort on err.
+- **P3: math::abs truncates floats** - dispatches `fabs()` for `RL_TAG_F64`.
+- **P4: math::pow(int,int) returns float** - new `rl_math_pow` with integer exponentiation path.
+- **P5: arr::sort only handles int64** - added `rl_arr_cmp_f64` and `rl_arr_cmp_str` comparators.
+- **P6: Time formatting local TZ** - `localtime()` → `gmtime()` in all 4 formatting functions.
+- **P7: File I/O error handling** - `rl_io_read_file/write_file/append_file` now return `rl_result` with `err()` on failure.
+- **P8: arr::zip flat interleaving** - inline codegen with `memcpy` pairs.
+- **P9: is_* stubs** - 8 new runtime functions with real tag checks.
+- **P10: Dead duplicate match arms** - removed `sign`/`degrees`/`radians` from first match arm.
+- **map_remove_s returns modified map** - matching VM reassignment semantics.
+- **process_args** - stores argc/argv via `rl_store_args()` at main start.
+- **`_GNU_SOURCE`** added at top of generated `.c` files for `M_PI`/`M_E`.
+- **`-lm` required** for linking when `pow()` is used.
 
 ## [2.0.0] - 2026-08-13
 
@@ -22,8 +101,6 @@ The bytecode VM is now the sole execution backend; the tree-walking interpreter 
 
 - `rl run` / `rl dev` default to the bytecode VM backend.
 - The VM now resolves programs directly via `rl-resolver` (previously it borrowed the interpreter's `Evaluator` as a resolver+stdlib holder).
-
-[2.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.0.0
 
 ## [1.0.0] - 2026-08-06
 
@@ -66,4 +143,6 @@ First stable release. The workspace is now a set of 1.0.0 crates, and the byteco
 - Optimized the VM dispatch loop (lazy spans, unchecked operands, cached frame base).
 - Bench suite now simulates release mode with corrected programs.
 
+[2.1.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.1.0
+[2.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v2.0.0
 [1.0.0]: https://github.com/rl-lang/rl-lang/releases/tag/v1.0.0

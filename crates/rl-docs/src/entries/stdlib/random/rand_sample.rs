@@ -11,4 +11,6 @@ pub static RAND_SAMPLE: FnEntry = FnEntry {
     ),
     see_also: &["rand_choices", "rand_shuffle"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

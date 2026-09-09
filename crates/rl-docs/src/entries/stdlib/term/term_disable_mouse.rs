@@ -11,4 +11,6 @@ term_disable_mouse()?"#,
     errors: Some(r#"Will return error if writing to stdout fails"#),
     see_also: &["term_enable_mouse"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

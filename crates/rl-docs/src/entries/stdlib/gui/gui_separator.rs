@@ -15,4 +15,6 @@ dec handle divider = result_unwrap(gui_separator(window, 20, 60, 200))"#,
     ),
     see_also: &["gui_set_visible", "gui_set_pos", "gui_remove"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

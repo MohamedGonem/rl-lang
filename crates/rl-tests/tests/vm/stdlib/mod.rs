@@ -1,6 +1,7 @@
 mod arr_zip;
 mod bitwise;
 mod collections;
+mod fs;
 mod io;
 mod math;
 mod result;

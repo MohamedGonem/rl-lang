@@ -1,4 +1,4 @@
-//! `std::io` - input/output: reading from stdin, reading/writing files, printing.
+//! `std::io` - input/output: reading from stdin, printing.
 //!
 //! `print` and `println` write to [`Runtime::output_buffer`] when set (the REPL
 //! captures per-input output there), otherwise directly to stdout. They are
@@ -11,16 +11,65 @@
 //! `read_int`/`read_float` then parse the line and return a language
 //! `result[int]` / `result[float]`.
 //!
-//! The file functions (`read_file`, `read_lines`, `read_bytes`, `write_file`,
-//! `append_file`, `delete_file`) return a language `result[T]` value.
-//!
 //! `eprint` raises a propagating runtime error rather than writing to stderr, so
-//! errors surface through rl's normal error reporting pipeline. Ported once from
-//! the former per-runtime `stdlib/io/*.rs` copies; logic and error strings are
-//! preserved exactly.
+//! errors surface through rl's normal error reporting pipeline.
 
+#[cfg(feature = "impls")]
+use std::io::{Read, Write};
+use rl_ast::statements::HandleKind;
 use rl_std_core::Runtime;
 use rl_std_macros::native_fn;
+
+// ---- handle store ---------------------------------------------------------
+
+/// A single native I/O resource stored behind an integer handle.
+pub enum IoFileHandle {
+    Read(std::io::BufReader<std::fs::File>),
+    Write(std::fs::File),
+    ReadWrite(std::io::BufReader<std::fs::File>, std::fs::File),
+}
+
+/// Per-runtime access to the `io` handle table. Implemented by `VmRuntime`.
+pub trait IoStore: Runtime {
+    fn io_insert(cx: &mut Self::Cx, h: IoFileHandle) -> u64;
+    fn io_get(cx: &Self::Cx, id: u64) -> Option<&IoFileHandle>;
+    fn io_get_mut(cx: &mut Self::Cx, id: u64) -> Option<&mut IoFileHandle>;
+    fn io_remove(cx: &mut Self::Cx, id: u64) -> Option<IoFileHandle>;
+}
+
+/// Inserts a handle and returns its rl handle value.
+#[cfg(feature = "impls")]
+pub fn insert_handle<R: IoStore>(cx: &mut R::Cx, h: IoFileHandle) -> R::Value {
+    let id = R::io_insert(cx, h);
+    R::make_handle(HandleKind::File, id)
+}
+
+/// Extracts a `File` handle id from a value, or returns a type error.
+#[cfg(feature = "impls")]
+pub fn extract_handle<R: IoStore>(v: &R::Value, name: &str) -> Result<u64, String> {
+    match R::as_handle(v, HandleKind::File) {
+        Some(id) => Ok(id),
+        None => match R::as_handle(v, HandleKind::C)
+            .map(|_| HandleKind::C)
+            .or_else(|| R::as_handle(v, HandleKind::Http).map(|_| HandleKind::Http))
+            .or_else(|| R::as_handle(v, HandleKind::Audio).map(|_| HandleKind::Audio))
+            .or_else(|| R::as_handle(v, HandleKind::Gui).map(|_| HandleKind::Gui))
+            .or_else(|| R::as_handle(v, HandleKind::Net).map(|_| HandleKind::Net))
+        {
+            Some(kind) => Err(format!(
+                "{}: expected a {:?} handle, got a {:?} handle",
+                name,
+                HandleKind::File,
+                kind
+            )),
+            None => Err(format!(
+                "{}: expected a handle, got {}",
+                name,
+                R::type_name(v)
+            )),
+        },
+    }
+}
 
 // ---- printing (variadic, untyped) -----------------------------------------
 
@@ -47,10 +96,9 @@ pub fn println<R: Runtime>(cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
     R::null()
 }
 
-// ---- stdin reading (variadic, untyped, 0-or-1 optional prompt) -------------
+// ---- stdin reading --------------------------------------------------------
 
-/// Reads a line from stdin, returning a language `result[string]` with the
-/// trimmed line (`ok`) or a read error (`err`).
+#[cfg(feature = "impls")]
 fn read_line<R: Runtime>() -> R::Value {
     let mut input = String::new();
     match std::io::stdin().read_line(&mut input) {
@@ -59,12 +107,11 @@ fn read_line<R: Runtime>() -> R::Value {
     }
 }
 
-/// Optionally prints `prompt` (flushing stdout), then reads a line.
+#[cfg(feature = "impls")]
 fn input<R: Runtime>(prompt: Option<&R::Value>) -> R::Value {
     match prompt {
         None => read_line::<R>(),
         Some(p) => {
-            use std::io::Write;
             print!("{}", R::display(p));
             std::io::stdout().flush().ok();
             read_line::<R>()
@@ -72,8 +119,6 @@ fn input<R: Runtime>(prompt: Option<&R::Value>) -> R::Value {
     }
 }
 
-// Optional-prompt overloads: `read()` or `read(prompt)` where `prompt` is any
-// scalar (stringified). Returns `result[string]`.
 #[native_fn(module = "io",
     sig(-> result[string]),
     sig(int -> result[string]),
@@ -126,7 +171,6 @@ pub fn read_int<R: Runtime>(args: Vec<R::Value>) -> R::Value {
             ))),
         }
     } else if R::as_err_inner(&value).is_some() {
-        // propagate a failed read as-is (e.g. stdin read error)
         value
     } else {
         R::err(R::from_string(format!(
@@ -170,7 +214,6 @@ pub fn read_float<R: Runtime>(args: Vec<R::Value>) -> R::Value {
             ))),
         }
     } else if R::as_err_inner(&value).is_some() {
-        // propagate a failed read as-is (e.g. stdin read error)
         value
     } else {
         R::err(R::from_string(format!(
@@ -218,7 +261,6 @@ pub fn write_file(file: String, content: String) -> Result<(), String> {
 
 #[native_fn(module = "io")]
 pub fn append_file(file: String, content: String) -> Result<(), String> {
-    use std::io::Write;
     let mut file_data = match std::fs::OpenOptions::new()
         .append(true)
         .create(true)
@@ -244,7 +286,43 @@ pub fn delete_file(file: String) -> Result<(), String> {
     }
 }
 
-// ---- stderr (propagating runtime error) -----------------------------------
+// ---- stdin advanced -------------------------------------------------------
+
+#[native_fn(module = "io")]
+pub fn read_all_stdin() -> Result<String, String> {
+    let mut input = String::new();
+    match std::io::stdin().read_to_string(&mut input) {
+        Ok(_) => Ok(input),
+        Err(e) => Err(format!("read_all_stdin: {}", e)),
+    }
+}
+
+// ---- encoding / decoding --------------------------------------------------
+
+#[native_fn(module = "io")]
+pub fn decode_utf8(bytes: Vec<u8>) -> Result<String, String> {
+    match String::from_utf8(bytes) {
+        Ok(s) => Ok(s),
+        Err(e) => Err(format!(
+            "decode_utf8: invalid UTF-8 at byte {}",
+            e.utf8_error()
+        )),
+    }
+}
+
+#[native_fn(module = "io")]
+pub fn encode_utf8(string: String) -> Vec<u8> {
+    string.into_bytes()
+}
+
+// ---- terminal check -------------------------------------------------------
+
+#[native_fn(module = "io")]
+pub fn isatty() -> bool {
+    unsafe { libc::isatty(libc::STDIN_FILENO) != 0 }
+}
+
+// ---- stderr ---------------------------------------------------------------
 
 #[native_fn(module = "io", untyped)]
 pub fn eprint<R: Runtime>(_cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
@@ -261,11 +339,15 @@ pub fn eprintln<R: Runtime>(_cx: &mut R::Cx, args: Vec<R::Value>) -> R::Value {
 }
 
 rl_std_core::native_module!("io";
+    bound: IoStore;
     funcs: [
         print, println,
         read, read_int, read_float,
         read_file, read_lines, read_bytes,
         write_file, append_file, delete_file,
-        eprint, eprintln
+        read_all_stdin,
+        decode_utf8, encode_utf8,
+        isatty,
+        eprint, eprintln,
     ],
 );

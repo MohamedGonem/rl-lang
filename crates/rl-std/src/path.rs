@@ -29,6 +29,26 @@ pub fn path_is_file(path: String) -> bool {
     std::path::Path::new(&path).is_file()
 }
 
+#[native_fn(module = "path")]
+pub fn path_is_absolute(path: String) -> bool {
+    std::path::Path::new(&path).is_absolute()
+}
+
+#[native_fn(module = "path")]
+pub fn path_is_relative(path: String) -> bool {
+    std::path::Path::new(&path).is_relative()
+}
+
+#[native_fn(module = "path")]
+pub fn path_starts_with(path: String, base: String) -> bool {
+    std::path::Path::new(&path).starts_with(&base)
+}
+
+#[native_fn(module = "path")]
+pub fn path_ends_with(path: String, child: String) -> bool {
+    std::path::Path::new(&path).ends_with(&child)
+}
+
 // ---- component queries: `(string) -> string` (or `null`) ------------------
 
 #[native_fn(module = "path", sig(string -> string))]
@@ -72,6 +92,89 @@ pub fn path_pop(path: String) -> String {
     buf.to_string_lossy().to_string()
 }
 
+#[native_fn(module = "path")]
+pub fn path_normalize(path: String) -> String {
+    let p = std::path::Path::new(&path);
+    let starts_with_dotdot = path.starts_with("..");
+    let components: Vec<_> = p.components().collect();
+
+    if components.is_empty() {
+        return path;
+    }
+
+    let mut result = std::path::PathBuf::new();
+    for comp in &components {
+        result.push(comp);
+    }
+
+    let mut out = result.to_string_lossy().to_string();
+
+    if starts_with_dotdot && !out.starts_with("..") {
+        out = format!("..{}", std::path::MAIN_SEPARATOR_STR) + &out;
+    }
+
+    if path.starts_with('/') && !out.starts_with('/') {
+        out = format!("/{}", out);
+    }
+
+    out
+}
+
+#[native_fn(module = "path")]
+pub fn path_absolute(path: String) -> Result<String, String> {
+    if std::path::Path::new(&path).is_absolute() {
+        return Ok(path);
+    }
+    match std::env::current_dir() {
+        Ok(cwd) => Ok(cwd.join(&path).to_string_lossy().to_string()),
+        Err(e) => Err(format!("path_absolute: {}", e)),
+    }
+}
+
+#[native_fn(module = "path")]
+pub fn path_canonicalize(path: String) -> Result<String, String> {
+    match std::path::Path::new(&path).canonicalize() {
+        Ok(p) => Ok(p.to_string_lossy().to_string()),
+        Err(e) => Err(format!("path_canonicalize: {}: {}", path, e)),
+    }
+}
+
+#[native_fn(module = "path")]
+pub fn path_expand_home(path: String) -> String {
+    if path.starts_with('~')
+        && let Ok(home) = std::env::var("HOME")
+    {
+        return path.replacen('~', &home, 1);
+    }
+    path
+}
+
+// ---- `(string) -> array[string]` ------------------------------------------
+
+#[native_fn(module = "path")]
+pub fn path_split(path: String) -> Vec<String> {
+    let p = std::path::Path::new(&path);
+    let parent = p.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let file = p.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default();
+    vec![parent, file]
+}
+
+#[native_fn(module = "path")]
+pub fn path_split_extension(path: String) -> Vec<String> {
+    let p = std::path::Path::new(&path);
+    let stem = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    vec![stem, ext]
+}
+
+#[native_fn(module = "path")]
+pub fn path_components(path: String) -> Vec<String> {
+    std::path::Path::new(&path)
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().to_string())
+        .collect()
+}
+
 // ---- `(string, string) -> string` -----------------------------------------
 
 #[native_fn(module = "path")]
@@ -96,11 +199,78 @@ pub fn path_set_extension(path: String, target: String) -> String {
     buf.to_string_lossy().to_string()
 }
 
+#[native_fn(module = "path")]
+pub fn path_with_file_name(path: String, name: String) -> String {
+    std::path::PathBuf::from(&path)
+        .with_file_name(&name)
+        .to_string_lossy()
+        .to_string()
+}
+
+#[native_fn(module = "path")]
+pub fn path_relative(from: String, to: String) -> Result<String, String> {
+    let from_path = std::path::Path::new(&from);
+    let to_path = std::path::Path::new(&to);
+
+    let from_abs = if from_path.is_absolute() {
+        from_path.to_path_buf()
+    } else {
+        match std::env::current_dir() {
+            Ok(cwd) => cwd.join(from_path),
+            Err(e) => return Err(format!("path_relative: {}", e)),
+        }
+    };
+
+    let to_abs = if to_path.is_absolute() {
+        to_path.to_path_buf()
+    } else {
+        match std::env::current_dir() {
+            Ok(cwd) => cwd.join(to_path),
+            Err(e) => return Err(format!("path_relative: {}", e)),
+        }
+    };
+
+    let from_components: Vec<_> = from_abs.components().collect();
+    let to_components: Vec<_> = to_abs.components().collect();
+
+    let mut i = 0;
+    while i < from_components.len() && i < to_components.len() && from_components[i] == to_components[i] {
+        i += 1;
+    }
+
+    let mut result = std::path::PathBuf::new();
+    for _ in i..from_components.len() {
+        result.push("..");
+    }
+    for comp in &to_components[i..] {
+        result.push(comp);
+    }
+
+    Ok(result.to_string_lossy().to_string())
+}
+
+// ---- `(string, ...string) -> string` --------------------------------------
+
+#[native_fn(module = "path")]
+pub fn path_join_many(parts: Vec<String>) -> String {
+    let mut buf = std::path::PathBuf::new();
+    for part in &parts {
+        buf.push(part);
+    }
+    buf.to_string_lossy().to_string()
+}
+
 rl_std_core::native_module!("path";
     funcs: [
         path_exists, path_is_dir, path_is_file,
+        path_is_absolute, path_is_relative,
+        path_starts_with, path_ends_with,
         path_extension, path_filename, path_parent, path_stem,
         path_pop,
+        path_normalize, path_absolute, path_canonicalize, path_expand_home,
+        path_split, path_split_extension, path_components,
         path_join, path_push, path_set_extension,
+        path_with_file_name, path_relative,
+        path_join_many,
     ],
 );

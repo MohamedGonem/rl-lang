@@ -11,4 +11,6 @@ pub static BIT_AND: FnEntry = FnEntry {
     ),
     see_also: &["bit_or", "bit_xor", "bit_not"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

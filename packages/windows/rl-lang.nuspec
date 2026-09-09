@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>rl-lang</id>
+    <version>2.1.0</version>
+    <title>rl-lang</title>
+    <authors>rl-lang contributors</authors>
+    <owners>rl-lang</owners>
+    <description>Programming language with first-class VM and C transpiler</description>
+    <summary>rl-lang is a modern programming language featuring a bytecode VM, optional cranelift JIT, and C99 transpilation.</summary>
+    <projectUrl>https://github.com/rl-lang/rl-lang</projectUrl>
+    <projectSourceUrl>https://github.com/rl-lang/rl-lang</projectSourceUrl>
+    <licenseUrl>https://github.com/rl-lang/rl-lang/blob/main/LICENSE-MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <packageSourceUrl>https://github.com/rl-lang/rl-lang/tree/main/packages/windows</packageSourceUrl>
+    <tags>rl lang programming language vm transpiler</tags>
+    <releaseNotes>See https://github.com/rl-lang/rl-lang/blob/main/CHANGELOG.md</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

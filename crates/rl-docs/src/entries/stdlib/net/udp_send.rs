@@ -13,4 +13,6 @@ result_unwrap(udp_send(socket, "ping"))"#,
     errors: Some("Err(string) if the socket has no connected peer, or on send failure"),
     see_also: &["udp_connect", "udp_send_to"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

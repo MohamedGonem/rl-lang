@@ -11,4 +11,6 @@ dec arr[string] files = with_exec_lines("ls", "src")?"#,
     errors: Some("Will return error on invalid arguments or failed command run"),
     see_also: &["with_exec", "with_exec_code"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

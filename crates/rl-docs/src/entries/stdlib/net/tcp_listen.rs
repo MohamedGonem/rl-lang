@@ -11,4 +11,6 @@ dec handle listener = result_unwrap(tcp_listen("127.0.0.1:7878"))"#,
     errors: Some("Err(string) when the address can't be bound (e.g. already in use)"),
     see_also: &["tcp_accept", "tcp_close"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

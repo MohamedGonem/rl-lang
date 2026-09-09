@@ -9,4 +9,6 @@ pub static EPRINTLN: FnEntry = FnEntry {
     errors: None,
     see_also: &["eprint", "print", "println"],
     since: Some("v1.1.0"),
+    deprecated: None,
+    updated: Some("v1.1.0"),
 };

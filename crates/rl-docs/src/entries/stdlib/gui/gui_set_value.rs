@@ -15,4 +15,6 @@ gui_set_value(slider, 50.0)?"#,
     errors: Some("err(string) for an unknown handle, or a handle that isn't a slider"),
     see_also: &["gui_get_value", "gui_on_change", "gui_slider"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

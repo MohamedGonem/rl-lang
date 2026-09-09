@@ -9,4 +9,6 @@ pub static INDEX_OF: FnEntry = FnEntry {
     errors: None,
     see_also: &["contains", "count"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -12,4 +12,6 @@ result_unwrap(set_output_device("Speakers"))"#,
     errors: Some("err(string) when no device with that name exists"),
     see_also: &["list_output_devices"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };
