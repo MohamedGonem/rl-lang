@@ -68,7 +68,7 @@ rl-lang
 +-- rl-std-core       (core stdlib modules)
 |   +-- [TODO] #425 - new math and consts functions
 |   +-- [TODO] #414 - more string std functions
-|   +-- [TODO] #437 - refactor term_set_title
+|   +-- [DONE] #437 - refactor term_set_title
 +-- rl-std-macros     (stdlib procedural macros)
 +-- rl-std            (standard library)
 |   +-- [DONE] std::process - exec_background, wait_pid, term_pid, kill_pid, pipe, pipe_all, set_env, remove_env, env_keys, os_name, arch, num_cpus, parent_pid, process_exists, exec_with_stdin, exec_with_env, exec_with_cwd, exec_with_timeout (+ with_* variants)

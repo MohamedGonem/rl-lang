@@ -5,14 +5,13 @@ pub static TERM_SET_TITLE: FnEntry = FnEntry {
     description: "sets the terminal window title",
     example: r#"get std::term::term_set_title
 
-term_set_title(1)?"#,
+term_set_title("My App")?"#,
     expected_output: None,
     returns: "result[null]",
     errors: Some(
         r#"Will return error on the following:
 
-- `title` is not a number (the current implementation extracts a byte, not
-  a string, despite the parameter name - passing a string always errors)
+- `title` is not a string
 - writing to stdout fails"#,
     ),
     see_also: &[],
