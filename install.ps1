@@ -1,9 +1,18 @@
 #Requires -Version 5.1
-param([string]$Version)
+param(
+    [string]$Version,
+    [string]$Prefix,
+    [string]$Variant,
+    [switch]$Force,
+    [switch]$Uninstall,
+    [switch]$Help
+)
 $ErrorActionPreference = "Stop"
 
 $Repo = "rl-lang/rl-lang"
-$InstallDir = if ($env:RL_INSTALL_DIR) { $env:RL_INSTALL_DIR } else { "$env:LOCALAPPDATA\rl-lang\bin" }
+$InstallDir = if ($Prefix) { $Prefix } elseif ($env:RL_INSTALL_DIR) { $env:RL_INSTALL_DIR } else { "$env:LOCALAPPDATA\rl-lang\bin" }
+
+# --- Variant definitions ---
 
 $Bases = @("rl", "rl_vm", "rl_debug", "rl_vm_debug")
 $Suffixes = @("", "_no_docs", "_no_repl", "_no_docs_repl")
@@ -35,15 +44,52 @@ $ActualName = @{
     "rl_lsp" = "rlsp"
 }
 
-function Write-Help {
-    param([string]$Text)
-    Write-Host ("  " + $Text) -ForegroundColor DarkGray
+# --- Output helpers ---
+
+function Write-Info { param([string]$Text) Write-Host ("  :: " + $Text) -ForegroundColor DarkGray }
+function Write-Ok   { param([string]$Text) Write-Host ("  [ OK ] " + $Text) -ForegroundColor Green }
+function Write-Warn { param([string]$Text) Write-Host ("  [WARN] " + $Text) -ForegroundColor Yellow }
+function Write-Err  { param([string]$Text) Write-Host ("  [FAIL] " + $Text) -ForegroundColor Red }
+
+# --- Usage ---
+
+function Write-Usage {
+    $usage = @"
+
+Usage: install.ps1 [OPTIONS] [VERSION]
+
+Install prebuilt rl-lang binaries from GitHub Releases.
+
+Arguments:
+  VERSION    Version to install (default: interactive picker)
+             Use "latest", "nightly", or a specific version like "v2.0.0"
+
+Options:
+  -Help              Show this help message
+  -Prefix DIR        Install directory (default: %LOCALAPPDATA%\rl-lang\bin)
+  -Force             Overwrite existing binaries without prompting
+  -Variant VARIANTS  Comma-separated list of variants to install
+                     Use "all" to install all variants
+  -Uninstall         Remove installed binaries
+
+Environment variables:
+  RL_INSTALL_DIR     Same as -Prefix
+  RL_VERSION         Same as VERSION argument
+  RL_VARIANT         Same as -Variant
+
+Examples:
+  .\install.ps1                          # interactive install
+  .\install.ps1 latest                   # install latest stable
+  .\install.ps1 nightly                  # install nightly build
+  .\install.ps1 v2.0.0                   # install specific version
+  .\install.ps1 -Variant rl,rl_vm latest # install specific variants
+  .\install.ps1 -Prefix C:\rl -Force v2.0.0
+  .\install.ps1 -Uninstall               # remove all installed binaries
+"@
+    Write-Host $usage
 }
 
-function Write-Err {
-    param([string]$Text)
-    Write-Host ("  [FAIL] " + $Text) -ForegroundColor Red
-}
+# --- Variant helpers ---
 
 function Get-GroupedVariants {
     $variants = @()
@@ -70,11 +116,17 @@ function Print-Menu {
         $i++
     }
     Write-Host ""
-    Write-Help "Enter number(s), comma-separated (e.g. 1,3,9), or 'all'."
+    Write-Host "  Enter number(s), comma-separated (e.g. 1,3,9), or 'all'." -ForegroundColor DarkGray
 }
 
 function Select-Variants {
+    if ($Variant) {
+        if ($Variant.Trim().ToLower() -eq "all") { return Get-GroupedVariants }
+        return $Variant -split "," | ForEach-Object { $_.Trim() }
+    }
+
     if ($env:RL_VARIANT) {
+        if ($env:RL_VARIANT.Trim().ToLower() -eq "all") { return Get-GroupedVariants }
         return $env:RL_VARIANT -split "," | ForEach-Object { $_.Trim() }
     }
 
@@ -110,6 +162,8 @@ function Select-Variants {
     return $selected
 }
 
+# --- Platform detection ---
+
 function Get-Arch {
     $arch = $env:PROCESSOR_ARCHITECTURE
     switch ($arch) {
@@ -121,6 +175,8 @@ function Get-Arch {
         }
     }
 }
+
+# --- Version resolution ---
 
 function Test-Release {
     param([string]$Tag)
@@ -171,7 +227,7 @@ function Get-Version {
         }
         default {
             Write-Err "Unknown version '$Requested'."
-            Write-Err "Use 'latest', 'nightly', or a specific version like 'v1.0.0'. Select builds interactively or via `$env:RL_VARIANT."
+            Write-Err "Use 'latest', 'nightly', or a specific version like 'v1.0.0'."
             exit 1
         }
     }
@@ -183,7 +239,7 @@ function Select-VersionPicker {
     Write-Host ""
     Write-Host "    1) latest   - newest stable release" -ForegroundColor Cyan
     Write-Host "    2) nightly  - latest build from the dev branch" -ForegroundColor Cyan
-    Write-Host "    3) custom   - pin a specific version (e.g. v1.0.0)" -ForegroundColor Cyan
+    Write-Host "    3) custom   - pin a specific version (e.g. v2.0.0)" -ForegroundColor Cyan
     Write-Host ""
     $choice = Read-Host "  Choose [1]"
     if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
@@ -191,7 +247,7 @@ function Select-VersionPicker {
     switch ($choice.Trim()) {
         "2" { return "nightly" }
         "3" {
-            $custom = Read-Host "  Enter version (e.g. v1.0.0)"
+            $custom = Read-Host "  Enter version (e.g. v2.0.0)"
             if ([string]::IsNullOrWhiteSpace($custom)) { return "latest" }
             return $custom.Trim()
         }
@@ -199,16 +255,49 @@ function Select-VersionPicker {
     }
 }
 
+# --- Checksum verification ---
+
+function Test-Checksum {
+    param([string]$FilePath)
+
+    $shaPath = "$FilePath.sha256"
+    if (-not (Test-Path $shaPath)) {
+        Write-Warn "No checksum file found for $(Split-Path $FilePath -Leaf). Skipping verification."
+        return $true
+    }
+
+    $expected = (Get-Content $shaPath -Raw).Trim().Split(" ")[0]
+    $hash = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+
+    if ($hash -eq $expected) {
+        return $true
+    } else {
+        Write-Err "Checksum mismatch for $(Split-Path $FilePath -Leaf)!"
+        Write-Err "  Expected: $expected"
+        Write-Err "  Got:      $hash"
+        return $false
+    }
+}
+
+# --- Install ---
+
 function Install-One {
-    param($Variant, $Arch, $Version)
+    param($Variant, $Arch, $Version, [switch]$ForceInstall)
 
     $actual = $ActualName[$Variant]
     if (-not $actual) {
-        Write-Warning "No actual-name mapping for '$Variant' - add it to `$ActualName. Skipping."
+        Write-Err "No actual-name mapping for '$Variant'. Skipping."
         return $false
     }
 
-    Write-Host ("  :: Installing {0} ({1}) {2} (windows-{3})..." -f $Variant, $actual, $Version, $Arch) -ForegroundColor DarkGray
+    # Check if already installed
+    $exePath = Join-Path $InstallDir "$actual.exe"
+    if ((Test-Path $exePath) -and -not $ForceInstall) {
+        Write-Warn "$actual already exists at $exePath. Use -Force to overwrite."
+        return $true
+    }
+
+    Write-Info "Installing $Variant ($actual) $Version (windows-$Arch)..."
 
     $asset = "$actual-windows-$Arch.zip"
     $url = "https://github.com/$Repo/releases/download/$Version/$asset"
@@ -226,20 +315,79 @@ function Install-One {
             return $false
         }
 
+        # Download and verify checksum
+        $shaUrl = "$url.sha256"
+        $shaPath = Join-Path $tmpDir "$asset.sha256"
+        try {
+            Invoke-WebRequest -Uri $shaUrl -OutFile $shaPath -ErrorAction SilentlyContinue
+        } catch {
+            # Checksum file may not exist for older releases
+        }
+
+        if (Test-Path $shaPath) {
+            $expected = (Get-Content $shaPath -Raw).Trim().Split(" ")[0]
+            $hash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLower()
+            if ($hash -ne $expected) {
+                Write-Err "Checksum mismatch for $asset!"
+                Write-Err "  Expected: $expected"
+                Write-Err "  Got:      $hash"
+                return $false
+            }
+        } else {
+            Write-Warn "No checksum file found. Skipping verification."
+        }
+
         Expand-Archive -Path $zipPath -DestinationPath $tmpDir -Force
 
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
         $exeName = "$actual.exe"
         Copy-Item -Path (Join-Path $tmpDir $exeName) -Destination (Join-Path $InstallDir $exeName) -Force
 
-        Write-Host ("  [ OK ] Installed: {0}\{1}" -f $InstallDir, $exeName) -ForegroundColor Green
+        Write-Ok "Installed: $InstallDir\$exeName"
         return $true
     } finally {
         Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
+# --- Uninstall ---
+
+function Uninstall-All {
+    $removed = 0
+    Write-Host ""
+    Write-Host "  Uninstalling rl-lang binaries from $InstallDir..." -ForegroundColor White
+    Write-Host ""
+
+    foreach ($name in $ActualName.Values) {
+        $path = Join-Path $InstallDir "$name.exe"
+        if (Test-Path $path) {
+            Remove-Item -Path $path -Force
+            Write-Ok "Removed: $path"
+            $removed++
+        }
+    }
+
+    Write-Host ""
+    if ($removed -gt 0) {
+        Write-Host "  Removed $removed binary(ies)." -ForegroundColor Green
+    } else {
+        Write-Host "  No rl-lang binaries found in $InstallDir." -ForegroundColor DarkGray
+    }
+}
+
+# --- Main ---
+
 function Main {
+    if ($Help) {
+        Write-Usage
+        return
+    }
+
+    if ($Uninstall) {
+        Uninstall-All
+        return
+    }
+
     $arch = Get-Arch
 
     $requested = $null
@@ -257,11 +405,11 @@ function Main {
 
     Write-Host ""
     Write-Host "  rl-lang installer"
-    Write-Help "repo:    $Repo"
-    Write-Help "arch:    $arch"
-    Write-Help "version: $resolvedVersion"
-    Write-Help "install: $InstallDir"
-    Write-Help "----------------------------------------"
+    Write-Info "repo:    $Repo"
+    Write-Info "arch:    $arch"
+    Write-Info "version: $resolvedVersion"
+    Write-Info "install: $InstallDir"
+    Write-Info "----------------------------------------"
     Write-Host ""
 
     $variants = Select-Variants
@@ -270,7 +418,14 @@ function Main {
 
     foreach ($variant in $variants) {
         $total++
-        if (Install-One -Variant $variant -Arch $arch -Version $resolvedVersion) {
+        $params = @{
+            Variant = $variant
+            Arch = $arch
+            Version = $resolvedVersion
+        }
+        if ($Force) { $params.ForceInstall = $true }
+
+        if (Install-One @params) {
             $installed++
         }
     }

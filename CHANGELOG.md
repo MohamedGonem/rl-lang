@@ -26,6 +26,12 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 - **`std::len`** - new top-level stdlib function for getting the length of strings, arrays, and tuples. `std::array::len` is now deprecated in favor of `std::len`.
 - **Stdlib deprecation checking** - the checker warns when calling deprecated stdlib functions (e.g. `std::array::len`). The deprecation map is in `rl-checker/src/lib.rs`.
 - **`deprecated` and `updated` fields for doc entries** - `FnEntry` now has `deprecated: Option<&str>` and `updated: Option<&str>` fields. The markdown and HTML doc renderers display deprecation notices and version metadata.
+- **Faster builds** - new `nightly` Cargo profile (thin LTO, codegen-units=4) and `dev-release` profile (no LTO, codegen-units=16). Nightly and debug builds are significantly faster. `build-variants.sh` now builds variants in parallel.
+- **macOS builds** - release and nightly now produce x86_64 and aarch64 macOS binaries.
+- **SHA256 checksums** - release artifacts include `.sha256` files. Install scripts verify checksums before extracting.
+- **Nightly changelog** - nightly releases now include a commit-based changelog since the last nightly build.
+- **Skip unchanged nightlies** - nightly builds skip when the `dev` branch hasn't changed since the last build.
+- **Installer improvements** - `install.sh` and `install.ps1` now support `--help`, `--prefix`/`-p`, `--force`/`-f`, `--variant`/`-v`, and `--uninstall` flags.
 
 ### Changed
 
