@@ -13,7 +13,17 @@
 //! | `repl` | start the interactive TUI REPL (`repl_tui` feature) |
 //! | `lsp` | start the LSP server over stdio (`lsp` feature) |
 mod pipeline;
+use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Parser, Subcommand};
+
+const RL_STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .usage(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .literal(AnsiColor::Green.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Yellow.on_default())
+    .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+    .valid(AnsiColor::Green.on_default())
+    .invalid(AnsiColor::Red.on_default());
 #[cfg(feature = "docs")]
 use rl_docs::{
     concept_to_markdown, docs_to_json,
@@ -35,7 +45,7 @@ use rl_tooling::dev::read_rl_toml;
 use rl_utils::source::SourceFile;
 
 #[derive(Parser)]
-#[command(name = "rl", version, about = "The rl programming language")]
+#[command(name = "rl", version, about = "The rl programming language", styles = RL_STYLES)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

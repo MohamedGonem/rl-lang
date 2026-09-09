@@ -29,6 +29,7 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
 
 ### Changed
 
+- **CLI help colors** - `rl` CLI help output is now colorized using clap's styling API: cyan headers, green literals, yellow placeholders, and red errors.
 - **Arabic keyword aliases** - all 38 language keywords have Arabic equivalents (e.g. `دالة` for `fn`, `لكل` for `for`, `بينما` for `while`, `أرجع` for `return`). The lexer accepts either form; identifiers may freely mix Arabic and Latin characters (e.g. `اسم_المتغير`).
 - **Pipe operator `|>`** - new infix operator that desugars `a |> f(args)` into `a.f(args)`. The left-hand side becomes the receiver of the method call. Chaining is supported: `a |> f() |> g()` becomes `a.f().g()`.
 - **Optional semicolons** - statements can now optionally end with `;`. Semicolons are silently consumed by the parser, so `dec int x = 10;` and `dec int x = 10` are both valid.
