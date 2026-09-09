@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest a new feature or stdlib function
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want?
+      description: Describe the feature or function you'd like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it useful?
+      description: Explain the use case and why it matters.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of rl-lang does this relate to?
+      options:
+        - Language syntax
+        - Standard library
+        - Type system
+        - VM
+        - C codegen
+        - CLI / REPL
+        - Tooling (LSP, etc.)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example usage
+      description: How would this look in rl code?
+      render: rl
+
+  - type: dropdown
+    id: willing
+    attributes:
+      label: Are you willing to contribute this?
+      options:
+        - "Yes"
+        - "Maybe"
+        - "No"
+    validations:
+      required: false
