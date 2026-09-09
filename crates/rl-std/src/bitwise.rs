@@ -17,7 +17,13 @@ use rl_std_macros::native_fn;
     sig(byte, byte -> result[byte]),
     sig(int, int -> result[int]),
     sig(byte, int -> result[int]),
-    sig(int, byte -> result[int])
+    sig(int, byte -> result[int]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint])
 )]
 pub fn bit_and<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
     match (R::as_u8(&a), R::as_i64(&a), R::as_u8(&b), R::as_i64(&b)) {
@@ -36,7 +42,13 @@ pub fn bit_and<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
     sig(byte, byte -> result[byte]),
     sig(int, int -> result[int]),
     sig(byte, int -> result[int]),
-    sig(int, byte -> result[int])
+    sig(int, byte -> result[int]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint])
 )]
 pub fn bit_or<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
     match (R::as_u8(&a), R::as_i64(&a), R::as_u8(&b), R::as_i64(&b)) {
@@ -55,7 +67,13 @@ pub fn bit_or<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
 #[native_fn(
     module = "bitwise",
     sig(byte, byte -> result[byte]),
-    sig(int, int -> result[int])
+    sig(int, int -> result[int]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint])
 )]
 pub fn bit_xor<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
     if let (Some(x), Some(y)) = (R::as_u8(&a), R::as_u8(&b)) {
@@ -74,7 +92,13 @@ pub fn bit_xor<R: Runtime>(a: R::Value, b: R::Value) -> R::Value {
 #[native_fn(
     module = "bitwise",
     sig(byte -> result[byte]),
-    sig(int -> result[int])
+    sig(int -> result[int]),
+    sig(sbyte -> result[sbyte]),
+    sig(bsbyte -> result[bsbyte]),
+    sig(bbyte -> result[bbyte]),
+    sig(sint -> result[sint]),
+    sig(suint -> result[suint]),
+    sig(uint -> result[uint])
 )]
 pub fn bit_not<R: Runtime>(v: R::Value) -> R::Value {
     if let Some(x) = R::as_u8(&v) {
@@ -97,7 +121,13 @@ pub fn bit_not<R: Runtime>(v: R::Value) -> R::Value {
     sig(byte, byte -> result[byte]),
     sig(byte, int -> result[byte]),
     sig(int, byte -> result[int]),
-    sig(int, int -> result[int])
+    sig(int, int -> result[int]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint])
 )]
 pub fn bit_shift_left<R: Runtime>(a: R::Value, shift: R::Value) -> R::Value {
     let s = match (R::as_u8(&shift), R::as_i64(&shift)) {
@@ -127,7 +157,13 @@ pub fn bit_shift_left<R: Runtime>(a: R::Value, shift: R::Value) -> R::Value {
     sig(byte, byte -> result[byte]),
     sig(byte, int -> result[byte]),
     sig(int, byte -> result[int]),
-    sig(int, int -> result[int])
+    sig(int, int -> result[int]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint])
 )]
 pub fn bit_shift_right<R: Runtime>(a: R::Value, shift: R::Value) -> R::Value {
     let s = match (R::as_u8(&shift), R::as_i64(&shift)) {
@@ -155,7 +191,13 @@ pub fn bit_shift_right<R: Runtime>(a: R::Value, shift: R::Value) -> R::Value {
 #[native_fn(
     module = "bitwise",
     sig(byte -> result[byte]),
-    sig(int -> result[int])
+    sig(int -> result[int]),
+    sig(sbyte -> result[sbyte]),
+    sig(bsbyte -> result[bsbyte]),
+    sig(bbyte -> result[bbyte]),
+    sig(sint -> result[sint]),
+    sig(suint -> result[suint]),
+    sig(uint -> result[uint])
 )]
 pub fn count_bits<R: Runtime>(v: R::Value) -> R::Value {
     if let Some(x) = R::as_u8(&v) {
@@ -172,7 +214,13 @@ pub fn count_bits<R: Runtime>(v: R::Value) -> R::Value {
 #[native_fn(
     module = "bitwise",
     sig(byte -> result[byte]),
-    sig(int -> result[int])
+    sig(int -> result[int]),
+    sig(sbyte -> result[sbyte]),
+    sig(bsbyte -> result[bsbyte]),
+    sig(bbyte -> result[bbyte]),
+    sig(sint -> result[sint]),
+    sig(suint -> result[suint]),
+    sig(uint -> result[uint])
 )]
 pub fn leading_zeros<R: Runtime>(v: R::Value) -> R::Value {
     if let Some(x) = R::as_u8(&v) {
@@ -189,7 +237,13 @@ pub fn leading_zeros<R: Runtime>(v: R::Value) -> R::Value {
 #[native_fn(
     module = "bitwise",
     sig(byte -> result[byte]),
-    sig(int -> result[int])
+    sig(int -> result[int]),
+    sig(sbyte -> result[sbyte]),
+    sig(bsbyte -> result[bsbyte]),
+    sig(bbyte -> result[bbyte]),
+    sig(sint -> result[sint]),
+    sig(suint -> result[suint]),
+    sig(uint -> result[uint])
 )]
 pub fn trailing_zeros<R: Runtime>(v: R::Value) -> R::Value {
     if let Some(x) = R::as_u8(&v) {

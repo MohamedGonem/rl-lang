@@ -13,6 +13,11 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
   - `path_relative` moved from `std::path` (uses `getcwd` syscall).
   - Old paths still work but emit deprecation warnings. `std::io` is now console-only; `std::path` is now pure string manipulation only.
 - **Numeric suffix sugar** - write `10_u8`, `3.14_f32`, `100_i32` etc. to create typed literals directly without `as` casts. Supported suffixes: `_u8`, `_i8`, `_u16`, `_i16`, `_i32`, `_u32`, `_f32`, `_i64`, `_u64`, `_f64`. Equivalent to `10 as byte`, `3.14 as small float`, etc.
+- **Extended numeric support for stdlib functions** - math and bitwise functions now accept all 10 numeric types (`byte`, `sbyte`, `bbyte`, `bsbyte`, `int`, `uint`, `sint`, `suint`, `float`, `sfloat`):
+  - Math: `abs`, `ceil`, `floor`, `round`, `clamp`, `max`, `min`, `mod`, `pow`, `log`, `sqrt`, `log2`, `log10`, `sin`, `cos`, `tan`, `atan`, `acos`, `asin`, `degrees`, `radians`, `exp`, `sign`, `atan2`, `hypot`, `lerp`, `map_range`.
+  - Integer helpers: `factorial`, `fibonacci`, `gcd`, `lcm`, `is_prime`.
+  - Bitwise: `bit_and`, `bit_or`, `bit_xor`, `bit_not`, `bit_shift_left`, `bit_shift_right`, `count_bits`, `leading_zeros`, `trailing_zeros`.
+  - `Runtime::as_i64` now returns all integer-type variants (`byte`, `uint`, `sbyte`, etc.) but NOT floats. `Runtime::as_f64` returns all numeric variants (integer and float).
 - **Warning severity system** - the type-checker now emits warnings (yellow) that don't block execution, separate from errors (red) that do. Warnings are reported via `checker.warnings` alongside `checker.errors`, and include colored output with `[Warning: ...]` labels.
 - **Unused variable/function warnings** - the checker reports unused variables and functions at the end of scope. Functions with `!#[entry]`, `!#[init]`, `!#[final]`, or `!#[test]` attributes are automatically marked as used. When no `!#[entry]` exists, `main` is treated as the implicit entry point and won't warn.
 - **`!#[allow(unused)]`** - suppresses unused variable/function warnings for the annotated declaration. Works on `dec`, `const`, and `fn` declarations.

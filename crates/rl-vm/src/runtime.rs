@@ -30,10 +30,16 @@ impl Runtime for VmRuntime {
     }
 
     fn as_i64(v: &Self::Value) -> Option<i64> {
-        if let VmValue::Int(x) = v {
-            Some(*x)
-        } else {
-            None
+        match v {
+            VmValue::Int(x) => Some(*x),
+            VmValue::UInt(x) => Some(*x as i64),
+            VmValue::Byte(x) => Some(*x as i64),
+            VmValue::SByte(x) => Some(*x as i64),
+            VmValue::BByte(x) => Some(*x as i64),
+            VmValue::BSByte(x) => Some(*x as i64),
+            VmValue::SInt(x) => Some(*x as i64),
+            VmValue::SUInt(x) => Some(*x as i64),
+            _ => None,
         }
     }
     fn as_u64(v: &Self::Value) -> Option<u64> {
@@ -86,10 +92,18 @@ impl Runtime for VmRuntime {
         }
     }
     fn as_f64(v: &Self::Value) -> Option<f64> {
-        if let VmValue::Float(x) = v {
-            Some(*x)
-        } else {
-            None
+        match v {
+            VmValue::Float(x) => Some(*x),
+            VmValue::SFloat(x) => Some(*x as f64),
+            VmValue::Int(x) => Some(*x as f64),
+            VmValue::UInt(x) => Some(*x as f64),
+            VmValue::Byte(x) => Some(*x as f64),
+            VmValue::SByte(x) => Some(*x as f64),
+            VmValue::BByte(x) => Some(*x as f64),
+            VmValue::BSByte(x) => Some(*x as f64),
+            VmValue::SInt(x) => Some(*x as f64),
+            VmValue::SUInt(x) => Some(*x as f64),
+            _ => None,
         }
     }
     fn as_f32(v: &Self::Value) -> Option<f32> {

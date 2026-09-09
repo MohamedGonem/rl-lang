@@ -223,3 +223,280 @@ a == b
     .expect("vm run failed");
     assert_eq!(result, VmValue::Bool(true));
 }
+
+// ---- Phase 3: stdlib functions accepting all numeric types -----------------
+
+#[test]
+fn abs_with_u8() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+dec byte a = 10_u8
+abs(a)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(10));
+}
+
+#[test]
+fn abs_with_i8() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+abs(-10_i8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(10));
+}
+
+#[test]
+fn abs_with_u16() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+abs(1000_u16)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(1000));
+}
+
+#[test]
+fn abs_with_i16() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+abs(-1000_i16)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(1000));
+}
+
+#[test]
+fn abs_with_i32() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+abs(-100_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(100));
+}
+
+#[test]
+fn abs_with_u32() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+abs(100_u32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(100));
+}
+
+#[test]
+fn abs_with_u64() {
+    let result = common::compile_and_run(r#"
+get abs from std::math
+dec uint a = 100
+abs(a)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(100));
+}
+
+#[test]
+fn ceil_with_i32() {
+    let result = common::compile_and_run(r#"
+get ceil from std::math
+ceil(3_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(3));
+}
+
+#[test]
+fn floor_with_i32() {
+    let result = common::compile_and_run(r#"
+get floor from std::math
+floor(3_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(3));
+}
+
+#[test]
+fn round_with_i32() {
+    let result = common::compile_and_run(r#"
+get round from std::math
+round(3_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(3));
+}
+
+#[test]
+fn sqrt_with_u16() {
+    let result = common::compile_and_run(r#"
+get sqrt from std::math
+sqrt(25_u16)?
+"#).expect("vm run failed");
+    assert!(matches!(result, VmValue::Float(v) if (v - 5.0).abs() < 0.001));
+}
+
+#[test]
+fn sin_with_i32() {
+    let result = common::compile_and_run(r#"
+get sin from std::math
+sin(0_i32)?
+"#).expect("vm run failed");
+    assert!(matches!(result, VmValue::Float(v) if v.abs() < 0.001));
+}
+
+#[test]
+fn cos_with_u8() {
+    let result = common::compile_and_run(r#"
+get cos from std::math
+cos(0_u8)?
+"#).expect("vm run failed");
+    assert!(matches!(result, VmValue::Float(v) if (v - 1.0).abs() < 0.001));
+}
+
+#[test]
+fn factorial_with_u8() {
+    let result = common::compile_and_run(r#"
+get factorial from std::math
+factorial(5_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(120));
+}
+
+#[test]
+fn factorial_with_i32() {
+    let result = common::compile_and_run(r#"
+get factorial from std::math
+factorial(5_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(120));
+}
+
+#[test]
+fn is_prime_with_u8() {
+    let result = common::compile_and_run(r#"
+get is_prime from std::math
+is_prime(7_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Bool(true));
+}
+
+#[test]
+fn gcd_with_u32() {
+    let result = common::compile_and_run(r#"
+get gcd from std::math
+gcd(12_u32, 8_u32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(4));
+}
+
+#[test]
+fn lcm_with_i32() {
+    let result = common::compile_and_run(r#"
+get lcm from std::math
+lcm(4_i32, 6_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(12));
+}
+
+#[test]
+fn max_with_u8() {
+    let result = common::compile_and_run(r#"
+get max from std::math
+max(10_u8, 20_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(20));
+}
+
+#[test]
+fn min_with_i32() {
+    let result = common::compile_and_run(r#"
+get min from std::math
+min(10_i32, 20_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(10));
+}
+
+#[test]
+fn clamp_with_u16() {
+    let result = common::compile_and_run(r#"
+get clamp from std::math
+clamp(100_u16, 0_u16, 50_u16)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(50));
+}
+
+#[test]
+fn mod_with_u8() {
+    let result = common::compile_and_run(r#"
+get mod from std::math
+dec byte a = 10_u8
+mod(a, 3_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(1));
+}
+
+#[test]
+fn pow_with_u8() {
+    let result = common::compile_and_run(r#"
+get pow from std::math
+pow(2_u8, 3_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(8));
+}
+
+#[test]
+fn log2_with_u32() {
+    let result = common::compile_and_run(r#"
+get log2 from std::math
+log2(8_u32)?
+"#).expect("vm run failed");
+    assert!(matches!(result, VmValue::Float(v) if (v - 3.0).abs() < 0.001));
+}
+
+#[test]
+fn log10_with_i32() {
+    let result = common::compile_and_run(r#"
+get log10 from std::math
+log10(100_i32)?
+"#).expect("vm run failed");
+    assert!(matches!(result, VmValue::Float(v) if (v - 2.0).abs() < 0.001));
+}
+
+#[test]
+fn bit_and_with_u8() {
+    let result = common::compile_and_run(r#"
+get bit_and from std::bitwise
+dec byte a = 255_u8
+bit_and(a, 15_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Byte(15));
+}
+
+#[test]
+fn bit_or_with_u16() {
+    let result = common::compile_and_run(r#"
+get bit_or from std::bitwise
+dec big byte a = 65280_u16
+bit_or(a, 255_u16)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(65535));
+}
+
+#[test]
+fn bit_not_with_i32() {
+    let result = common::compile_and_run(r#"
+get bit_not from std::bitwise
+bit_not(0_i32)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(-1));
+}
+
+#[test]
+fn bit_shift_left_with_u8() {
+    let result = common::compile_and_run(r#"
+get bit_shift_left from std::bitwise
+bit_shift_left(1_u8, 4_u8)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Byte(16));
+}
+
+#[test]
+fn count_bits_with_u16() {
+    let result = common::compile_and_run(r#"
+get count_bits from std::bitwise
+count_bits(255_u16)?
+"#).expect("vm run failed");
+    assert_eq!(result, VmValue::Int(8));
+}
