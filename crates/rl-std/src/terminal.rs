@@ -282,6 +282,14 @@ pub fn term_get_size() -> Result<Vec<i64>, String> {
     Ok(vec![cols as i64, rows as i64])
 }
 
+#[native_fn(module = "term", sig(-> result[array[int]]))]
+pub fn term_get_cursor_pos() -> Result<Vec<i64>, String> {
+    match crossterm::cursor::position() {
+        Ok((x, y)) => Ok(vec![x as i64, y as i64]),
+        Err(e) => Err(format!("term_get_cursor_pos(): {}", e)),
+    }
+}
+
 #[native_fn(module = "term", sig(int, int -> result[null]))]
 pub fn term_set_size<R: Runtime>(
     _cx: &mut R::Cx,
@@ -645,6 +653,7 @@ rl_std_core::native_module!("term";
         term_hide_cursor, term_show_cursor,
         // size / title
         term_get_size, term_set_size, term_set_title,
+        term_get_cursor_pos,
         // scroll
         term_scroll_up, term_scroll_down,
         // output
