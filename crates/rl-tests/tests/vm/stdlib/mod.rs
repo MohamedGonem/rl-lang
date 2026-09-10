@@ -4,6 +4,7 @@ mod collections;
 mod fs;
 mod io;
 mod math;
+mod random;
 mod result;
 mod string;
 mod types;
