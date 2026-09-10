@@ -71,6 +71,9 @@ pub struct WindowState<V> {
     /// then cleared so it doesn't fight the user manually dragging the
     /// window afterward.
     pub pending_position: Option<(f32, f32)>,
+    /// Last known window position set via `gui_window` or `gui_window_set_pos`.
+    /// Updated from the viewport rect during rendering for size accuracy.
+    pub position: (f32, f32),
     /// Whether the native title bar and window borders are shown.
     pub decorated: bool,
     /// Window icon as `(width, height, rgba bytes)`. `None` uses the OS default.
@@ -356,6 +359,29 @@ fn extract_handle<R: GuiStore>(v: &R::Value, name: &str) -> Result<u64, String> 
     }
 }
 
+/// Build an `egui::RichText` applying optional font size and text colour.
+fn styled_text(text: &str, font_size: Option<f32>, color: Option<(u8, u8, u8)>) -> egui::RichText {
+    let mut rt = egui::RichText::new(text);
+    if let Some(size) = font_size {
+        rt = rt.size(size);
+    }
+    if let Some((r, g, b)) = color {
+        rt = rt.color(egui::Color32::from_rgb(r, g, b));
+    }
+    rt
+}
+
+/// Paint a background rect at the given position, if `bg` is set.
+fn paint_bg(
+    painter: &egui::Painter,
+    bg: &Option<(u8, u8, u8)>,
+    rect: egui::Rect,
+) {
+    if let Some((r, g, b)) = bg {
+        painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(*r, *g, *b));
+    }
+}
+
 #[cfg(feature = "impls")]
 /// Extracts `array[string]` into a `Vec<String>`, for `gui_dropdown`/`gui_radio_group`.
 /// Reproduces the old `extract_string_array`, whose per-element error string is
@@ -437,6 +463,7 @@ pub fn gui_window<R: GuiStore>(cx: &mut R::Cx, title: String, width: i64, height
             background: (27, 27, 27),
             pending_size: Some((width, height)),
             pending_position: None,
+            position: (0.0, 0.0),
             decorated: true,
             icon: None,
             on_close: None,
@@ -1858,6 +1885,7 @@ pub fn gui_window_set_pos<R: GuiStore>(
     match R::gui_handles(cx).get_mut(&id) {
         Some(GuiHandle::Window(w)) => {
             w.pending_position = Some((x as f32, y as f32));
+            w.position = (x as f32, y as f32);
             R::ok(R::null())
         }
         Some(_) => R::err(R::from_string(format!(
@@ -2002,7 +2030,6 @@ enum WidgetSnapshot {
         multiline: bool,
         height: f32,
         z: i32,
-        font_size: Option<f32>,
         color: Option<(u8, u8, u8)>,
         bg_color: Option<(u8, u8, u8)>,
         tooltip: Option<String>,
@@ -2042,7 +2069,6 @@ enum WidgetSnapshot {
         width: f32,
         drag_only: bool,
         z: i32,
-        font_size: Option<f32>,
         color: Option<(u8, u8, u8)>,
         bg_color: Option<(u8, u8, u8)>,
         tooltip: Option<String>,
@@ -2054,7 +2080,6 @@ enum WidgetSnapshot {
         y: f32,
         width: f32,
         z: i32,
-        font_size: Option<f32>,
         color: Option<(u8, u8, u8)>,
         bg_color: Option<(u8, u8, u8)>,
         tooltip: Option<String>,
@@ -2065,7 +2090,6 @@ enum WidgetSnapshot {
         y: f32,
         width: f32,
         z: i32,
-        font_size: Option<f32>,
         color: Option<(u8, u8, u8)>,
         bg_color: Option<(u8, u8, u8)>,
         tooltip: Option<String>,
@@ -2080,8 +2104,6 @@ enum WidgetSnapshot {
         texture_height: u32,
         rgba: std::sync::Arc<Vec<u8>>,
         z: i32,
-        font_size: Option<f32>,
-        color: Option<(u8, u8, u8)>,
         bg_color: Option<(u8, u8, u8)>,
         tooltip: Option<String>,
     },
@@ -2126,6 +2148,20 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
     let children = win.children.clone();
     let enter_pressed = ctx.input(|i| i.key_pressed(egui::Key::Enter));
 
+    // Read the actual viewport rect so we can sync size back to WindowState.
+    let viewport_rect = ctx
+        .input(|i| i.raw.screen_rect)
+        .unwrap_or(egui::Rect::from_min_size(
+            egui::Pos2::ZERO,
+            egui::vec2(4096.0, 4096.0),
+        ));
+    // Sync actual viewport size back to WindowState so getters return
+    // the real dimensions (accounts for user resizing the window).
+    if let Some(GuiHandle::Window(w)) = R::gui_handles(cx).get_mut(&window_id) {
+        w.width = viewport_rect.width();
+        w.height = viewport_rect.height();
+    }
+
     // Background fill: a full-viewport Area at `Order::Background`, painted
     // manually, rather than a panel. This sidesteps relying on the exact
     // panel API (which has shifted across egui versions) since `Area` is the
@@ -2134,14 +2170,8 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
         .order(egui::Order::Background)
         .fixed_pos(egui::pos2(0.0, 0.0))
         .show(ctx, |ui| {
-            let rect = ctx
-                .input(|i| i.raw.screen_rect)
-                .unwrap_or(egui::Rect::from_min_size(
-                    egui::Pos2::ZERO,
-                    egui::vec2(4096.0, 4096.0),
-                ));
             ui.painter().rect_filled(
-                rect,
+                viewport_rect,
                 0.0,
                 egui::Color32::from_rgb(background.0, background.1, background.2),
             );
@@ -2193,7 +2223,6 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 multiline: t.multiline,
                 height: t.height,
                 z: t.z,
-                font_size: t.font_size,
                 color: t.color,
                 bg_color: t.bg_color,
                 tooltip: t.tooltip.clone(),
@@ -2233,7 +2262,6 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 width: s.width,
                 drag_only: s.drag_only,
                 z: s.z,
-                font_size: s.font_size,
                 color: s.color,
                 bg_color: s.bg_color,
                 tooltip: s.tooltip.clone(),
@@ -2245,7 +2273,6 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: p.y,
                 width: p.width,
                 z: p.z,
-                font_size: p.font_size,
                 color: p.color,
                 bg_color: p.bg_color,
                 tooltip: p.tooltip.clone(),
@@ -2256,7 +2283,6 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: s.y,
                 width: s.width,
                 z: s.z,
-                font_size: s.font_size,
                 color: s.color,
                 bg_color: s.bg_color,
                 tooltip: s.tooltip.clone(),
@@ -2271,8 +2297,6 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 texture_height: img.rgba.1,
                 rgba: img.rgba.2.clone(),
                 z: img.z,
-                font_size: img.font_size,
-                color: img.color,
                 bg_color: img.bg_color,
                 tooltip: img.tooltip.clone(),
             }),
@@ -2296,20 +2320,58 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
     for snap in &snapshots {
         match snap {
             WidgetSnapshot::Button {
-                id, label, x, y, ..
+                id,
+                label,
+                x,
+                y,
+                font_size,
+                color,
+                bg_color,
+                tooltip,
+                ..
             } => {
-                let resp = egui::Area::new(egui::Id::new(("rl_gui_button", *id)))
+                let mut btn = egui::Button::new(styled_text(label, *font_size, *color));
+                if let Some((r, g, b)) = bg_color {
+                    btn = btn.fill(egui::Color32::from_rgb(*r, *g, *b));
+                }
+                let mut resp = egui::Area::new(egui::Id::new(("rl_gui_button", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
-                    .show(ctx, |ui| ui.button(label))
+                    .show(ctx, |ui| ui.add(btn))
                     .inner;
+                if let Some(text) = tooltip {
+                    resp = resp.on_hover_text(text);
+                }
                 if resp.clicked() {
                     clicked.push(*id);
                 }
             }
-            WidgetSnapshot::Label { id, text, x, y, .. } => {
-                egui::Area::new(egui::Id::new(("rl_gui_label", *id)))
+            WidgetSnapshot::Label {
+                id,
+                text,
+                x,
+                y,
+                font_size,
+                color,
+                bg_color,
+                tooltip,
+                ..
+            } => {
+                let rich = styled_text(text, *font_size, *color);
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_label", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
-                    .show(ctx, |ui| ui.label(text));
+                    .show(ctx, |ui| {
+                        if let Some((r, g, b)) = bg_color {
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(*r, *g, *b))
+                                .inner_margin(4.0)
+                                .show(ui, |ui| ui.label(rich));
+                        } else {
+                            ui.label(rich);
+                        }
+                    });
+                if let Some(tip) = tooltip {
+                    resp.response.on_hover_text(tip);
+                }
             }
             WidgetSnapshot::Checkbox {
                 id,
@@ -2317,14 +2379,31 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x,
                 y,
                 checked,
+                font_size,
+                color,
+                bg_color,
+                tooltip,
                 ..
             } => {
                 let mut checked = *checked;
+                let rich = styled_text(label, *font_size, *color);
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_checkbox", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
-                    .show(ctx, |ui| ui.checkbox(&mut checked, label))
+                    .show(ctx, |ui| {
+                        if let Some((r, g, b)) = bg_color {
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(*r, *g, *b))
+                                .inner_margin(4.0)
+                                .show(ui, |ui| ui.checkbox(&mut checked, rich))
+                                .inner
+                        } else {
+                            ui.checkbox(&mut checked, rich)
+                        }
+                    })
                     .inner;
-                if resp.changed() {
+                let changed = resp.changed();
+                resp.on_hover_text(tooltip.clone().unwrap_or_default());
+                if changed {
                     changed_checkbox.push((*id, checked));
                 }
             }
@@ -2336,19 +2415,40 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 width,
                 multiline,
                 height,
-                ..
+                z: _,
+                color,
+                bg_color,
+                tooltip,
             } => {
                 let mut text = text.clone();
-                let resp = egui::Area::new(egui::Id::new(("rl_gui_textbox", *id)))
+                let mut edit = if *multiline {
+                    egui::TextEdit::multiline(&mut text)
+                } else {
+                    egui::TextEdit::singleline(&mut text)
+                };
+                if let Some((r, g, b)) = color {
+                    edit = edit.text_color(egui::Color32::from_rgb(*r, *g, *b));
+                }
+                if let Some((r, g, b)) = bg_color {
+                    edit = edit.frame(
+                        egui::Frame::new()
+                            .fill(egui::Color32::from_rgb(*r, *g, *b))
+                            .inner_margin(4.0),
+                    );
+                }
+                let sized_edit = edit.desired_width(*width);
+                let mut resp = egui::Area::new(egui::Id::new(("rl_gui_textbox", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        if *multiline {
-                            ui.add_sized([*width, *height], egui::TextEdit::multiline(&mut text))
-                        } else {
-                            ui.add_sized([*width, 20.0], egui::TextEdit::singleline(&mut text))
-                        }
+                        ui.add_sized(
+                            [*width, if *multiline { *height } else { 20.0 }],
+                            sized_edit,
+                        )
                     })
                     .inner;
+                if let Some(text) = tooltip {
+                    resp = resp.on_hover_text(text);
+                }
                 if !multiline && resp.lost_focus() && enter_pressed {
                     submitted.push((*id, text.clone()));
                 }
@@ -2363,21 +2463,43 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x,
                 y,
                 width,
+                font_size,
+                color,
+                bg_color,
+                tooltip,
                 ..
             } => {
                 let mut sel = *selected;
-                egui::Area::new(egui::Id::new(("rl_gui_dropdown", *id)))
+                let tooltip_clone = tooltip.clone();
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_dropdown", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        egui::ComboBox::from_id_salt(("rl_gui_dropdown_combo", *id))
-                            .width(*width)
-                            .selected_text(options.get(sel).cloned().unwrap_or_default())
-                            .show_ui(ui, |ui| {
-                                for (i, opt) in options.iter().enumerate() {
-                                    ui.selectable_value(&mut sel, i, opt);
-                                }
-                            });
+                        let mut combo = |ui: &mut egui::Ui| {
+                            egui::ComboBox::from_id_salt(("rl_gui_dropdown_combo", *id))
+                                .width(*width)
+                                .selected_text(styled_text(
+                                    &options.get(sel).cloned().unwrap_or_default(),
+                                    *font_size,
+                                    *color,
+                                ))
+                                .show_ui(ui, |ui| {
+                                    for (i, opt) in options.iter().enumerate() {
+                                        ui.selectable_value(&mut sel, i, opt);
+                                    }
+                                });
+                        };
+                        if let Some((r, g, b)) = bg_color {
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(*r, *g, *b))
+                                .inner_margin(4.0)
+                                .show(ui, combo);
+                        } else {
+                            combo(ui);
+                        }
                     });
+                if let Some(text) = &tooltip_clone {
+                    resp.response.on_hover_text(text);
+                }
                 if sel != *selected {
                     changed_selection.push((*id, sel));
                 }
@@ -2388,18 +2510,40 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 selected,
                 x,
                 y,
+                font_size,
+                color,
+                bg_color,
+                tooltip,
                 ..
             } => {
                 let mut sel = *selected;
-                egui::Area::new(egui::Id::new(("rl_gui_radio", *id)))
+                let tooltip_clone = tooltip.clone();
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_radio", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        ui.vertical(|ui| {
-                            for (i, opt) in options.iter().enumerate() {
-                                ui.radio_value(&mut sel, i, opt);
-                            }
-                        });
+                        let mut radios = |ui: &mut egui::Ui| {
+                            ui.vertical(|ui| {
+                                for (i, opt) in options.iter().enumerate() {
+                                    ui.radio_value(
+                                        &mut sel,
+                                        i,
+                                        styled_text(opt, *font_size, *color),
+                                    );
+                                }
+                            });
+                        };
+                        if let Some((r, g, b)) = bg_color {
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(*r, *g, *b))
+                                .inner_margin(4.0)
+                                .show(ui, radios);
+                        } else {
+                            radios(ui);
+                        }
                     });
+                if let Some(text) = &tooltip_clone {
+                    resp.response.on_hover_text(text);
+                }
                 if sel != *selected {
                     changed_selection.push((*id, sel));
                 }
@@ -2413,23 +2557,32 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y,
                 width,
                 drag_only,
+                color,
+                bg_color,
+                tooltip,
                 ..
             } => {
                 let mut v = *value;
+                let tooltip_clone = tooltip.clone();
                 let resp = egui::Area::new(egui::Id::new(("rl_gui_slider", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        if *drag_only {
+                        let widget = if *drag_only {
                             ui.add(egui::DragValue::new(&mut v).range(*min..=*max))
                         } else {
-                            ui.add_sized(
-                                [*width, 20.0],
-                                egui::Slider::new(&mut v, *min..=*max).show_value(true),
-                            )
-                        }
+                            let mut sl = egui::Slider::new(&mut v, *min..=*max).show_value(true);
+                            if let Some((r, g, b)) = color {
+                                sl = sl.text_color(egui::Color32::from_rgb(*r, *g, *b));
+                            }
+                            ui.add_sized([*width, 20.0], sl)
+                        };
+                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        widget
                     })
                     .inner;
-                if resp.changed() {
+                let changed = resp.changed();
+                resp.on_hover_text(tooltip_clone.unwrap_or_default());
+                if changed {
                     changed_value.push((*id, v));
                 }
             }
@@ -2439,24 +2592,59 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x,
                 y,
                 width,
+                color,
+                bg_color,
+                tooltip,
                 ..
             } => {
-                egui::Area::new(egui::Id::new(("rl_gui_progress", *id)))
+                let tooltip_clone = tooltip.clone();
+                let mut bar = egui::ProgressBar::new(*value);
+                if let Some((r, g, b)) = color {
+                    bar = bar.fill(egui::Color32::from_rgb(*r, *g, *b));
+                }
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_progress", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        ui.add_sized([*width, 20.0], egui::ProgressBar::new(*value))
-                    });
+                        let widget = ui.add_sized([*width, 20.0], bar);
+                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        widget
+                    })
+                    .inner;
+                if let Some(text) = &tooltip_clone {
+                    resp.on_hover_text(text);
+                }
             }
             WidgetSnapshot::Separator {
-                id, x, y, width, ..
+                id,
+                x,
+                y,
+                width,
+                color,
+                bg_color,
+                tooltip,
+                ..
             } => {
-                egui::Area::new(egui::Id::new(("rl_gui_separator", *id)))
+                let tooltip_clone = tooltip.clone();
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_separator", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
                         ui.allocate_ui(egui::vec2(*width, 6.0), |ui| {
-                            ui.separator();
+                            let rect = ui.available_rect_before_wrap();
+                            paint_bg(&ui.painter(), bg_color, rect);
+                            if let Some((r, g, b)) = color {
+                                ui.painter().rect_filled(
+                                    rect,
+                                    0.0,
+                                    egui::Color32::from_rgb(*r, *g, *b),
+                                );
+                            } else {
+                                ui.separator();
+                            }
                         });
                     });
+                if let Some(text) = &tooltip_clone {
+                    resp.response.on_hover_text(text);
+                }
             }
             WidgetSnapshot::Image {
                 id,
@@ -2467,12 +2655,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 texture_width,
                 texture_height,
                 rgba,
-                ..
+                z: _,
+                bg_color,
+                tooltip,
             } => {
-                // Re-uploaded as a fresh texture every frame rather than
-                // cached, since caching would need to track texture
-                // lifetime against widget removal. Simple and correct;
-                // costly for large or frequently-redrawn images.
                 let color_image = egui::ColorImage::from_rgba_unmultiplied(
                     [*texture_width as usize, *texture_height as usize],
                     rgba,
@@ -2482,17 +2668,19 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                     color_image,
                     egui::TextureOptions::default(),
                 );
-                // SizedTexture's size is the *display* size, independent of
-                // the texture's actual pixel dimensions - GPU sampling
-                // stretches to fit, so this alone gives us "display at
-                // exactly width x height" with no extra builder calls.
                 let sized =
                     egui::load::SizedTexture::new(texture.id(), egui::vec2(*width, *height));
-                egui::Area::new(egui::Id::new(("rl_gui_image", *id)))
+                let tooltip_clone = tooltip.clone();
+                let resp = egui::Area::new(egui::Id::new(("rl_gui_image", *id)))
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
-                        ui.add(egui::Image::from_texture(sized));
+                        let widget = ui.add(egui::Image::from_texture(sized));
+                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        widget
                     });
+                if let Some(text) = &tooltip_clone {
+                    resp.response.on_hover_text(text);
+                }
             }
         }
     }
@@ -3024,7 +3212,7 @@ pub fn gui_get_window_pos<R: GuiStore>(
 ) -> Result<Vec<f64>, String> {
     let id = extract_handle::<R>(&window, "gui_get_window_pos")?;
     match R::gui_handles_ref(cx).get(&id) {
-        Some(GuiHandle::Window(_)) => Ok(vec![0.0, 0.0]),
+        Some(GuiHandle::Window(w)) => Ok(vec![w.position.0 as f64, w.position.1 as f64]),
         Some(_) => Err(format!(
             "gui_get_window_pos: handle {} is not a window",
             id
