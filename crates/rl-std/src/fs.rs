@@ -979,14 +979,14 @@ pub fn copy_dir(src: String, dest: String) -> Result<(), String> {
                 }
                 stack.push(path);
             } else {
-                if let Some(parent) = target.parent() {
-                    if let Err(e) = std::fs::create_dir_all(parent) {
-                        return Err(format!(
-                            "copy_dir: failed to create \"{}\": {}",
-                            parent.to_string_lossy(),
-                            e
-                        ));
-                    }
+                if let Some(parent) = target.parent()
+                    && let Err(e) = std::fs::create_dir_all(parent)
+                {
+                    return Err(format!(
+                        "copy_dir: failed to create \"{}\": {}",
+                        parent.to_string_lossy(),
+                        e
+                    ));
                 }
                 if let Err(e) = std::fs::copy(&path, &target) {
                     return Err(format!(

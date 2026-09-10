@@ -2576,7 +2576,7 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                             }
                             ui.add_sized([*width, 20.0], sl)
                         };
-                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        paint_bg(ui.painter(), bg_color, widget.rect);
                         widget
                     })
                     .inner;
@@ -2606,7 +2606,7 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
                         let widget = ui.add_sized([*width, 20.0], bar);
-                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        paint_bg(ui.painter(), bg_color, widget.rect);
                         widget
                     })
                     .inner;
@@ -2630,7 +2630,7 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                     .show(ctx, |ui| {
                         ui.allocate_ui(egui::vec2(*width, 6.0), |ui| {
                             let rect = ui.available_rect_before_wrap();
-                            paint_bg(&ui.painter(), bg_color, rect);
+                            paint_bg(ui.painter(), bg_color, rect);
                             if let Some((r, g, b)) = color {
                                 ui.painter().rect_filled(
                                     rect,
@@ -2675,7 +2675,7 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                     .fixed_pos(egui::pos2(*x, *y))
                     .show(ctx, |ui| {
                         let widget = ui.add(egui::Image::from_texture(sized));
-                        paint_bg(&ui.painter(), bg_color, widget.rect);
+                        paint_bg(ui.painter(), bg_color, widget.rect);
                         widget
                     });
                 if let Some(text) = &tooltip_clone {
