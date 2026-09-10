@@ -2,6 +2,41 @@
 
 All notable changes to the rl-lang toolchain are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/), and the project follows [Semantic Versioning](https://semver.org/) (see [VERSIONING.md](VERSIONING.md)). Full per-commit history is available on the [GitHub Releases](https://github.com/rl-lang/rl-lang/releases) page.
 
+## [Unreleased]
+
+### Added
+
+- **`std::collections` expansion** - 16 new functions for set operations, map defaults, heap, deque, and sorted insertion:
+  - Set algebra: `set_union`, `set_intersection`, `set_difference`, `set_symmetric_difference`, `set_is_subset`, `set_is_superset`
+  - Map defaults: `map_get_or`, `map_get_or_insert`
+  - Min-heap: `heap_push`, `heap_pop`, `heap_peek`
+  - Deque: `deque_push_front`, `deque_pop_front`
+  - Sorted array: `bisect_left`, `bisect_right`, `sorted_insert`
+- **`std::array` expansion** - 8 new functions for chunking, windowing, partitioning, and zipping:
+  - `arr_chunk`, `arr_windows`, `arr_swap`, `arr_partition`, `arr_max_by`, `arr_min_by`, `arr_zip_longest`, `arr_cycle_take`
+- **`std::str` expansion** - 13 new functions for prefix/suffix stripping, line splitting, indentation, and character classification:
+  - `strip_prefix`, `strip_suffix`, `last_index_of`, `split_once`, `lines`, `wrap`, `indent`, `dedent`, `diff_lines`, `is_alpha`, `is_numeric`, `is_whitespace`, `unicode_category`
+- **`std::types` expansion** - 18 new type-checking predicates for extended numeric types, collections, and handles:
+  - Numeric: `is_uint`, `is_sbyte`, `is_bsbyte`, `is_bbyte`, `is_sint`, `is_suint`, `is_sfloat`
+  - Collections: `is_array`, `is_map`, `is_set`, `is_tuple`, `is_function`
+  - Handles: `is_c_handle`, `is_net_handle`, `is_http_handle`, `is_audio_handle`, `is_gui_handle`, `is_file_handle`
+- **`std::bitwise` expansion** - 6 new functions with full type overloads (byte, sbyte, bbyte, bsbyte, sint, suint, int, uint):
+  - `rotate_left`, `rotate_right`, `bit_set`, `bit_clear`, `bit_toggle`, `bit_is_set`
+- **`std::result` expansion** - 2 new monadic functions:
+  - `result_and_then`, `result_unwrap_or_else`
+- **`std::fs` expansion** - 3 new functions:
+  - `copy_dir` (recursive directory copy), `dir_size` (total size in bytes), `is_symlink`
+- **`std::debug` expansion** - 2 new functions:
+  - `warn` (colored yellow `[warn]` output to stderr), `stack_trace` (capture current call stack)
+- **`std::time` expansion** - 1 new function:
+  - `monotonic_now` (monotonic clock for benchmarks)
+- **`std::random` expansion** - 1 new function:
+  - `rand_seed` (re-seed the PRNG for deterministic output)
+
+### Changed
+
+- **`std::debug::warn` now outputs in yellow** - the `[warn]` prefix is ANSI-colored (yellow) on terminals that support it.
+
 ## [2.1.0] - 2026-09-09
 
 ### Added

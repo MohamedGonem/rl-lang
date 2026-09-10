@@ -66,9 +66,10 @@ rl-lang
 |   +-- [TODO] #349 - property-based testing
 +-- rl-cranelift      (JIT compilation via Cranelift)
 +-- rl-std-core       (core stdlib modules)
-|   +-- [TODO] #425 - new math and consts functions
-|   +-- [TODO] #414 - more string std functions
+|   +-- [DONE] #425 - new math and consts functions
+|   +-- [DONE] #414 - more string std functions
 |   +-- [DONE] #437 - refactor term_set_title
+|   +-- [DONE] Phase 4 - extended stdlib (72 new functions across 11 modules)
 +-- rl-std-macros     (stdlib procedural macros)
 +-- rl-std            (standard library)
 |   +-- [DONE] std::process - exec_background, wait_pid, term_pid, kill_pid, pipe, pipe_all, set_env, remove_env, env_keys, os_name, arch, num_cpus, parent_pid, process_exists, exec_with_stdin, exec_with_env, exec_with_cwd, exec_with_timeout (+ with_* variants)
@@ -155,8 +156,8 @@ rl-lang
 | 429 | feat: add `type` aliasing | enhancement, language |
 | 427 | Allow more statements to have newlines | enhancement, good first issue |
 | 426 | Add support for more OS | enhancement, help wanted |
-| 425 | New `math` and its `consts` functions | enhancement, stdlib, good first issue |
-| 414 | feat Some more str std functions | - |
+| 425 | New `math` and its `consts` functions | ~~enhancement, stdlib, good first issue~~ **DONE** |
+| 414 | feat Some more str std functions | ~~-~~ **DONE** |
 | 375 | feat more types | enhancement, language |
 | 349 | feat `Property-based testing` | language |
 | 348 | feat `Refinement and Contracts` | language |
