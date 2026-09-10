@@ -6,14 +6,6 @@
 //! `result[array[int]]`; `term_read_key` returns `result[array[string]]`.
 //! `term_print` is untyped (it stringifies any scalar, like `io::print`).
 //!
-//! Ported once from the former per-runtime `stdlib/terminal/*.rs` copies (the VM
-//! is canonical). The error strings are reproduced verbatim, including two quirks
-//! carried over from the original sources:
-//! - `term_clear_line` reports its crossterm error as `term_clear(): ...`,
-//! - `term_set_fg`/`term_set_bg`/`term_bg` reuse a wrong argument name in a few
-//!   places (the `g` component is extracted under the name `"r"`, and
-//!   `term_bg`'s named-color errors read `term_fg(): ...`).
-//!
 //! Numeric/string arguments are read with local `extract_*` helpers that
 //! reproduce the exact acceptance rules and error strings of the former
 //! `stdlib::common` / `terminal::common` extractors: `extract_int` accepts only
@@ -149,12 +141,10 @@ pub fn term_clear() -> Result<(), String> {
     }
 }
 
-// NOTE: the original reports this error as `term_clear(): ...` (not
-// `term_clear_line`); preserved for parity.
 #[native_fn(module = "term", sig(-> result[null]))]
 pub fn term_clear_line() -> Result<(), String> {
     match execute!(stdout(), Clear(ClearType::CurrentLine)) {
-        Err(e) => Err(format!("term_clear(): {}", e)),
+        Err(e) => Err(format!("term_clear_line(): {}", e)),
         Ok(_) => Ok(()),
     }
 }
@@ -368,15 +358,13 @@ pub fn term_set_fg<R: Runtime>(
 ) -> Result<(), String> {
     let r = extract_byte::<R>(r, "r")?;
     let b = extract_byte::<R>(b, "b")?;
-    let g = extract_byte::<R>(g, "r")?;
+    let g = extract_byte::<R>(g, "g")?;
     if let Err(e) = execute!(stdout(), SetForegroundColor(Color::Rgb { r, g, b })) {
         return Err(format!("term_set_fg: {}", e));
     }
     Ok(())
 }
 
-// NOTE: the `g` component is extracted under the name `"r"`; preserved for
-// parity with the original.
 #[native_fn(module = "term",
     product([byte, int], [byte, int], [byte, int] -> result[null]))]
 pub fn term_set_bg<R: Runtime>(
@@ -387,7 +375,7 @@ pub fn term_set_bg<R: Runtime>(
 ) -> Result<(), String> {
     let r = extract_byte::<R>(r, "r")?;
     let b = extract_byte::<R>(b, "b")?;
-    let g = extract_byte::<R>(g, "r")?;
+    let g = extract_byte::<R>(g, "g")?;
     if let Err(e) = execute!(stdout(), SetBackgroundColor(Color::Rgb { r, g, b })) {
         return Err(format!("term_set_bg: {}", e));
     }
@@ -441,14 +429,12 @@ pub fn term_fg<R: Runtime>(_cx: &mut R::Cx, arg: R::Value) -> Result<(), String>
     Ok(())
 }
 
-// NOTE: reads the argument under the name `"term_fg"` and reports unknown-color
-// errors as `term_fg(): ...`; preserved for parity with the original.
 #[native_fn(module = "term", sig(string -> result[null]))]
 pub fn term_bg<R: Runtime>(_cx: &mut R::Cx, arg: R::Value) -> Result<(), String> {
-    let name = extract_string::<R>(arg, "term_fg")?;
+    let name = extract_string::<R>(arg, "term_bg")?;
     let color = match parse_color(&name) {
         Some(v) => v,
-        None => return Err(format!("term_fg(): unknown color \"{}\"", name)),
+        None => return Err(format!("term_bg(): unknown color \"{}\"", name)),
     };
     if let Err(e) = execute!(stdout(), SetBackgroundColor(color)) {
         return Err(format!("term_bg: {}", e));
@@ -589,7 +575,7 @@ pub fn term_read_key() -> Result<Vec<String>, String> {
                     KeyCode::End => "End".into(),
                     KeyCode::PageUp => "PageUp".into(),
                     KeyCode::PageDown => "PageDown".into(),
-                    KeyCode::Insert => "Inseeval".into(),
+                    KeyCode::Insert => "Insert".into(),
                     KeyCode::F(n) => format!("F{n}"),
                     KeyCode::Null => "Null".into(),
                     _ => "Unknown".into(),
