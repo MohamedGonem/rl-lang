@@ -399,6 +399,7 @@ pub mod terminal {
         "term_disable_mouse",
         "term_read_key",
         "term_poll",
+        "term_get_cursor_pos",
     ];
 }
 
@@ -608,5 +609,11 @@ pub mod gui {
         "gui_run",
         "gui_close",
         "gui_quit",
+        "gui_set_font_size",
+        "gui_set_color",
+        "gui_set_bg_color",
+        "gui_set_tooltip",
+        "gui_get_window_size",
+        "gui_get_window_pos",
     ];
 }
