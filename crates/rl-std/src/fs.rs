@@ -11,8 +11,11 @@
 
 #[cfg(feature = "impls")]
 use std::io::{BufRead, Read, Seek, Write};
-use rl_std_macros::native_fn;
+#[cfg(feature = "impls")]
 use crate::io::{IoFileHandle, IoStore, insert_handle, extract_handle};
+#[cfg(not(feature = "impls"))]
+use crate::io::{IoFileHandle, IoStore};
+use rl_std_macros::native_fn;
 
 // ---- directory creation / removal (language `result[null]`) ---------------
 
