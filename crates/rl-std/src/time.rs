@@ -8,7 +8,8 @@
 //! `stdlib/time/*.rs` copies.
 
 use rl_std_macros::native_fn;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::OnceLock;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 // ---- now ------------------------------------------------------------------
 
@@ -156,11 +157,22 @@ pub fn time_parts(timestamp: i64) -> Result<Vec<i64>, String> {
     ])
 }
 
+// ---- monotonic clock ------------------------------------------------------
+
+static MONO_START: OnceLock<Instant> = OnceLock::new();
+
+#[native_fn(module = "time")]
+pub fn monotonic_now() -> i64 {
+    let start = MONO_START.get_or_init(Instant::now);
+    start.elapsed().as_nanos() as i64
+}
+
 rl_std_core::native_module!("time";
     funcs: [
         time_now, time_now_ms,
         time_add, time_diff,
         format_time, format_date_str, format_time_str,
         time_parts,
+        monotonic_now,
     ],
 );
