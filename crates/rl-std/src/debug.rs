@@ -449,7 +449,7 @@ pub fn dbg<R: Runtime>(cx: &mut R::Cx, value: R::Value) -> R::Value {
 
 #[native_fn(module = "debug", sig(string -> null))]
 pub fn warn<R: Runtime>(cx: &mut R::Cx, msg: String) -> R::Value {
-    let text = format!("[warn] {}\n", msg);
+    let text = format!("\x1b[33m[warn]\x1b[0m {}\n", msg);
 
     if let Some(buffer) = R::output_buffer(cx) {
         buffer.push_str(&text);
