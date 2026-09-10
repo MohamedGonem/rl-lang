@@ -32,6 +32,11 @@ All notable changes to the rl-lang toolchain are documented here. The format is 
   - `monotonic_now` (monotonic clock for benchmarks)
 - **`std::random` expansion** - 1 new function:
   - `rand_seed` (re-seed the PRNG for deterministic output)
+- **`std::gui` expansion** - 6 new functions for widget styling and window queries:
+  - `gui_set_font_size` (set text size), `gui_set_color` (set foreground RGB), `gui_set_bg_color` (set background RGB), `gui_set_tooltip` (hover tooltip)
+  - `gui_get_window_size` (query window dimensions), `gui_get_window_pos` (query window position)
+- **`std::term` expansion** - 1 new function:
+  - `term_get_cursor_pos` (get current cursor column and row)
 
 ### Changed
 
