@@ -11,4 +11,6 @@ format_time(1784305948, "%Y-%m-%d %H:%M:%S")?"#,
     errors: Some("Will return error on negative timestamp"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

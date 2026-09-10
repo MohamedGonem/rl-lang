@@ -12,4 +12,6 @@ assert_eq(1, 2, \"math is broken\")"#,
     errors: Some("raises a runtime error when `a != b`"),
     see_also: &["assert_ne", "assert_approx_eq"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

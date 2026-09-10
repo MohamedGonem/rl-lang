@@ -9,6 +9,8 @@ pub static READ: FnEntry = FnEntry {
     errors: Some("Will return error if reading from stdin fails"),
     see_also: &["read_int", "read_float"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 pub static READ_PROMPT: FnEntry = FnEntry {
@@ -20,4 +22,6 @@ pub static READ_PROMPT: FnEntry = FnEntry {
     errors: Some("Will return error if reading from stdin fails"),
     see_also: &["read_int", "read_float"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

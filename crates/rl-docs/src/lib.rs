@@ -146,7 +146,13 @@ pub fn std_to_markdown(entries: &[&StdEntry]) -> String {
             if let Some(since) = func.since {
                 output.push_str(&format!(" (since {})", since));
             }
+            if let Some(updated) = func.updated {
+                output.push_str(&format!(" (updated {})", updated));
+            }
             output.push_str("\n\n");
+            if let Some(deprecated) = func.deprecated {
+                output.push_str(&format!("**Deprecated:** {}\n\n", deprecated));
+            }
             output.push_str(&format!("{}\n\n", func.description));
             output.push_str(&format!("**Returns:** {}\n\n", func.returns));
             if let Some(errors) = func.errors {

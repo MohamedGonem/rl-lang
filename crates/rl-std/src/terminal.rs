@@ -306,11 +306,9 @@ pub fn term_set_size<R: Runtime>(
     Ok(())
 }
 
-// NOTE: reads the title with `extract_byte` (not a string), so it accepts
-// `int`/`byte`; preserved for parity with the original.
-#[native_fn(module = "term", sig(int -> result[null]), sig(byte -> result[null]))]
+#[native_fn(module = "term", sig(string -> result[null]))]
 pub fn term_set_title<R: Runtime>(_cx: &mut R::Cx, arg: R::Value) -> Result<(), String> {
-    let title = extract_byte::<R>(arg, "term_set_title")?;
+    let title = extract_string::<R>(arg, "term_set_title")?;
     if let Err(e) = execute!(stdout(), SetTitle(title)) {
         return Err(format!("term_set_title: {}", e));
     }

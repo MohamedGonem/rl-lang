@@ -11,4 +11,6 @@ dec string out = exec("echo hello")?"#,
     errors: Some("Will return error on failed command run"),
     see_also: &["exec_code", "exec_lines"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

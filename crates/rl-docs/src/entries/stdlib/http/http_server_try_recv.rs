@@ -12,5 +12,7 @@ dec handle req_or_null = result_unwrap(http_server_try_recv(server))"#,
     returns: "Result[handle]",
     errors: Some("Err(string) on a server error"),
     see_also: &["http_server_recv"],
-    since: None,
+    since: Some("v2.1.0"),
+    deprecated: None,
+    updated: Some("v2.1.0"),
 };

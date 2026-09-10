@@ -4,7 +4,7 @@
 use super::super::common;
 use rl_lexer::tokentypes::TokenType;
 
-const KEYWORDS: [(&str, TokenType); 73] = [
+const KEYWORDS: [(&str, TokenType); 74] = [
     ("and", TokenType::And),
     ("arr", TokenType::Array),
     ("->", TokenType::Arrow),
@@ -78,6 +78,7 @@ const KEYWORDS: [(&str, TokenType); 73] = [
     ("uint", TokenType::UInt),
     ("while", TokenType::While),
     ("_", TokenType::Wildcard),
+    ("|>", TokenType::Pipe),
 ];
 
 #[test]

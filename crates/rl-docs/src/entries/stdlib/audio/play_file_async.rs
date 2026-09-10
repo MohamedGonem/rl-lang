@@ -15,4 +15,6 @@ result_unwrap(sound_wait(sound))"#,
     ),
     see_also: &["play_file", "sound_wait", "sound_stop"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -17,4 +17,6 @@ term_scroll_down(1)?"#,
     ),
     see_also: &["term_scroll_up"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

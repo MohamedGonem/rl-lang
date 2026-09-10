@@ -12,18 +12,21 @@ impl Tokenizer {
     ///
     /// # Reserved Words
     ///
-    /// | Category       | Keywords                                              |
-    /// |----------------|-------------------------------------------------------|
-    /// | Control flow   | `if`, `else`, `for`, `while`, `return`, `break`, `continue` |
-    /// | Functions      | `fn`                                                  |
-    /// | Imports        | `get`, `from`, `in`                                   |
-    /// | Logical        | `and`, `or`                                           |
-    /// | Types          | `int`, `float`, `bool`, `string`, `byte`, `char`, `arr`, `error` |
-    /// | Declarations   | `dec`, `CONST`                                        |
-    /// | Literals       | `true`, `false`, `null`                               |
-    /// | Special        | `as`                                                  |
+    /// Each keyword has an optional Arabic alias (separated by `|` in the
+    /// match arms). Both spellings produce the same [`TokenType`].
     ///
-    /// `CONST` in uppercase in intentional
+    /// | Category       | English Keywords                                        | Arabic Aliases |
+    /// |----------------|---------------------------------------------------------|----------------|
+    /// | Control flow   | `if`, `else`, `for`, `while`, `return`, `break`, `continue` | `إذا`, `وإلا`, `لكل`, `بينما`, `أرجع`, `توقف`, `استمر` |
+    /// | Functions      | `fn`                                                    | `دالة`         |
+    /// | Imports        | `get`, `from`, `in`                                     | `استورد`, `من`, `في` |
+    /// | Logical        | `and`, `or`                                             | `و`, `أو`      |
+    /// | Types          | `int`, `float`, `bool`, `string`, `byte`, `char`, `arr`, `error` | `عدد`, `عشري`, `منطقي`, `نص`, `بايت`, `حرف`, `مصفوفة`, `خطأ_` |
+    /// | Declarations   | `dec`, `CONST`                                          | `علن`, `ثابت`  |
+    /// | Literals       | `true`, `false`, `null`                                 | `صحيح`, `خطأ`, `فارغ` |
+    /// | Special        | `as`                                                    | `كـ`           |
+    ///
+    /// `CONST` in uppercase is intentional.
     pub fn identifier(&mut self) {
         while self.peek().is_alphanumeric() || self.peek() == '_' {
             self.advance();
@@ -32,49 +35,49 @@ impl Tokenizer {
         let value: String = self.source[self.start..self.current].iter().collect();
 
         match value.as_str() {
-            "fn" => self.add_token(TokenType::Fn),
-            "for" => self.add_token(TokenType::For),
-            "while" => self.add_token(TokenType::While),
-            "return" => self.add_token(TokenType::Return),
-            "continue" => self.add_token(TokenType::Continue),
-            "break" => self.add_token(TokenType::Break),
-            "get" => self.add_token(TokenType::Get),
-            "from" => self.add_token(TokenType::From),
-            "in" => self.add_token(TokenType::In),
-            "or" => self.add_token(TokenType::Or),
-            "and" => self.add_token(TokenType::And),
-            "null" => self.add_token(TokenType::Null),
-            "int" => self.add_token(TokenType::Int),
-            "CONST" => self.add_token(TokenType::Const),
-            "float" => self.add_token(TokenType::Float),
-            "bool" => self.add_token(TokenType::Bool),
-            "string" => self.add_token(TokenType::String),
-            "byte" => self.add_token(TokenType::Byte),
-            "char" => self.add_token(TokenType::Char),
-            "true" => self.add_token(TokenType::BoolLiteral(true)),
-            "false" => self.add_token(TokenType::BoolLiteral(false)),
-            "dec" => self.add_token(TokenType::Dec),
-            "if" => self.add_token(TokenType::If),
-            "else" => self.add_token(TokenType::Else),
-            "arr" => self.add_token(TokenType::Array),
-            "as" => self.add_token(TokenType::As),
-            "error" => self.add_token(TokenType::Error),
-            "result" => self.add_token(TokenType::Result),
-            "ok" => self.add_token(TokenType::Ok),
-            "err" => self.add_token(TokenType::Err),
-            "match" => self.add_token(TokenType::Match),
-            "record" => self.add_token(TokenType::Record),
-            "impl" => self.add_token(TokenType::Impl),
-            "tag" => self.add_token(TokenType::Tag),
-            "map" => self.add_token(TokenType::Map),
-            "set" => self.add_token(TokenType::Set),
-            "loop" => self.add_token(TokenType::Loop),
+            "fn" | "دالة" => self.add_token(TokenType::Fn),
+            "for" | "لكل" => self.add_token(TokenType::For),
+            "while" | "بينما" => self.add_token(TokenType::While),
+            "return" | "أرجع" => self.add_token(TokenType::Return),
+            "continue" | "استمر" => self.add_token(TokenType::Continue),
+            "break" | "توقف" => self.add_token(TokenType::Break),
+            "get" | "استورد" => self.add_token(TokenType::Get),
+            "from" | "من" => self.add_token(TokenType::From),
+            "in" | "في" => self.add_token(TokenType::In),
+            "or" | "أو" => self.add_token(TokenType::Or),
+            "and" | "و" => self.add_token(TokenType::And),
+            "null" | "فارغ" => self.add_token(TokenType::Null),
+            "int" | "عدد" => self.add_token(TokenType::Int),
+            "CONST" | "ثابت" => self.add_token(TokenType::Const),
+            "float" | "عشري" => self.add_token(TokenType::Float),
+            "bool" | "منطقي" => self.add_token(TokenType::Bool),
+            "string" | "نص" => self.add_token(TokenType::String),
+            "byte" | "بايت" => self.add_token(TokenType::Byte),
+            "char" | "حرف" => self.add_token(TokenType::Char),
+            "true" | "صحيح" => self.add_token(TokenType::BoolLiteral(true)),
+            "false" | "ليس_صحيح" => self.add_token(TokenType::BoolLiteral(false)),
+            "dec" | "أعلن" => self.add_token(TokenType::Dec),
+            "if" | "إذا" => self.add_token(TokenType::If),
+            "else" | "وإلا" => self.add_token(TokenType::Else),
+            "arr" | "مصفوفة" => self.add_token(TokenType::Array),
+            "as" | "بصفة" => self.add_token(TokenType::As),
+            "error" | "خطأ" => self.add_token(TokenType::Error),
+            "result" | "نتيجة" => self.add_token(TokenType::Result),
+            "ok" | "نجاح" => self.add_token(TokenType::Ok),
+            "err" | "فشل" => self.add_token(TokenType::Err),
+            "match" | "طابق" => self.add_token(TokenType::Match),
+            "record" | "سجل" => self.add_token(TokenType::Record),
+            "impl" | "تنفيذ" => self.add_token(TokenType::Impl),
+            "tag" | "وسم" => self.add_token(TokenType::Tag),
+            "map" | "خريطة" => self.add_token(TokenType::Map),
+            "set" | "مجموعة" => self.add_token(TokenType::Set),
+            "loop" | "تكرار" => self.add_token(TokenType::Loop),
             "_" => self.add_token(TokenType::Wildcard),
-            "uint" => self.add_token(TokenType::UInt),
-            "big" => self.add_token(TokenType::Big),
-            "small" => self.add_token(TokenType::Small),
-            "sbyte" => self.add_token(TokenType::SByte),
-            "handle" => self.add_token(TokenType::Handle),
+            "uint" | "عدد_غير_مُوَقَّع" => self.add_token(TokenType::UInt),
+            "big" | "كبير" => self.add_token(TokenType::Big),
+            "small" | "صغير" => self.add_token(TokenType::Small),
+            "sbyte" | "بايت_مُوَقَّع" => self.add_token(TokenType::SByte),
+            "handle" | "مقبض" => self.add_token(TokenType::Handle),
 
             &_ => self.add_token(TokenType::Identifier(value)),
         }

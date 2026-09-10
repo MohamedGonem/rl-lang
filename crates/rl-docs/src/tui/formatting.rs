@@ -114,24 +114,28 @@ fn highlight_rl_code(code: &str) -> Vec<Line<'static>> {
     // comment-ish color, so nothing from the snippet is silently dropped.
     let mut pieces: Vec<(String, Color)> = Vec::new();
     let mut cursor = 0usize;
-    let bytes_len = code.len();
+    let chars: Vec<char> = code.chars().collect();
+    let chars_len = chars.len();
 
     for tok in &tokens {
         if matches!(tok.token, TokenType::Eof) {
             break;
         }
-        let start = tok.span.start.min(bytes_len);
-        let end = tok.span.end.min(bytes_len);
+        let start = tok.span.start.min(chars_len);
+        let end = tok.span.end.min(chars_len);
         if start > cursor {
-            pieces.push((code[cursor..start].to_string(), Color::DarkGray));
+            let gap: String = chars[cursor..start].iter().collect();
+            pieces.push((gap, Color::DarkGray));
         }
         if end > start {
-            pieces.push((code[start..end].to_string(), token_color(&tok.token)));
+            let text: String = chars[start..end].iter().collect();
+            pieces.push((text, token_color(&tok.token)));
         }
         cursor = end.max(cursor);
     }
-    if cursor < bytes_len {
-        pieces.push((code[cursor..].to_string(), Color::DarkGray));
+    if cursor < chars_len {
+        let tail: String = chars[cursor..].iter().collect();
+        pieces.push((tail, Color::DarkGray));
     }
 
     // Split the colored pieces into lines at '\n', starting each rendered

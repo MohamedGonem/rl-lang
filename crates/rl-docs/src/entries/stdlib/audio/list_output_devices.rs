@@ -12,4 +12,6 @@ dec arr[string] devices = result_unwrap(list_output_devices())"#,
     errors: Some("err(string) when the host audio system can't be queried"),
     see_also: &["set_output_device"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -1,10 +1,24 @@
 ## What does this PR do?
 
+
+
 ## Related issue
+
 Closes #
 
+## Type
+
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Refactor
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Other
+
 ## Checklist
-- [ ] branched off `dev`
+
+- [ ] Branched off `dev`
 - [ ] `cargo test --all-features` passes
 - [ ] `cargo clippy -- -D warnings` passes
-- [ ] docs updated if needed
+- [ ] Docs updated if needed
+- [ ] Changelog updated if needed

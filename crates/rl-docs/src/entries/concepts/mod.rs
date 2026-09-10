@@ -1,4 +1,5 @@
 //! Language concept documentation entries (variables, types, loops, etc.).
+pub mod arabic_keywords;
 pub mod arrays;
 pub mod bytes;
 pub mod casts;
@@ -15,8 +16,10 @@ pub mod maps;
 pub mod r#match;
 pub mod nulls;
 pub mod operators;
+pub mod pipe;
 pub mod propagate;
 pub mod records;
+pub mod semicolons;
 pub mod sets;
 pub mod tags;
 pub mod tooling;

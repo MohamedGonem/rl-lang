@@ -17,4 +17,6 @@ term_bg("blue")?"#,
     ),
     see_also: &["term_fg", "term_set_bg"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -9,4 +9,6 @@ pub static TO_BYTE: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to byte"),
     see_also: &["is_byte"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

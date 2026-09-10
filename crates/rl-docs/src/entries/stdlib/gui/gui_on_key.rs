@@ -21,4 +21,6 @@ gui_on_key(window, fn(string key) {
     ),
     see_also: &["gui_window", "gui_on_submit", "gui_on_close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -9,4 +9,6 @@ pub static TO_CHAR: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to character"),
     see_also: &["is_char"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

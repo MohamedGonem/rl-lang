@@ -13,4 +13,6 @@ result_unwrap(sound_seek(sound, 5000))"#,
     errors: Some("err(string) when the handle is unknown or the format doesn't support seeking"),
     see_also: &["sound_wait", "audio_duration"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

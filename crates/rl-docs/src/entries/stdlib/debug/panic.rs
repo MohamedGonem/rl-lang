@@ -11,4 +11,6 @@ panic("unreachable configuration")"#,
     errors: Some("always raises a runtime error"),
     see_also: &["unreachable", "todo"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

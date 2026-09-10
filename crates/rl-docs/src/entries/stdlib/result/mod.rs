@@ -17,11 +17,11 @@ pub static RES: StdEntry = StdEntry {
 };
 
 static FUNCTIONS: &[&FnEntry] = &[
-    &is_ok::IS_OK,
     &is_err::IS_ERR,
+    &is_ok::IS_OK,
+    &result_map::RESULT_MAP,
+    &result_map_err::RESULT_MAP_ERR,
     &result_unwrap::RESULT_UNWRAP,
     &result_unwrap_err::RESULT_UNWRAP_ERR,
     &result_unwrap_or::RESULT_UNWRAP_OR,
-    &result_map::RESULT_MAP,
-    &result_map_err::RESULT_MAP_ERR,
 ];

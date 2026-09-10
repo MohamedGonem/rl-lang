@@ -9,4 +9,6 @@ pub static TRIM: FnEntry = FnEntry {
     errors: None,
     see_also: &["trim_start", "trim_end"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

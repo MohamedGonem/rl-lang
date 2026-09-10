@@ -17,4 +17,6 @@ dec string text = result_unwrap(gui_get_text(textbox))"#,
     ),
     see_also: &["gui_set_text", "gui_button", "gui_label", "gui_textbox"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

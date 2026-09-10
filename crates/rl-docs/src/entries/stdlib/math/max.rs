@@ -16,4 +16,6 @@ max(4, 6)?"#,
     ),
     see_also: &["min"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

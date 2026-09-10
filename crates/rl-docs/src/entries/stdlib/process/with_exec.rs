@@ -11,4 +11,6 @@ dec string out = with_exec("echo", "hello")?"#,
     errors: Some("Will return error on invalid arguments or failed command run"),
     see_also: &["with_exec_code", "with_exec_lines"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

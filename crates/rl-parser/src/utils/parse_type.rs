@@ -96,14 +96,20 @@ impl Parser {
                 }
                 TokenType::Array => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `array`", self.peek_span()));
+                    }
                     let inner = self.parse_type(true)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after array type", self.peek_span()));
+                    }
                     TypeAnnotation::Array(Box::new(inner))
                 }
                 TokenType::Map => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `map`", self.peek_span()));
+                    }
                     let key_type = self.parse_type(true)?;
                     if !self.match_type(&[TokenType::Comma]) {
                         return Err(self.err(
@@ -112,14 +118,20 @@ impl Parser {
                         ));
                     }
                     let value_type = self.parse_type(true)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after map type", self.peek_span()));
+                    }
                     TypeAnnotation::Map(Box::new(key_type), Box::new(value_type))
                 }
                 TokenType::Set => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `set`", self.peek_span()));
+                    }
                     let inner = self.parse_type(true)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after set type", self.peek_span()));
+                    }
                     TypeAnnotation::Set(Box::new(inner))
                 }
                 TokenType::LeftParen => {
@@ -147,9 +159,13 @@ impl Parser {
                 }
                 TokenType::Result => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `result`", self.peek_span()));
+                    }
                     let inner = self.parse_type(true)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after result type", self.peek_span()));
+                    }
                     TypeAnnotation::Result(Box::new(inner))
                 }
                 TokenType::Error => {
@@ -241,14 +257,20 @@ impl Parser {
                 }
                 TokenType::Array => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `array`", self.peek_span()));
+                    }
                     let inner = self.parse_type(false)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after array type", self.peek_span()));
+                    }
                     TypeAnnotation::CArray(Box::new(inner))
                 }
                 TokenType::Map => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `map`", self.peek_span()));
+                    }
                     let key_type = self.parse_type(false)?;
                     if !self.match_type(&[TokenType::Comma]) {
                         return Err(self.err(
@@ -257,14 +279,20 @@ impl Parser {
                         ));
                     }
                     let value_type = self.parse_type(false)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after map type", self.peek_span()));
+                    }
                     TypeAnnotation::CMap(Box::new(key_type), Box::new(value_type))
                 }
                 TokenType::Set => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `set`", self.peek_span()));
+                    }
                     let inner = self.parse_type(false)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after set type", self.peek_span()));
+                    }
                     TypeAnnotation::CSet(Box::new(inner))
                 }
                 TokenType::LeftParen => {
@@ -292,9 +320,13 @@ impl Parser {
                 }
                 TokenType::Result => {
                     self.advance();
-                    self.match_type(&[TokenType::LeftBracket]);
+                    if !self.match_type(&[TokenType::LeftBracket]) {
+                        return Err(self.err("expected `[` after `result`", self.peek_span()));
+                    }
                     let inner = self.parse_type(false)?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after result type", self.peek_span()));
+                    }
                     TypeAnnotation::CResult(Box::new(inner))
                 }
                 TokenType::Error => {

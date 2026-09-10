@@ -11,4 +11,6 @@ path_exists("./Cargo.toml")"#,
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: Some("moved to std::fs::path_exists"),
+    updated: Some("v0.1.5"),
 };

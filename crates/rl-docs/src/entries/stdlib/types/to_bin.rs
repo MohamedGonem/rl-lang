@@ -9,4 +9,6 @@ pub static TO_BIN: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to binary"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

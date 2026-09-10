@@ -9,4 +9,6 @@ pub static SET_LEN: FnEntry = FnEntry {
     errors: Some("Will return error if `set` is not a set"),
     see_also: &["set_is_empty", "set_to_array"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

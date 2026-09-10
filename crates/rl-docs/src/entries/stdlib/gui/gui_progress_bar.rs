@@ -15,4 +15,6 @@ dec handle bar = result_unwrap(gui_progress_bar(window, 20, 20, 200))"#,
     ),
     see_also: &["gui_set_progress", "gui_get_progress"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

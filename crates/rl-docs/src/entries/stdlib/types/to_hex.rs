@@ -9,4 +9,6 @@ pub static TO_HEX: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to hexadecimal"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

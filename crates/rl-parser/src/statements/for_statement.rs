@@ -59,7 +59,9 @@ impl Parser {
             while self.match_type(&[TokenType::Newline]) {}
             let increment = self.parse_expression()?;
             while self.match_type(&[TokenType::Newline]) {}
-            self.match_type(&[TokenType::RightBracket]);
+            if !self.match_type(&[TokenType::RightBracket]) {
+                return Err(self.err("expected `]` in for header", self.peek_span()));
+            }
             while self.match_type(&[TokenType::Newline]) {}
             let body = self.parse_block()?;
             let span = start.join(self.previous_span());
@@ -98,7 +100,10 @@ impl Parser {
                     ExpressionKind::Byte(b) => b as i64,
                     _ => return Err(self.err("range should be integers only", start_id.span)),
                 };
-                self.match_type(&[TokenType::DotDot]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::DotDot]) {
+                    return Err(self.err("expected `..` in range", self.peek_span()));
+                }
                 let end_expr = self.parse_expression()?;
                 let end_id = self.ast_arena.exprs.get(end_expr);
                 let range_end = match end_id.kind {
@@ -127,7 +132,9 @@ impl Parser {
                     }
                 }
                 while self.match_type(&[TokenType::Newline]) {}
-                self.match_type(&[TokenType::RightBracket]);
+                if !self.match_type(&[TokenType::RightBracket]) {
+                    return Err(self.err("expected `]` after inline array", self.peek_span()));
+                }
                 let mut iterable_list = Vec::new();
                 for item in items {
                     let item_id = self.ast_arena.exprs.get(item);

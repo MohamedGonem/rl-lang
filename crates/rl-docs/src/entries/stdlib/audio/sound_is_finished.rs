@@ -13,4 +13,6 @@ dec bool done = result_unwrap(sound_is_finished(sound))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["sound_wait", "sound_stop"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

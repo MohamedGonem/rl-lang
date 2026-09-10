@@ -9,4 +9,6 @@ pub static TO_OCT: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to octal"),
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

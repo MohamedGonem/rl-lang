@@ -73,7 +73,20 @@ impl Parser {
                 parser.advance();
                 continue;
             }
-            // `#![..]` is a program-level attribute, e.g. `#![convert(kg=1000(g))]`.
+            if matches!(parser.peek(), TokenType::BangHash) {
+                let is_program_attr = parser.current + 2 < parser.tokens.len()
+                    && matches!(parser.tokens[parser.current + 1].token, TokenType::LeftBracket)
+                    && matches!(
+                        &parser.tokens[parser.current + 2].token,
+                        TokenType::Identifier(s) if s == "convert"
+                    );
+                if is_program_attr {
+                    parser.advance();
+                    let attribute = parser.parse_program_attribute()?;
+                    parser.ast_arena.program_attributes.push(attribute);
+                    continue;
+                }
+            }
             if matches!(parser.peek(), TokenType::Hash)
                 && matches!(parser.peek_next(), TokenType::Bang)
             {

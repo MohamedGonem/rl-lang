@@ -9,4 +9,6 @@ pub static IS_ERR: FnEntry = FnEntry {
     errors: None,
     see_also: &["is_ok"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -18,6 +18,7 @@ impl Parser {
     /// argument list is not opened with `(`.
     pub fn parse_postfix(&mut self, mut expr: ExprId, start: Span) -> Result<ExprId, Error> {
         loop {
+            while self.match_type(&[TokenType::Newline]) {}
             // --- method call / field access ---
             if self.match_type(&[TokenType::Dot]) {
                 if !self.match_type(&[TokenType::Identifier(String::new())]) {
@@ -131,6 +132,7 @@ impl Parser {
             // --- cast ---
             else if self.match_type(&[TokenType::As]) {
                 let span = self.previous_span();
+                while self.match_type(&[TokenType::Newline]) {}
                 let target_type = self
                     .parse_type(true)
                     .map_err(|_| self.err("expected type after `as`", span))?;

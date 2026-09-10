@@ -11,4 +11,6 @@ pub static JOIN: FnEntry = FnEntry {
     ),
     see_also: &["split", "concat"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

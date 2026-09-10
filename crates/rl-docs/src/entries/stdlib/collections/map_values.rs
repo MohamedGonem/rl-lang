@@ -11,4 +11,6 @@ pub static MAP_VALUES: FnEntry = FnEntry {
     ),
     see_also: &["map_keys", "map_to_array"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

@@ -13,4 +13,6 @@ result_unwrap(udp_send_to(socket, "ping", "127.0.0.1:9001"))"#,
     errors: Some("Err(string) on send failure"),
     see_also: &["udp_send", "udp_recv_from"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

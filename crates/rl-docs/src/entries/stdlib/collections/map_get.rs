@@ -11,4 +11,6 @@ pub static MAP_GET: FnEntry = FnEntry {
     ),
     see_also: &["map_contains", "map_keys", "map_values"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

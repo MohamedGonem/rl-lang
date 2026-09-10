@@ -1,0 +1,28 @@
+# Maintainer: rl-lang contributors <https://github.com/rl-lang/rl-lang>
+pkgname=rl-lang
+pkgver=2.1.0
+pkgrel=1
+pkgdesc="Programming language with first-class VM and C transpiler"
+arch=('x86_64' 'aarch64')
+url="https://github.com/rl-lang/rl-lang"
+license=('MIT' 'Apache-2.0')
+depends=('gcc-libs' 'zlib')
+makedepends=('cargo')
+source=("$url/archive/v$pkgver/$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname-$pkgver"
+  cargo build --release --all-features
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/rl "$pkgdir/usr/bin/rl"
+  install -Dm755 target/release/rlc "$pkgdir/usr/bin/rlc"
+  install -Dm755 target/release/rld "$pkgdir/usr/bin/rld" 2>/dev/null || true
+  install -Dm644 man/rl.1 "$pkgdir/usr/share/man/man1/rl.1"
+  install -Dm644 man/rl.info "$pkgdir/usr/share/info/rl.info"
+  install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+  install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+}

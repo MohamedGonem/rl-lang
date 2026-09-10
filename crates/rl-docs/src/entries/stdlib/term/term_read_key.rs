@@ -19,4 +19,6 @@ events return a 1-element array (e.g. `["Char:a"]`, `["Enter"]`,
     ),
     see_also: &["term_poll"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

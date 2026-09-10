@@ -11,4 +11,6 @@ pub static BIT_SHIFT_RIGHT: FnEntry = FnEntry {
     ),
     see_also: &["bit_shift_left"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

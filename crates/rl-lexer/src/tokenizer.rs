@@ -35,6 +35,9 @@ impl Tokenizer {
     /// Drives [`Tokenizer::scan_tokens`] in a loop until the source is exhausted,
     /// then appends a [`TokenType::Eof`] so the parser always has a clean terminator.
     ///
+    /// If the source starts with `#!` (a shebang line), it is stripped before
+    /// tokenizing so that `.rl` scripts with shebang headers work transparently.
+    ///
     /// # Errors
     ///
     /// Returns [`Error`] if the source contains an unrecognized character,
@@ -65,6 +68,15 @@ impl Tokenizer {
     /// assert_eq!(tokens[3].token, TokenType::Eof);
     /// ```
     pub fn lex(source_file: SourceFile) -> Result<Vec<Token>, Error> {
+        let text = if source_file.text.starts_with("#!")
+            && !source_file.text.starts_with("#![")
+        {
+            let skip = source_file.text.find('\n').map(|i| i + 1).unwrap_or(source_file.text.len());
+            source_file.text[skip..].to_string()
+        } else {
+            source_file.text.to_string()
+        };
+        let source_file = SourceFile::new(source_file.name, text);
         let chars: Vec<char> = source_file.text.chars().collect();
         let eof_char_index = chars.len();
 

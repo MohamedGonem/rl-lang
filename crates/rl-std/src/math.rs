@@ -14,7 +14,13 @@ use rl_std_macros::native_fn;
 
 // ---- value-polymorphic: same-type unary result ----------------------------
 
-#[native_fn(module = "math", sig(int -> result[int]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[int]), sig(float -> result[float]),
+    sig(byte -> result[byte]), sig(sbyte -> result[sbyte]),
+    sig(bbyte -> result[bbyte]), sig(bsbyte -> result[bsbyte]),
+    sig(sint -> result[sint]), sig(suint -> result[suint]),
+    sig(uint -> result[uint]), sig(sfloat -> result[sfloat])
+)]
 pub fn abs<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_i64(i.abs()))
@@ -28,7 +34,13 @@ pub fn abs<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "math", sig(int -> result[int]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[int]), sig(float -> result[float]),
+    sig(byte -> result[byte]), sig(sbyte -> result[sbyte]),
+    sig(bbyte -> result[bbyte]), sig(bsbyte -> result[bsbyte]),
+    sig(sint -> result[sint]), sig(suint -> result[suint]),
+    sig(uint -> result[uint]), sig(sfloat -> result[sfloat])
+)]
 pub fn ceil<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_i64(i))
@@ -42,7 +54,13 @@ pub fn ceil<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "math", sig(int -> result[int]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[int]), sig(float -> result[float]),
+    sig(byte -> result[byte]), sig(sbyte -> result[sbyte]),
+    sig(bbyte -> result[bbyte]), sig(bsbyte -> result[bsbyte]),
+    sig(sint -> result[sint]), sig(suint -> result[suint]),
+    sig(uint -> result[uint]), sig(sfloat -> result[sfloat])
+)]
 pub fn floor<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_i64(i))
@@ -56,7 +74,13 @@ pub fn floor<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "math", sig(int -> result[int]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[int]), sig(float -> result[float]),
+    sig(byte -> result[byte]), sig(sbyte -> result[sbyte]),
+    sig(bbyte -> result[bbyte]), sig(bsbyte -> result[bsbyte]),
+    sig(sint -> result[sint]), sig(suint -> result[suint]),
+    sig(uint -> result[uint]), sig(sfloat -> result[sfloat])
+)]
 pub fn round<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_i64(i))
@@ -75,7 +99,15 @@ pub fn round<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
 #[native_fn(
     module = "math",
     sig(int, int, int -> result[int]),
-    sig(float, float, float -> result[float])
+    sig(float, float, float -> result[float]),
+    sig(byte, byte, byte -> result[byte]),
+    sig(sbyte, sbyte, sbyte -> result[sbyte]),
+    sig(bbyte, bbyte, bbyte -> result[bbyte]),
+    sig(bsbyte, bsbyte, bsbyte -> result[bsbyte]),
+    sig(sint, sint, sint -> result[sint]),
+    sig(suint, suint, suint -> result[suint]),
+    sig(uint, uint, uint -> result[uint]),
+    sig(sfloat, sfloat, sfloat -> result[sfloat])
 )]
 pub fn clamp<R: Runtime>(
     _cx: &mut R::Cx,
@@ -104,7 +136,15 @@ pub fn clamp<R: Runtime>(
 #[native_fn(
     module = "math",
     sig(int, int -> result[int]),
-    sig(float, float -> result[float])
+    sig(float, float -> result[float]),
+    sig(byte, byte -> result[byte]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint]),
+    sig(sfloat, sfloat -> result[sfloat])
 )]
 pub fn max<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value {
     if let (Some(a), Some(b)) = (R::as_i64(&a), R::as_i64(&b)) {
@@ -123,7 +163,15 @@ pub fn max<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value {
 #[native_fn(
     module = "math",
     sig(int, int -> result[int]),
-    sig(float, float -> result[float])
+    sig(float, float -> result[float]),
+    sig(byte, byte -> result[byte]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint]),
+    sig(sfloat, sfloat -> result[sfloat])
 )]
 pub fn min<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value {
     if let (Some(a), Some(b)) = (R::as_i64(&a), R::as_i64(&b)) {
@@ -149,7 +197,15 @@ pub fn min<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value {
     sig(int, int -> result[int]),
     sig(int, float -> result[float]),
     sig(float, float -> result[float]),
-    sig(float, int -> result[float])
+    sig(float, int -> result[float]),
+    sig(byte, byte -> result[byte]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint]),
+    sig(sfloat, sfloat -> result[sfloat])
 )]
 pub fn modulo<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value {
     if let (Some(a), Some(b)) = (R::as_i64(&a), R::as_i64(&b)) {
@@ -170,7 +226,15 @@ pub fn modulo<R: Runtime>(_cx: &mut R::Cx, a: R::Value, b: R::Value) -> R::Value
     sig(int, int -> result[int]),
     sig(int, float -> result[float]),
     sig(float, float -> result[float]),
-    sig(float, int -> result[float])
+    sig(float, int -> result[float]),
+    sig(byte, byte -> result[byte]),
+    sig(sbyte, sbyte -> result[sbyte]),
+    sig(bbyte, bbyte -> result[bbyte]),
+    sig(bsbyte, bsbyte -> result[bsbyte]),
+    sig(sint, sint -> result[sint]),
+    sig(suint, suint -> result[suint]),
+    sig(uint, uint -> result[uint]),
+    sig(sfloat, sfloat -> result[sfloat])
 )]
 pub fn pow<R: Runtime>(_cx: &mut R::Cx, base: R::Value, exponent: R::Value) -> R::Value {
     match (
@@ -201,7 +265,15 @@ pub fn pow<R: Runtime>(_cx: &mut R::Cx, base: R::Value, exponent: R::Value) -> R
     sig(int, int -> result[float]),
     sig(int, float -> result[float]),
     sig(float, float -> result[float]),
-    sig(float, int -> result[float])
+    sig(float, int -> result[float]),
+    sig(byte, byte -> result[float]),
+    sig(sbyte, sbyte -> result[float]),
+    sig(bbyte, bbyte -> result[float]),
+    sig(bsbyte, bsbyte -> result[float]),
+    sig(sint, sint -> result[float]),
+    sig(suint, suint -> result[float]),
+    sig(uint, uint -> result[float]),
+    sig(sfloat, sfloat -> result[float])
 )]
 pub fn log<R: Runtime>(_cx: &mut R::Cx, a: R::Value, base: R::Value) -> R::Value {
     match (
@@ -224,7 +296,13 @@ pub fn log<R: Runtime>(_cx: &mut R::Cx, a: R::Value, base: R::Value) -> R::Value
 
 // ---- value-polymorphic: float-result unary (int coerced to f64) -----------
 
-#[native_fn(module = "math", sig(int -> result[float]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
 pub fn sqrt<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_f64((i as f64).sqrt()))
@@ -238,7 +316,13 @@ pub fn sqrt<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "math", sig(int -> result[float]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
 pub fn log2<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_f64((i as f64).log2()))
@@ -252,7 +336,13 @@ pub fn log2<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-#[native_fn(module = "math", sig(int -> result[float]), sig(float -> result[float]))]
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
 pub fn log10<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     if let Some(i) = R::as_i64(&a) {
         R::ok(R::from_f64((i as f64).log10()))
@@ -266,142 +356,348 @@ pub fn log10<R: Runtime>(_cx: &mut R::Cx, a: R::Value) -> R::Value {
     }
 }
 
-// ---- plain trig / exp family (concrete f64 -> f64) -------------------------
+// ---- trig / exp family (any numeric -> float) ------------------------------
 
-#[native_fn(module = "math")]
-pub fn sin(x: f64) -> f64 {
-    x.sin()
-}
-
-#[native_fn(module = "math")]
-pub fn cos(x: f64) -> f64 {
-    x.cos()
-}
-
-#[native_fn(module = "math")]
-pub fn tan(x: f64) -> f64 {
-    x.tan()
-}
-
-#[native_fn(module = "math")]
-pub fn atan(x: f64) -> f64 {
-    x.atan()
-}
-
-#[native_fn(module = "math")]
-pub fn acos(x: f64) -> f64 {
-    x.acos()
-}
-
-#[native_fn(module = "math")]
-pub fn asin(x: f64) -> f64 {
-    x.asin()
-}
-
-#[native_fn(module = "math")]
-pub fn degrees(x: f64) -> f64 {
-    x.to_degrees()
-}
-
-#[native_fn(module = "math")]
-pub fn radians(x: f64) -> f64 {
-    x.to_radians()
-}
-
-#[native_fn(module = "math")]
-pub fn exp(x: f64) -> f64 {
-    x.exp()
-}
-
-#[native_fn(module = "math")]
-pub fn sign(x: f64) -> f64 {
-    if x > 0.0 {
-        1.0
-    } else if x < 0.0 {
-        -1.0
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn sin<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.sin()))
     } else {
-        0.0
+        R::err(R::from_string(format!("sin expects a number, got {}", R::type_name(&x))))
     }
 }
 
-#[native_fn(module = "math")]
-pub fn atan2(x: f64, y: f64) -> f64 {
-    y.atan2(x)
-}
-
-#[native_fn(module = "math")]
-pub fn hypot(x: f64, y: f64) -> f64 {
-    x.hypot(y)
-}
-
-#[native_fn(module = "math")]
-pub fn lerp(x: f64, y: f64, t: f64) -> f64 {
-    x + (y - x) * t
-}
-
-#[native_fn(module = "math")]
-pub fn map_range(value: f64, in_min: f64, out_min: f64, in_max: f64, out_max: f64) -> f64 {
-    (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min
-}
-
-// ---- plain integer helpers (concrete i64 -> i64 / bool) --------------------
-
-#[native_fn(module = "math")]
-pub fn factorial(x: i64) -> i64 {
-    (1..=x).product()
-}
-
-#[native_fn(module = "math")]
-pub fn fibonacci(x: i64) -> i64 {
-    let (mut a, mut b) = (0, 1);
-    for _ in 0..x {
-        (a, b) = (b, a + b);
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn cos<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.cos()))
+    } else {
+        R::err(R::from_string(format!("cos expects a number, got {}", R::type_name(&x))))
     }
-    a
 }
 
-#[native_fn(module = "math")]
-pub fn gcd(x: i64, y: i64) -> i64 {
-    let mut a = x as u64;
-    let mut b = y as u64;
-    while b != 0 {
-        (a, b) = (b, a % b);
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn tan<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.tan()))
+    } else {
+        R::err(R::from_string(format!("tan expects a number, got {}", R::type_name(&x))))
     }
-    a as i64
 }
 
-#[native_fn(module = "math")]
-pub fn lcm(x: i64, y: i64) -> i64 {
-    let mut a = x as u64;
-    let mut b = y as u64;
-    let a_ = x as u64;
-    let b_ = y as u64;
-    while b != 0 {
-        (a, b) = (b, a % b);
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn atan<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.atan()))
+    } else {
+        R::err(R::from_string(format!("atan expects a number, got {}", R::type_name(&x))))
     }
-    (a_ / a * b_) as i64
 }
 
-#[native_fn(module = "math")]
-pub fn is_prime(x: i64) -> bool {
-    let x = x as u64;
-    if x < 2 {
-        return false;
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn acos<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.acos()))
+    } else {
+        R::err(R::from_string(format!("acos expects a number, got {}", R::type_name(&x))))
     }
-    if x < 4 {
-        return true;
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn asin<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.asin()))
+    } else {
+        R::err(R::from_string(format!("asin expects a number, got {}", R::type_name(&x))))
     }
-    if x.is_multiple_of(2) || x.is_multiple_of(3) {
-        return false;
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn degrees<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.to_degrees()))
+    } else {
+        R::err(R::from_string(format!("degrees expects a number, got {}", R::type_name(&x))))
     }
-    let mut i = 5;
-    while i * i <= x {
-        if x.is_multiple_of(i) || x.is_multiple_of(i + 2) {
-            return false;
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn radians<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.to_radians()))
+    } else {
+        R::err(R::from_string(format!("radians expects a number, got {}", R::type_name(&x))))
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn exp<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(f.exp()))
+    } else {
+        R::err(R::from_string(format!("exp expects a number, got {}", R::type_name(&x))))
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[float]), sig(float -> result[float]),
+    sig(byte -> result[float]), sig(sbyte -> result[float]),
+    sig(bbyte -> result[float]), sig(bsbyte -> result[float]),
+    sig(sint -> result[float]), sig(suint -> result[float]),
+    sig(uint -> result[float]), sig(sfloat -> result[float])
+)]
+pub fn sign<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    if let Some(f) = R::as_f64(&x) {
+        R::ok(R::from_f64(if f > 0.0 { 1.0 } else if f < 0.0 { -1.0 } else { 0.0 }))
+    } else {
+        R::err(R::from_string(format!("sign expects a number, got {}", R::type_name(&x))))
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int, int -> result[float]), sig(float, float -> result[float]),
+    sig(byte, byte -> result[float]), sig(sbyte, sbyte -> result[float]),
+    sig(bbyte, bbyte -> result[float]), sig(bsbyte, bsbyte -> result[float]),
+    sig(sint, sint -> result[float]), sig(suint, suint -> result[float]),
+    sig(uint, uint -> result[float]), sig(sfloat, sfloat -> result[float])
+)]
+pub fn atan2<R: Runtime>(_cx: &mut R::Cx, x: R::Value, y: R::Value) -> R::Value {
+    match (R::as_f64(&x), R::as_f64(&y)) {
+        (Some(x), Some(y)) => R::ok(R::from_f64(y.atan2(x))),
+        _ => R::err(R::from_string(format!(
+            "atan2 expects numbers, got ({}, {})",
+            R::type_name(&x), R::type_name(&y)
+        ))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int, int -> result[float]), sig(float, float -> result[float]),
+    sig(byte, byte -> result[float]), sig(sbyte, sbyte -> result[float]),
+    sig(bbyte, bbyte -> result[float]), sig(bsbyte, bsbyte -> result[float]),
+    sig(sint, sint -> result[float]), sig(suint, suint -> result[float]),
+    sig(uint, uint -> result[float]), sig(sfloat, sfloat -> result[float])
+)]
+pub fn hypot<R: Runtime>(_cx: &mut R::Cx, x: R::Value, y: R::Value) -> R::Value {
+    match (R::as_f64(&x), R::as_f64(&y)) {
+        (Some(x), Some(y)) => R::ok(R::from_f64(x.hypot(y))),
+        _ => R::err(R::from_string(format!(
+            "hypot expects numbers, got ({}, {})",
+            R::type_name(&x), R::type_name(&y)
+        ))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int, int, int -> result[float]), sig(float, float, float -> result[float]),
+    sig(byte, byte, byte -> result[float]), sig(sbyte, sbyte, sbyte -> result[float]),
+    sig(bbyte, bbyte, bbyte -> result[float]), sig(bsbyte, bsbyte, bsbyte -> result[float]),
+    sig(sint, sint, sint -> result[float]), sig(suint, suint, suint -> result[float]),
+    sig(uint, uint, uint -> result[float]), sig(sfloat, sfloat, sfloat -> result[float])
+)]
+pub fn lerp<R: Runtime>(_cx: &mut R::Cx, x: R::Value, y: R::Value, t: R::Value) -> R::Value {
+    match (R::as_f64(&x), R::as_f64(&y), R::as_f64(&t)) {
+        (Some(x), Some(y), Some(t)) => R::ok(R::from_f64(x + (y - x) * t)),
+        _ => R::err(R::from_string(format!(
+            "lerp expects numbers, got ({}, {}, {})",
+            R::type_name(&x), R::type_name(&y), R::type_name(&t)
+        ))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int, int, int, int, int -> result[float]),
+    sig(float, float, float, float, float -> result[float])
+)]
+pub fn map_range<R: Runtime>(
+    _cx: &mut R::Cx,
+    value: R::Value,
+    in_min: R::Value,
+    out_min: R::Value,
+    in_max: R::Value,
+    out_max: R::Value,
+) -> R::Value {
+    match (
+        R::as_f64(&value), R::as_f64(&in_min), R::as_f64(&out_min),
+        R::as_f64(&in_max), R::as_f64(&out_max),
+    ) {
+        (Some(value), Some(in_min), Some(out_min), Some(in_max), Some(out_max)) =>
+            R::ok(R::from_f64((value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min)),
+        _ => R::err(R::from_string("map_range expects numeric arguments".to_string())),
+    }
+}
+
+// ---- integer helpers (any integer -> int / bool) ---------------------------
+
+#[native_fn(module = "math",
+    sig(int -> result[int]),
+    sig(byte -> result[int]), sig(sbyte -> result[int]),
+    sig(bbyte -> result[int]), sig(bsbyte -> result[int]),
+    sig(sint -> result[int]), sig(suint -> result[int]),
+    sig(uint -> result[int])
+)]
+pub fn factorial<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    match R::as_i64(&x) {
+        Some(x) => R::ok(R::from_i64((1..=x).product())),
+        None => R::err(R::from_string(format!("factorial expects an integer, got {}", R::type_name(&x)))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[int]),
+    sig(byte -> result[int]), sig(sbyte -> result[int]),
+    sig(bbyte -> result[int]), sig(bsbyte -> result[int]),
+    sig(sint -> result[int]), sig(suint -> result[int]),
+    sig(uint -> result[int])
+)]
+pub fn fibonacci<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    match R::as_i64(&x) {
+        Some(x) => {
+            let (mut a, mut b) = (0i64, 1i64);
+            for _ in 0..x {
+                (a, b) = (b, a + b);
+            }
+            R::ok(R::from_i64(a))
         }
-        i += 6;
+        None => R::err(R::from_string(format!("fibonacci expects an integer, got {}", R::type_name(&x)))),
     }
-    true
+}
+
+#[native_fn(module = "math",
+    sig(int, int -> result[int]),
+    sig(byte, byte -> result[int]), sig(sbyte, sbyte -> result[int]),
+    sig(bbyte, bbyte -> result[int]), sig(bsbyte, bsbyte -> result[int]),
+    sig(sint, sint -> result[int]), sig(suint, suint -> result[int]),
+    sig(uint, uint -> result[int])
+)]
+pub fn gcd<R: Runtime>(_cx: &mut R::Cx, x: R::Value, y: R::Value) -> R::Value {
+    match (R::as_i64(&x), R::as_i64(&y)) {
+        (Some(x), Some(y)) => {
+            let mut a = x as u64;
+            let mut b = y as u64;
+            while b != 0 {
+                (a, b) = (b, a % b);
+            }
+            R::ok(R::from_i64(a as i64))
+        }
+        _ => R::err(R::from_string(format!(
+            "gcd expects integers, got ({}, {})",
+            R::type_name(&x), R::type_name(&y)
+        ))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int, int -> result[int]),
+    sig(byte, byte -> result[int]), sig(sbyte, sbyte -> result[int]),
+    sig(bbyte, bbyte -> result[int]), sig(bsbyte, bsbyte -> result[int]),
+    sig(sint, sint -> result[int]), sig(suint, suint -> result[int]),
+    sig(uint, uint -> result[int])
+)]
+pub fn lcm<R: Runtime>(_cx: &mut R::Cx, x: R::Value, y: R::Value) -> R::Value {
+    match (R::as_i64(&x), R::as_i64(&y)) {
+        (Some(x), Some(y)) => {
+            let a = x as u64;
+            let b = y as u64;
+            let mut ra = a;
+            let mut rb = b;
+            while rb != 0 {
+                (ra, rb) = (rb, ra % rb);
+            }
+            R::ok(R::from_i64((a / ra * b) as i64))
+        }
+        _ => R::err(R::from_string(format!(
+            "lcm expects integers, got ({}, {})",
+            R::type_name(&x), R::type_name(&y)
+        ))),
+    }
+}
+
+#[native_fn(module = "math",
+    sig(int -> result[bool]),
+    sig(byte -> result[bool]), sig(sbyte -> result[bool]),
+    sig(bbyte -> result[bool]), sig(bsbyte -> result[bool]),
+    sig(sint -> result[bool]), sig(suint -> result[bool]),
+    sig(uint -> result[bool])
+)]
+pub fn is_prime<R: Runtime>(_cx: &mut R::Cx, x: R::Value) -> R::Value {
+    match R::as_i64(&x) {
+        Some(x) => {
+            let x = x as u64;
+            if x < 2 {
+                return R::ok(R::from_bool(false));
+            }
+            if x < 4 {
+                return R::ok(R::from_bool(true));
+            }
+            if x.is_multiple_of(2) || x.is_multiple_of(3) {
+                return R::ok(R::from_bool(false));
+            }
+            let mut i = 5;
+            while i * i <= x {
+                if x.is_multiple_of(i) || x.is_multiple_of(i + 2) {
+                    return R::ok(R::from_bool(false));
+                }
+                i += 6;
+            }
+            R::ok(R::from_bool(true))
+        }
+        None => R::err(R::from_string(format!("is_prime expects an integer, got {}", R::type_name(&x)))),
+    }
 }
 
 // ---- constants submodule (`std::math::consts`) -----------------------------

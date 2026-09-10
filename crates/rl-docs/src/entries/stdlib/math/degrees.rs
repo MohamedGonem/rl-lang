@@ -9,4 +9,6 @@ pub static DEGREES: FnEntry = FnEntry {
     errors: None,
     see_also: &["radians"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

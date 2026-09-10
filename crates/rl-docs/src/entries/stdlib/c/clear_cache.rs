@@ -13,4 +13,6 @@ clear_cache()?"#,
     ),
     see_also: &["compile"],
     since: Some("v0.4.1"),
+    deprecated: None,
+    updated: Some("v0.4.1"),
 };

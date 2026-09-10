@@ -56,6 +56,7 @@ impl Parser {
                 type_annotation: TypeAnnotation::Infer,
                 unit_annotation: None,
                 value,
+                item_attributes: Vec::new(),
             },
             span,
         ))

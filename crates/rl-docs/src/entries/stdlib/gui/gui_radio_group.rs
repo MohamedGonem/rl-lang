@@ -22,4 +22,6 @@ dec handle radios = result_unwrap(
         "gui_on_change",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

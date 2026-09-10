@@ -52,8 +52,9 @@ pub fn run_pipeline(source: &str, uri: &Url) -> Vec<Diagnostic> {
     checker.check(&statements);
 
     checker
-        .errors
+        .warnings
         .iter()
         .map(|e| error_to_diagnostic(source, e))
+        .chain(checker.errors.iter().map(|e| error_to_diagnostic(source, e)))
         .collect()
 }

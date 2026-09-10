@@ -1,0 +1,73 @@
+name: Bug report
+description: Report a bug in rl-lang
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: To reproduce
+      description: Minimal code that triggers the bug.
+      render: rl
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Output of `rl --version`."
+      placeholder: "rl 2.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of rl-lang is affected?
+      options:
+        - Lexer
+        - Parser
+        - Type checker
+        - VM
+        - C codegen
+        - Standard library
+        - CLI / REPL
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "OS, architecture, Rust version, etc."
+      render: text
+      placeholder: |
+        OS: Linux x86_64
+        Rust: 1.97.0

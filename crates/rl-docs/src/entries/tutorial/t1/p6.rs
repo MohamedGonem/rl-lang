@@ -54,5 +54,5 @@ pub static STEP_OPERATORS_AND_DECISIONS: ConceptEntry = ConceptEntry {
     pitfalls: &[],
     related: &[],
     related_stdlib: &[],
-    since: None,
+    since: Some("v1.0.0"),
 };

@@ -11,4 +11,6 @@ dec handle h = std::res::result_unwrap(load("libm.so.6"))"#,
     errors: Some("err(string) if the library at `path` can't be found or loaded"),
     see_also: &["compile", "call", "close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

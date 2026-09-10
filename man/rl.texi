@@ -1,0 +1,546 @@
+\input texinfo
+@c -*- texinfo -*-
+@c %**start of header
+@setfilename rl.info
+@settitle rl Programming Language Toolchain
+@documentencoding UTF-8
+@c %**end of header
+
+@copying
+Copyright @copyright{} 2026 rl-lang contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+``Software''), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+@end copying
+
+@titlepage
+@title rl Programming Language Toolchain
+@subtitle Version 2.1.0
+@author rl-lang contributors
+@page
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top rl
+
+This manual documents the command-line interface for the @code{rl}
+programming language toolchain.
+@end ifnottex
+
+@menu
+* Overview::
+* Commands::
+* run Command::
+* dev Command::
+* new Command::
+* check Command::
+* format Command::
+* compile Command::
+* print Command::
+* transpile Command::
+* package Command::
+* repl Command::
+* lsp Command::
+* docs Command::
+* workflows Command::
+* Examples::
+* Bugs::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Commands
+
+* run Command::
+* dev Command::
+* new Command::
+* check Command::
+* format Command::
+* compile Command::
+* print Command::
+* transpile Command::
+* package Command::
+* repl Command::
+* lsp Command::
+* docs Command::
+* workflows Command::
+
+@end detailmenu
+@end menu
+
+@c ===================================================================
+@node Overview
+@chapter Overview
+
+@command{rl} is the command-line interface for the rl programming language.
+It provides tools for running, checking, compiling, packaging, and generating
+documentation for rl source files.
+
+If no command is given and stdin is a terminal, the interactive REPL is started.
+
+@c ===================================================================
+@node Commands
+@chapter Commands
+
+@table @code
+@item rl run @var{file} [@option{-c} @var{code}] [@option{--vm}] [@option{--cranelift}] [@option{--} @var{args}...]
+Lex, parse, and evaluate a @file{.rl} source file.
+
+@item rl dev [@option{--vm}] [@option{--cranelift}]
+Run the current project by reading @file{rl.toml}.
+
+@item rl new @var{name} [@option{--no-git}] [@option{--script}]
+Scaffold a new project directory or create a standalone script.
+
+@item rl check @var{file}
+Type-check a @file{.rl} file and report errors without running it.
+
+@item rl format @var{file}
+Format a @file{.rl} source file in place.
+
+@item rl compile @var{file} [@option{-o} @var{output}]
+Lex, parse, resolve, and compile a @file{.rl} source file to @file{.rlc} bytecode.
+
+@item rl print @var{file} (@option{-t} | @option{-p} | @option{-a})
+Print debug information for a @file{.rl} source file.
+
+@item rl transpile @var{file} [@option{-o} @var{output}] [@option{--runtime}] [@option{-c}] [@option{--opt} @var{level}] [@option{--} @var{cc-flags}]
+Transpile a @file{.rl} source file to C99.
+
+@item rl package @var{file} [@option{-o} @var{output}] [@option{--vm}]
+Package a @file{.rl} file into a self-contained binary.
+
+@item rl repl
+Start the interactive TUI REPL.
+
+@item rl lsp
+Start the Language Server Protocol server.
+
+@item rl docs @var{topic} [@option{--tui}] [@option{--website}] [@option{--json}] [@option{--stdlib}] [@option{--concept}] [@option{--tutorial}]
+Print language reference and stdlib documentation.
+
+@item rl workflows @option{--check} | @option{--package}
+Scaffold GitHub Actions workflow files.
+@end table
+
+@c ===================================================================
+@node run Command
+@chapter run Command
+
+@command{rl run @var{file}} lexes, parses, and evaluates a @file{.rl} source
+file. Arguments after the file path are passed to the script as its @code{argv}
+array.
+
+@section Options
+
+@table @code
+@item @option{-c} @var{code}, @option{--code} @var{code}
+Execute inline rl code instead of a file.
+
+@item @option{--vm}
+Run through the bytecode VM. This is the default backend.
+
+@item @option{--cranelift}
+JIT compile via cranelift. Requires the @option{--cranelift} feature.
+@end table
+
+@section Examples
+
+@example
+$ rl run hello.rl
+$ rl run script.rl -- --verbose input.txt
+$ rl run -c 'println("hello")'
+@end example
+
+@c ===================================================================
+@node dev Command
+@chapter dev Command
+
+@command{rl dev} runs the current project by reading @file{rl.toml} in the
+current directory.
+
+@section Options
+
+@table @code
+@item @option{--vm}
+Run through the bytecode VM.
+
+@item @option{--cranelift}
+JIT compile via cranelift.
+@end table
+
+@section Examples
+
+@example
+$ rl dev
+@end example
+
+@c ===================================================================
+@node new Command
+@chapter new Command
+
+@command{rl new @var{name}} scaffolds a new project directory with the standard
+structure and a @file{rl.toml} configuration file. Alternatively, with the
+@option{--script} flag, it creates a single standalone @file{.rl} file.
+
+@section Options
+
+@table @code
+@item @option{--no-git}
+Skip running @command{git init} in the new project directory.
+
+@item @option{--script}
+Create a standalone @file{.rl} script instead of a project directory.
+@end table
+
+@section Examples
+
+@example
+$ rl new my_project
+$ rl new --script my_script
+@end example
+
+@c ===================================================================
+@node check Command
+@chapter check Command
+
+@command{rl check @var{file}} type-checks a @file{.rl} source file and
+reports errors without running it.
+
+@section Examples
+
+@example
+$ rl check script.rl
+@end example
+
+@c ===================================================================
+@node format Command
+@chapter format Command
+
+@command{rl format @var{file}} formats a @file{.rl} source file in place
+according to the rl coding style.
+
+@section Examples
+
+@example
+$ rl format script.rl
+@end example
+
+@c ===================================================================
+@node compile Command
+@chapter compile Command
+
+@command{rl compile @var{file}} lexes, parses, resolves, and compiles a
+@file{.rl} source file to @file{.rlc} bytecode.
+
+@section Options
+
+@table @code
+@item @option{-o} @var{path}, @option{--output} @var{path}
+Output @file{.rlc} path. Defaults to @var{file} with its extension changed
+to @file{.rlc}.
+@end table
+
+@section Examples
+
+@example
+$ rl compile script.rl
+$ rl compile script.rl -o output.rlc
+@end example
+
+@c ===================================================================
+@node print Command
+@chapter print Command
+
+@command{rl print @var{file}} prints debug information for a @file{.rl}
+source file. Exactly one of @option{--tokens}, @option{--parser}, or
+@option{--ast} must be given.
+
+@section Options
+
+@table @code
+@item @option{-t}, @option{--tokens}
+Print the token stream from the lexer.
+
+@item @option{-p}, @option{--parser}
+Print the parsed AST (before type checking).
+
+@item @option{-a}, @option{--ast}
+Print the type-checked AST.
+@end table
+
+@section Examples
+
+@example
+$ rl print script.rl --tokens
+$ rl print script.rl --parser
+$ rl print script.rl --ast
+@end example
+
+@c ===================================================================
+@node transpile Command
+@chapter transpile Command
+
+@command{rl transpile @var{file}} lexes, parses, resolves, type-checks, and
+transpiles a @file{.rl} source file to C99 source code.
+
+@section Options
+
+@table @code
+@item @option{-o} @var{path}, @option{--output} @var{path}
+Output @file{.c} path. Defaults to @var{file} with its extension changed
+to @file{.c}.
+
+@item @option{--runtime}
+Also emit @file{rl_runtime.h} and @file{rl_runtime.c} alongside the
+transpiled output.
+
+@item @option{-c}, @option{--compile}
+After transpiling, invoke @command{cc} to compile the @file{.c} file.
+
+@item @option{--opt} @var{level}
+Optimization level forwarded to @command{cc}. Accepted values: @code{O0},
+@code{O1}, @code{O2}, @code{O3}, @code{Os}, @code{Og}. Defaults to
+@code{O2} when @option{--compile} is used.
+
+@item @option{--} @var{cc-flags}
+Extra flags forwarded directly to @command{cc}.
+@end table
+
+@section Examples
+
+@example
+$ rl transpile script.rl
+$ rl transpile script.rl --runtime --compile
+$ rl transpile script.rl --runtime --compile -o output
+$ rl transpile script.rl --runtime --compile -O3 -- -lm
+@end example
+
+@c ===================================================================
+@node package Command
+@chapter package Command
+
+@command{rl package @var{file}} packages a @file{.rl} file into a
+self-contained binary. The @file{.rl} source text is embedded directly
+into the compiled output.
+
+@section Options
+
+@table @code
+@item @option{-o} @var{path}, @option{--output} @var{path}
+Output binary path. Defaults to @code{program}.
+
+@item @option{--vm}
+Compile to @file{.rlc} bytecode first and embed that instead of raw
+source text. This reduces the size of the embedded source at the cost
+of needing a @file{.rlc}-aware runtime.
+@end table
+
+@section Examples
+
+@example
+$ rl package script.rl
+$ rl package script.rl -o myapp
+$ rl package script.rl --vm
+@end example
+
+@c ===================================================================
+@node repl Command
+@chapter repl Command
+
+@command{rl repl} starts the interactive TUI REPL (Read-Eval-Print Loop)
+with syntax highlighting, line editing, and persistent history.
+
+@section Examples
+
+@example
+$ rl repl
+@end example
+
+@c ===================================================================
+@node lsp Command
+@chapter lsp Command
+
+@command{rl lsp} starts the Language Server Protocol server over stdio.
+Use this with editors that support LSP for autocompletion, diagnostics,
+and go-to-definition.
+
+@section Examples
+
+@example
+$ rl lsp
+@end example
+
+@c ===================================================================
+@node docs Command
+@chapter docs Command
+
+@command{rl docs @var{topic}} searches names across all documentation
+categories and prints the matching entry. With no @var{topic}, it prints
+everything. Use the @option{--tui} flag for an interactive terminal browser.
+
+@section Options
+
+@table @code
+@item @option{--tui}
+Browse docs in an interactive terminal UI.
+
+@item @option{--website}
+Open docs in a web browser.
+
+@item @option{--json}
+Print output as JSON instead of Markdown.
+
+@item @option{--stdlib}
+Restrict search to stdlib docs.
+
+@item @option{--concept}
+Restrict search to concept docs.
+
+@item @option{--tutorial}
+Restrict search to tutorial docs.
+
+@item @option{--out-file} @var{path}
+Write output to a file instead of stdout.
+
+@item @option{--generate}
+Generate documentation for the current project.
+
+@item @option{--html}
+Emit an HTML version of the generated site (used with @option{--generate}).
+
+@item @option{--out-dir} @var{path}
+Output directory for @option{--generate}.
+@end table
+
+@section Examples
+
+@example
+$ rl docs
+$ rl docs map
+$ rl docs --tui
+$ rl docs --stdlib --json
+$ rl docs --generate --html --out-dir site/
+@end example
+
+@c ===================================================================
+@node workflows Command
+@chapter workflows Command
+
+@command{rl workflows} scaffolds GitHub Actions workflow files. At least
+one of @option{--check} or @option{--package} must be given.
+
+@section Options
+
+@table @code
+@item @option{--check}
+Generate a workflow that runs @command{rl check} on push/PR.
+
+@item @option{--package}
+Generate a workflow that packages and releases a binary.
+@end table
+
+@section Examples
+
+@example
+$ rl workflows --check
+$ rl workflows --package
+$ rl workflows --check --package
+@end example
+
+@c ===================================================================
+@node Examples
+@chapter Examples
+
+@section Running a Script
+
+@example
+$ rl run hello.rl
+Hello, world!
+@end example
+
+@section Running with Arguments
+
+@example
+$ rl run script.rl -- --verbose input.txt
+@end example
+
+@section Inline Code
+
+@example
+$ rl run -c 'println("hello")'
+hello
+@end example
+
+@section Type Checking
+
+@example
+$ rl check script.rl
+@end example
+
+@section Formatting
+
+@example
+$ rl format script.rl
+@end example
+
+@section Compiling to Bytecode
+
+@example
+$ rl compile script.rl -o output.rlc
+@end example
+
+@section Printing Tokens
+
+@example
+$ rl print script.rl --tokens
+@end example
+
+@section Transpiling to C
+
+@example
+$ rl transpile script.rl --runtime --compile
+@end example
+
+@section Packaging a Binary
+
+@example
+$ rl package script.rl -o myapp
+@end example
+
+@section Starting the REPL
+
+@example
+$ rl repl
+repl> 2 + 2
+4
+repl> exit
+@end example
+
+@c ===================================================================
+@node Bugs
+@chapter Bugs
+
+Report bugs at @url{https://github.com/rl-lang/rl-lang/issues}.
+
+@bye

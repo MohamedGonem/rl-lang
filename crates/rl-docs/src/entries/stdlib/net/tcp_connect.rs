@@ -11,4 +11,6 @@ dec handle stream = result_unwrap(tcp_connect("example.com:80"))"#,
     errors: Some("Err(string) when the connection fails (refused, timed out, unresolved host)"),
     see_also: &["tcp_read", "tcp_write", "resolve"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

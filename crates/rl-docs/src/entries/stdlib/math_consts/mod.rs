@@ -26,8 +26,8 @@ static FUNCTIONS: &[&FnEntry] = &[
     &LN_2,
     &LOG10_2,
     &LOG10_E,
-    &LOG2_E,
     &LOG2_10,
+    &LOG2_E,
     &NAN,
     &PHI,
     &PI,
@@ -44,6 +44,8 @@ static E: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static EULER_GAMMA: FnEntry = FnEntry {
@@ -55,6 +57,8 @@ static EULER_GAMMA: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_1_PI: FnEntry = FnEntry {
@@ -66,6 +70,8 @@ static FRAC_1_PI: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_1_SQRT_2: FnEntry = FnEntry {
@@ -77,6 +83,8 @@ static FRAC_1_SQRT_2: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_2_PI: FnEntry = FnEntry {
@@ -88,6 +96,8 @@ static FRAC_2_PI: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_2_SQRT_PI: FnEntry = FnEntry {
@@ -99,6 +109,8 @@ static FRAC_2_SQRT_PI: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_PI_2: FnEntry = FnEntry {
@@ -110,6 +122,8 @@ static FRAC_PI_2: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_PI_3: FnEntry = FnEntry {
@@ -121,6 +135,8 @@ static FRAC_PI_3: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_PI_4: FnEntry = FnEntry {
@@ -132,6 +148,8 @@ static FRAC_PI_4: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_PI_6: FnEntry = FnEntry {
@@ -143,6 +161,8 @@ static FRAC_PI_6: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static FRAC_PI_8: FnEntry = FnEntry {
@@ -154,6 +174,8 @@ static FRAC_PI_8: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static INF: FnEntry = FnEntry {
@@ -165,6 +187,8 @@ static INF: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static IS_INF: FnEntry = FnEntry {
@@ -176,6 +200,8 @@ static IS_INF: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static IS_NAN: FnEntry = FnEntry {
@@ -187,6 +213,8 @@ static IS_NAN: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LN_2: FnEntry = FnEntry {
@@ -198,6 +226,8 @@ static LN_2: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LN_10: FnEntry = FnEntry {
@@ -209,6 +239,8 @@ static LN_10: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LOG2_10: FnEntry = FnEntry {
@@ -220,6 +252,8 @@ static LOG2_10: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LOG2_E: FnEntry = FnEntry {
@@ -231,6 +265,8 @@ static LOG2_E: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LOG10_2: FnEntry = FnEntry {
@@ -242,6 +278,8 @@ static LOG10_2: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static LOG10_E: FnEntry = FnEntry {
@@ -253,6 +291,8 @@ static LOG10_E: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static NAN: FnEntry = FnEntry {
@@ -264,6 +304,8 @@ static NAN: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static PHI: FnEntry = FnEntry {
@@ -274,6 +316,8 @@ static PHI: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
     example: "get std::math::consts::PHI\n\nPHI()",
 };
 
@@ -286,6 +330,8 @@ static PI: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static SQRT_2: FnEntry = FnEntry {
@@ -297,6 +343,8 @@ static SQRT_2: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };
 
 static TAU: FnEntry = FnEntry {
@@ -308,4 +356,6 @@ static TAU: FnEntry = FnEntry {
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

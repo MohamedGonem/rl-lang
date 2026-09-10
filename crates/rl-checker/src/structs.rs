@@ -1,7 +1,10 @@
 //! Core data structures for the type checker.
 //!
 use crate::units::{ConversionTable, Unit};
-use rl_ast::{Ast, statements::TypeAnnotation};
+use rl_ast::{
+    Ast,
+    statements::{Lint, TypeAnnotation},
+};
 use rl_commons::ModuleNames;
 use rl_utils::{errors::Error, source::SourceFile, span::Span};
 use std::{
@@ -19,6 +22,8 @@ pub struct TypeChecker {
     pub root_module: ModuleNames,
     /// All type errors accumulated during the check pass.
     pub errors: Vec<Error>,
+    /// Warnings accumulated during the check pass (e.g. unused variables).
+    pub warnings: Vec<Error>,
     /// Stack of expected return types, pushed/popped on function and lambda entry/exit.
     pub return_type_stack: Vec<TypeAnnotation>,
     /// Nesting depth of loops - used to validate `break` and `continue`.
@@ -27,6 +32,8 @@ pub struct TypeChecker {
     /// signature, for fast single-name lookup (`print` vs `std::io::print`).
     pub stdlib_fn_names: HashMap<String, rl_commons::StdFn>,
     pub imported_std_fns: HashMap<String, rl_commons::StdFn>,
+    /// Stdlib function deprecation map: full path -> deprecation message.
+    pub deprecated_stdlib: HashMap<Vec<String>, String>,
     /// `(span, markdown)` pairs collected at every declaration and usage site,
     /// consumed by the LSP hover provider.
     pub hovers: Vec<(Span, String)>,
@@ -53,6 +60,10 @@ pub struct TypeChecker {
     /// Conversion registry built from `#![convert(symbol=factor(base))]`
     /// program attributes, used to treat convertible unit symbols as equal.
     pub conversions: ConversionTable,
+    /// Stack of suppressed lints, pushed/popped around attributed statements.
+    pub allow_stack: Vec<HashSet<Lint>>,
+    /// Whether any top-level function is explicitly marked `!#[entry]`.
+    pub has_explicit_entry: bool,
 }
 
 /// A single entry in a type checker scope.
@@ -65,6 +76,11 @@ pub struct ScopeItem {
     /// Whether this binding is immutable (`CONST`).
     pub is_const: bool,
     pub decl_span: Span,
+    pub used: bool,
+    /// Lints suppressed for this binding (e.g. `!#[allow(unused)]`).
+    pub suppressed_lints: HashSet<Lint>,
+    /// Deprecation message, if declared with `!#[deprecated("msg")]`.
+    pub deprecated: Option<String>,
 }
 
 /// The type of a value as seen by the static checker.

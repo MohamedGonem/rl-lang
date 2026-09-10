@@ -11,4 +11,6 @@ time_diff(1719003600, 1719000000)"#,
     errors: None,
     see_also: &[],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

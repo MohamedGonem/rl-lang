@@ -13,4 +13,6 @@ udp_close(socket)"#,
     errors: None,
     see_also: &["udp_bind"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

@@ -12,4 +12,6 @@ dec int x = dbg(2 + 2)
     errors: None,
     see_also: &["type_of"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

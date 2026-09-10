@@ -44,8 +44,15 @@ pub static TOOLING: ConceptEntry = ConceptEntry {
         DescriptionEntry {
             kind: DescriptionKind::Syntax,
             title: Some("rl new"),
-            description: "`rl new <name>` scaffolds a new project directory with an `rl.toml` and a `main.rl`; pass `--no-git` to skip running `git init`",
-            examples: &["rl new my-project", "rl new my-project --no-git"],
+            description: "`rl new <name>` scaffolds a new project directory with an `rl.toml` and a `main.rl`; pass `--no-git` to skip running `git init`; pass `--script` to create a standalone executable `.rl` script instead of a project directory",
+            examples: &["rl new my-project", "rl new my-project --no-git", "rl new --script hello"],
+            expected_output: &[],
+        },
+        DescriptionEntry {
+            kind: DescriptionKind::Explanation,
+            title: Some("shebang scripts"),
+            description: "rl supports shebang (`#!`) headers in `.rl` files - the lexer strips the first line if it starts with `#!`. use `rl new --script <name>` to create a standalone script with the correct shebang pointing to the `rl` binary, or write your own `#!/path/to/rl run` header. make the file executable with `chmod +x` and run it directly",
+            examples: &["rl new --script hello", "chmod +x hello.rl", "./hello.rl"],
             expected_output: &[],
         },
         DescriptionEntry {

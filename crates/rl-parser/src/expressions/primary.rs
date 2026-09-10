@@ -170,7 +170,10 @@ impl Parser {
                     );
 
                     let index = self.parse_expression()?;
-                    self.match_type(&[TokenType::RightBracket]);
+                    while self.match_type(&[TokenType::Newline]) {}
+                    if !self.match_type(&[TokenType::RightBracket]) {
+                        return Err(self.err("expected `]` after index", self.peek_span()));
+                    }
                     let after_index_span = self.previous_span();
 
                     let target = self
@@ -194,7 +197,10 @@ impl Parser {
                     while self.peek() == TokenType::LeftBracket {
                         self.advance();
                         let next_index = self.parse_expression()?;
-                        self.match_type(&[TokenType::RightBracket]);
+                        while self.match_type(&[TokenType::Newline]) {}
+                        if !self.match_type(&[TokenType::RightBracket]) {
+                            return Err(self.err("expected `]` after index", self.peek_span()));
+                        }
                         let span = start.join(self.previous_span());
 
                         #[cfg(feature = "debug")]
@@ -319,7 +325,10 @@ impl Parser {
                 }
                 while self.match_type(&[TokenType::Newline]) {}
             }
-            self.match_type(&[TokenType::RightBrace]);
+            while self.match_type(&[TokenType::Newline]) {}
+            if !self.match_type(&[TokenType::RightBrace]) {
+                return Err(self.err("expected `}` after map literal", self.peek_span()));
+            }
             let span = start.join(self.previous_span());
 
             #[cfg(feature = "debug")]
@@ -350,7 +359,10 @@ impl Parser {
                 }
                 while self.match_type(&[TokenType::Newline]) {}
             }
-            self.match_type(&[TokenType::RightBrace]);
+            while self.match_type(&[TokenType::Newline]) {}
+            if !self.match_type(&[TokenType::RightBrace]) {
+                return Err(self.err("expected `}` after set literal", self.peek_span()));
+            }
             let span = start.join(self.previous_span());
 
             #[cfg(feature = "debug")]
@@ -377,7 +389,10 @@ impl Parser {
                 }
                 while self.match_type(&[TokenType::Newline]) {}
             }
-            self.match_type(&[TokenType::RightBracket]);
+            while self.match_type(&[TokenType::Newline]) {}
+            if !self.match_type(&[TokenType::RightBracket]) {
+                return Err(self.err("expected `]` after array literal", self.peek_span()));
+            }
             let span = start.join(self.previous_span());
 
             #[cfg(feature = "debug")]
@@ -1167,6 +1182,57 @@ impl Parser {
                 return self.parse_postfix(expr, start);
             }
         }
+
+        // --- suffixed integer types ---
+        if self.match_type(&[TokenType::SignedByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SignedByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::BigByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::BigByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::BByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::BigSignedByteLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::BigSignedByteLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::BSByte(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallUIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallUIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SUInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::SmallFloatLiteral(0.0)]) {
+            let span = self.previous_span();
+            if let TokenType::SmallFloatLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::SFloat(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
+        if self.match_type(&[TokenType::UIntLiteral(0)]) {
+            let span = self.previous_span();
+            if let TokenType::UIntLiteral(v) = self.previous() {
+                let expr = self.ast_arena.alloc_expr(ExpressionKind::UInt(v), span);
+                return self.parse_postfix(expr, start);
+            }
+        }
         // ---- numbers end ----
 
         // --- string ---
@@ -1330,7 +1396,9 @@ impl Parser {
 
             // normal group
             while self.match_type(&[TokenType::Newline]) {}
-            self.match_type(&[TokenType::RightParen]);
+            if !self.match_type(&[TokenType::RightParen]) {
+                return Err(self.err("expected `)` after grouped expression", self.peek_span()));
+            }
 
             let span = start.join(self.previous_span());
             let expr = self
@@ -1345,7 +1413,9 @@ impl Parser {
         if self.match_type(&[TokenType::Fn]) {
             let lambda_start = self.previous_span();
             while self.match_type(&[TokenType::Newline]) {}
-            self.match_type(&[TokenType::LeftParen]);
+            if !self.match_type(&[TokenType::LeftParen]) {
+                return Err(self.err("expected `(` after `fn`", self.peek_span()));
+            }
 
             let mut params: Vec<rl_ast::statements::Param> = Vec::new();
             while self.match_type(&[TokenType::Newline]) {}
@@ -1365,11 +1435,14 @@ impl Parser {
                 });
                 while self.match_type(&[TokenType::Newline]) {}
                 if !self.match_type(&[TokenType::Comma]) {
+                    while self.match_type(&[TokenType::Newline]) {}
+                    if !self.match_type(&[TokenType::RightParen]) {
+                        return Err(self.err("expected `)` after lambda parameters", self.peek_span()));
+                    }
                     break;
                 }
+                while self.match_type(&[TokenType::Newline]) {}
             }
-            while self.match_type(&[TokenType::Newline]) {}
-            self.match_type(&[TokenType::RightParen]);
 
             while self.match_type(&[TokenType::Newline]) {}
             let return_type = if self.match_type(&[TokenType::Arrow]) {

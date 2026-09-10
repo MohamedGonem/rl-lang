@@ -19,12 +19,19 @@ pub fn error_to_diagnostic(source: &str, error: &rl_utils::errors::Error) -> Dia
         offset_to_position(source, end),
     );
 
+    let severity = match error.severity() {
+        rl_utils::errors::Severity::Error => DiagnosticSeverity::ERROR,
+        rl_utils::errors::Severity::Warning => DiagnosticSeverity::WARNING,
+    };
+
     // error severity for errors i guess
     // -- need to add warnings and hints later also information will be nice
     // -- dunno how maybe post v0.2.0 or something
+    //
+    // * ok added severity
     Diagnostic {
         range,
-        severity: Some(DiagnosticSeverity::ERROR),
+        severity: Some(severity),
         message: error.message().to_string(),
         source: Some("rl".to_string()),
         ..Default::default()

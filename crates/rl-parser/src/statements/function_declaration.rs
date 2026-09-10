@@ -13,7 +13,7 @@
 //! preceded by a `!#[entry]` attribute, marking it as the program entry point.
 
 use crate::parser_logic::Parser;
-use rl_ast::statements::{FunctionAttribute, Param, Statement, StatementKind, TypeAnnotation};
+use rl_ast::statements::{FunctionAttribute, ItemAttribute, Param, Statement, StatementKind, TypeAnnotation};
 use rl_lexer::tokentypes::TokenType;
 use rl_utils::{errors::Error, span::Span};
 
@@ -46,7 +46,9 @@ impl Parser {
         &mut self,
         start: Span,
         attribute: Option<FunctionAttribute>,
+        item_attributes: Vec<ItemAttribute>,
     ) -> Result<Statement, Error> {
+        while self.match_type(&[TokenType::Newline]) {}
         let name = match self.peek() {
             TokenType::Identifier(n) => {
                 self.advance();
@@ -55,11 +57,16 @@ impl Parser {
             _ => return Err(self.err("expected function name", self.peek_span())),
         };
 
-        self.match_type(&[TokenType::LeftParen]);
+        while self.match_type(&[TokenType::Newline]) {}
+        if !self.match_type(&[TokenType::LeftParen]) {
+            return Err(self.err("expected `(` after function name", self.peek_span()));
+        }
 
         let mut params: Vec<Param> = Vec::new();
+        while self.match_type(&[TokenType::Newline]) {}
         while !self.match_type(&[TokenType::RightParen]) {
             let param_type = self.parse_param_type()?;
+            while self.match_type(&[TokenType::Newline]) {}
             match self.peek() {
                 TokenType::Identifier(p) => {
                     self.advance();
@@ -70,14 +77,21 @@ impl Parser {
                 }
                 _ => return Err(self.err("expected parameter name", self.peek_span())),
             }
+            while self.match_type(&[TokenType::Newline]) {}
             if !self.match_type(&[TokenType::Comma]) {
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightParen]) {
+                    return Err(self.err("expected `)` after function parameters", self.peek_span()));
+                }
                 break;
             }
+            while self.match_type(&[TokenType::Newline]) {}
         }
-        self.match_type(&[TokenType::RightParen]);
 
         // optional return type annotation; defaults to Null when omitted
+        while self.match_type(&[TokenType::Newline]) {}
         let return_type = if self.match_type(&[TokenType::Arrow]) {
+            while self.match_type(&[TokenType::Newline]) {}
             match self.parse_param_type() {
                 Ok(a) => a,
                 Err(_) => TypeAnnotation::Null,
@@ -86,6 +100,7 @@ impl Parser {
             TypeAnnotation::Null
         };
 
+        while self.match_type(&[TokenType::Newline]) {}
         let body = self.parse_block()?;
 
         let span = start.join(self.previous_span());
@@ -96,6 +111,7 @@ impl Parser {
                 return_type,
                 body,
                 attribute,
+                item_attributes,
             },
             span,
         ))

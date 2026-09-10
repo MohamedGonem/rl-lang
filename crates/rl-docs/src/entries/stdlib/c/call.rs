@@ -37,4 +37,6 @@ close(h)"#,
     ),
     see_also: &["compile", "load", "close"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

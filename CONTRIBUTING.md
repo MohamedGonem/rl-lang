@@ -21,7 +21,7 @@ cargo clippy -- -D warnings # no lint warnings
 
 ## What to work on
 
-Check the [issues](https://github.com/MohamedGonem/rl-lang/issues) page for open bugs and feature requests, or the [roadmap](https://github.com/MohamedGonem/rl-lang/wiki/Roadmap) for planned work.
+Check the [issues](https://github.com/MohamedGonem/rl-lang/issues) page for open bugs and feature requests, or the [roadmap](ROADMAP.md) for planned work.
 
 ## Versioning & releases
 
@@ -41,9 +41,28 @@ Registering a new `std::<module>::<function>` now touches four files across thre
 1. **Implementation** -- add the function to `crates/rl-std/src/<module>.rs` (one file per module, following the existing ones like `math.rs`, `string.rs`, `bitwise.rs`), written generic over `rl_std_core::Runtime`.
 2. **Register the function** -- wire it up in that module's `handles::<R>()` builder (e.g. `crates/rl-std/src/io.rs`) so the VM stdlib picks it up via `Module::from_std`.
 3. **Register the name for the checker** -- add `"name"` to that module's list in `crates/rl-commons/src/keywords.rs`. This is what powers `std::<module>::<function>` resolution, single-name shorthand resolution, and "did you mean?" suggestions in `rl-checker` -- skip it and the checker will report the function as undefined even though it runs fine.
-4. **Doc entry** -- add `crates/rl-docs/src/entries/stdlib/<module>/<function>.rs` describing the function (signature, description, example), then add it to that module's array in `crates/rl-docs/src/entries/stdlib/<module>/mod.rs` so it shows up in `rl docs` and the LSP hover.
+4. **Doc entry** -- add `crates/rl-docs/src/entries/stdlib/<module>/<function>.rs` describing the function (signature, description, example), then add it to that module's array in `crates/rl-docs/src/entries/stdlib/<module>/mod.rs` so it shows up in `rl docs` and the LSP hover. Set `deprecated: Some("reason")` if the function is deprecated, and `updated: Some("vX.Y.Z")` if it was changed after initial release.
 
 If you're adding a brand-new module (not just a new function in an existing one), you'll also need to register the module itself in `crates/rl-vm/src/stdlib/mod.rs` (`root()`), `crates/rl-commons/src/lib.rs` (`stdlib_names()`), and `crates/rl-docs/src/entries/mod.rs` (`stdlib_entries()`).
+
+## Deprecating a stdlib function
+
+When renaming or moving a stdlib function (e.g. `std::array::len` → `std::len`), you need to keep the old path working while warning users to switch. Three places to touch:
+
+1. **Signature tree** (`crates/rl-std/src/lib.rs`) -- add the function name to the new module's `signatures()` (e.g. `.with_functions(&["len"])` on the root `std`), and keep it in the old module too so both paths resolve.
+
+2. **VM runtime tree** (`crates/rl-vm/src/stdlib/mod.rs`) -- register the function under its new path in `root()`, and keep it under the old path too. Both `.with_function("len", ...)` calls use the same implementation.
+
+3. **Deprecation map** (`crates/rl-checker/src/lib.rs`) -- add an entry to `build_deprecated_stdlib_map()`:
+   ```rust
+   m.insert(
+       vec!["std".into(), "array".into(), "len".into()],
+       "use std::len instead".into(),
+   );
+   ```
+   The checker looks up the full path (`["std", "array", "len"]`) and emits a yellow `Warning: 'std::array::len' is deprecated: use std::len instead` whenever it's called. Users can suppress it with `!#[allow(deprecated)]`.
+
+After adding the entry, run `cargo test` -- existing tests that call the old path should still pass (the function still works), and the checker will now emit a deprecation warning for new code.
 
 ## AI usage
 

@@ -20,4 +20,6 @@ dec handle slider = result_unwrap(gui_slider(window, 0.0, 100.0, 20, 20, 200))"#
         "gui_on_change",
     ],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

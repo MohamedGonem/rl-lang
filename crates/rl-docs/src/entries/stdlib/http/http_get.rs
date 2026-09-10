@@ -13,4 +13,6 @@ dec (int, string) resp = result_unwrap(http_get("https://example.com"))"#,
     ),
     see_also: &["http_post", "http_request"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

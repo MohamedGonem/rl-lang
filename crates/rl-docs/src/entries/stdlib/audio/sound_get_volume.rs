@@ -13,4 +13,6 @@ dec float volume = result_unwrap(sound_get_volume(sound))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["sound_set_volume"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

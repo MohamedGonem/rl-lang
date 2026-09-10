@@ -13,4 +13,6 @@ result_unwrap(sound_wait(sound))"#,
     errors: Some("err(string) when the handle is unknown"),
     see_also: &["play_file_async", "sound_is_finished"],
     since: Some("v0.4.1"),
+    deprecated: None,
+    updated: Some("v0.4.1"),
 };

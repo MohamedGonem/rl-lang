@@ -4,6 +4,7 @@
 //! directly on the [`Tokenizer`]'s byte position.
 use super::super::tokenizer::Tokenizer;
 use super::super::tokentypes::{Token, TokenType};
+use rl_utils::errors::Error;
 
 impl Tokenizer {
     /// Returns `true` if all characters have been consumed.
@@ -55,6 +56,21 @@ impl Tokenizer {
             self.newlines_since_trivia = 0;
         }
         self.tokens.push(tok);
+    }
+
+    /// Reads up to `max` consecutive ASCII hex digits, advancing the cursor.
+    ///
+    /// Returns the collected digits as a `String`, or an error if zero hex
+    /// digits are found at the current position.
+    pub fn read_hex_digits(&mut self, max: usize) -> Result<String, Error> {
+        let mut hex = String::new();
+        while hex.len() < max && !self.is_at_end() && self.peek().is_ascii_hexdigit() {
+            hex.push(self.advance());
+        }
+        if hex.is_empty() {
+            return Err(self.err("expected hex digits", self.current_span()));
+        }
+        Ok(hex)
     }
 
     pub fn flush_orphaned_trivia(&mut self) {

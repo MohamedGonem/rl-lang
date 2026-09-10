@@ -12,4 +12,6 @@ dec (int, int, int, string) info = result_unwrap(audio_file_info("assets/music.o
     errors: Some("err(string) when the file can't be opened or probed"),
     see_also: &["audio_duration"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

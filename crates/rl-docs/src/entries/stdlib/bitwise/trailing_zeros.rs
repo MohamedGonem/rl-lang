@@ -9,4 +9,6 @@ pub static TRAILING_ZEROS: FnEntry = FnEntry {
     errors: Some("Will return error if `a` is not a byte or int"),
     see_also: &["leading_zeros", "count_bits"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

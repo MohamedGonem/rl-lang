@@ -9,4 +9,6 @@ pub static TO_STRING: FnEntry = FnEntry {
     errors: Some("Will return err when it fails to parse to string"),
     see_also: &["is_string"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

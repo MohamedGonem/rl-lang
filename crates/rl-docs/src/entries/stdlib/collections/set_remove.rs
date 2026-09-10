@@ -11,4 +11,6 @@ pub static SET_REMOVE: FnEntry = FnEntry {
     ),
     see_also: &["set_add", "set_contains"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

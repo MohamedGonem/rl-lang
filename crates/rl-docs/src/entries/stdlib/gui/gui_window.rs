@@ -11,4 +11,6 @@ dec handle window = result_unwrap(gui_window("My App", 400, 300))"#,
     errors: None,
     see_also: &["gui_run", "gui_close", "gui_window_set_title"],
     since: Some("v0.4.0"),
+    deprecated: None,
+    updated: Some("v0.4.0"),
 };

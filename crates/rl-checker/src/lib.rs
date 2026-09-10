@@ -28,7 +28,7 @@ pub mod units;
 use crate::structs::CheckType;
 use rl_ast::{
     Ast,
-    statements::{ProgramAttribute, Statement, StatementKind},
+    statements::{FunctionAttribute, Lint, ProgramAttribute, Statement, StatementKind},
 };
 use rl_docs::find_fn_doc;
 use rl_utils::{
@@ -57,6 +57,7 @@ impl TypeChecker {
             source_file: None,
             root_module: rl_commons::stdlib_names(),
             errors: Vec::new(),
+            warnings: Vec::new(),
             return_type_stack: Vec::new(),
             loop_depth: 0,
             stdlib_fn_names,
@@ -73,7 +74,107 @@ impl TypeChecker {
             tags: HashMap::new(),
             methods: HashMap::new(),
             conversions: crate::units::ConversionTable::default(),
+            allow_stack: Vec::new(),
+            has_explicit_entry: false,
+            deprecated_stdlib: Self::build_deprecated_stdlib_map(),
         }
+    }
+
+    /// Builds the map of deprecated stdlib function paths to their messages.
+    fn build_deprecated_stdlib_map() -> HashMap<Vec<String>, String> {
+        let mut m = HashMap::new();
+        m.insert(
+            vec!["std".into(), "array".into(), "len".into()],
+            "use std::len instead".into(),
+        );
+        // fs reorg: io file ops -> fs
+        m.insert(
+            vec!["std".into(), "io".into(), "read_file".into()],
+            "use std::fs::read_file instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "read_lines".into()],
+            "use std::fs::read_lines instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "read_bytes".into()],
+            "use std::fs::read_bytes instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "write_file".into()],
+            "use std::fs::write_file instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "append_file".into()],
+            "use std::fs::append_file instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "delete_file".into()],
+            "use std::fs::delete_file instead".into(),
+        );
+        // fs reorg: path syscall ops -> fs
+        m.insert(
+            vec!["std".into(), "path".into(), "path_exists".into()],
+            "use std::fs::path_exists instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_is_dir".into()],
+            "use std::fs::path_is_dir instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_is_file".into()],
+            "use std::fs::path_is_file instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_canonicalize".into()],
+            "use std::fs::path_canonicalize instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_absolute".into()],
+            "use std::fs::path_absolute instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_expand_home".into()],
+            "use std::fs::path_expand_home instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "path".into(), "path_relative".into()],
+            "use std::fs::path_relative instead".into(),
+        );
+        // fs reorg: io handle ops -> fs
+        m.insert(
+            vec!["std".into(), "io".into(), "open".into()],
+            "use std::fs::open instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "close".into()],
+            "use std::fs::close instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "read_handle".into()],
+            "use std::fs::read_handle instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "write_handle".into()],
+            "use std::fs::write_handle instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "seek".into()],
+            "use std::fs::seek instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "flush".into()],
+            "use std::fs::flush instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "read_all".into()],
+            "use std::fs::read_all instead".into(),
+        );
+        m.insert(
+            vec!["std".into(), "io".into(), "readline".into()],
+            "use std::fs::readline instead".into(),
+        );
+        m
     }
 
     // functions for source file for ariadne
@@ -109,14 +210,28 @@ impl TypeChecker {
                 name,
                 params,
                 return_type,
+                attribute,
                 ..
             } = &statement.kind
             {
+                if matches!(attribute, Some(FunctionAttribute::Entry)) {
+                    self.has_explicit_entry = true;
+                }
                 let fn_type = CheckType::Function {
                     params: params.iter().map(|p| p.param_type.clone()).collect(),
                     return_type: return_type.clone(),
                 };
                 self.declare(name.clone(), fn_type, false, statement.span);
+                // Runtime-called attributes: these are invoked by the runtime,
+                // not user code - mark as used to suppress unused warnings.
+                if matches!(
+                    attribute,
+                    Some(FunctionAttribute::Entry | FunctionAttribute::Init(_) | FunctionAttribute::Final(_) | FunctionAttribute::Test)
+                )
+                    && let Some(scope) = self.scopes.last_mut()
+                        && let Some(item) = scope.get_mut(name) {
+                            item.used = true;
+                        }
             }
             if let StatementKind::RecordDeclaration { name, fields } = &statement.kind {
                 self.records.insert(name.clone(), fields.clone());
@@ -147,7 +262,22 @@ impl TypeChecker {
         for statement in statements {
             self.check_statement(statement);
         }
+        self.report_unused_in_root_scope();
         &self.errors
+    }
+
+    pub fn warn(&mut self, message: impl Into<String>, span: Span) {
+        self.warnings
+            .push(self.err(message.into(), span).as_warning());
+    }
+
+    /// Emits a warning only if the given `lint` is not suppressed by an
+    /// enclosing `!#[allow(...)]` attribute.
+    pub fn warn_lint(&mut self, lint: Lint, message: impl Into<String>, span: Span) {
+        let suppressed = self.allow_stack.iter().any(|set| set.contains(&lint));
+        if !suppressed {
+            self.warn(message, span);
+        }
     }
 
     // transforms arguments into Error type

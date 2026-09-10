@@ -84,6 +84,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CTuple(Rc::new(types)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -235,7 +236,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBrace]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBrace]) {
+                    return Err(self.err("expected `}` after map literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::ConstantMap {
@@ -255,6 +259,7 @@ impl Parser {
                         type_annotation: annoation_type,
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -303,7 +308,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBrace]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBrace]) {
+                    return Err(self.err("expected `}` after set literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::ConstantSet {
@@ -324,6 +332,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CSet(Box::new(annoation_type)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -373,7 +382,10 @@ impl Parser {
                     }
                     while self.match_type(&[TokenType::Newline]) {}
                 }
-                self.match_type(&[TokenType::RightBracket]);
+                while self.match_type(&[TokenType::Newline]) {}
+                if !self.match_type(&[TokenType::RightBracket]) {
+                    return Err(self.err("expected `]` after array literal", self.peek_span()));
+                }
                 let span = start.join(self.previous_span());
                 return Ok(Statement::new(
                     StatementKind::ConstantArray {
@@ -394,6 +406,7 @@ impl Parser {
                         type_annotation: TypeAnnotation::CArray(Box::new(annoation_type)),
                         value,
                         unit_annotation: None,
+                        item_attributes: Vec::new(),
                     },
                     span,
                 ));
@@ -445,6 +458,7 @@ impl Parser {
                 type_annotation: const_type,
                 unit_annotation,
                 value,
+                item_attributes: Vec::new(),
             },
             span,
         ))

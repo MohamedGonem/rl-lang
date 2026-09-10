@@ -18,4 +18,6 @@ list_dir("./src")"#,
     ),
     see_also: &["mkdir", "rmdir"],
     since: Some("v0.1.5"),
+    deprecated: None,
+    updated: Some("v0.1.5"),
 };

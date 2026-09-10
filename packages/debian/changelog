@@ -1,0 +1,10 @@
+rl-lang (2.1.0) unstable; urgency=medium
+
+  * Parser delimiter error improvements
+  * Man page and info page packaging
+  * Faster builds with nightly and dev-release profiles
+  * macOS builds (x86_64 and aarch64)
+  * SHA256 checksums for release artifacts
+  * Installer improvements
+
+ -- rl-lang maintainers <https://github.com/rl-lang/rl-lang>  Mon, 09 Sep 2026 00:00:00 +0000
