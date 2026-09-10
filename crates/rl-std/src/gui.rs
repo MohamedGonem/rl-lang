@@ -95,6 +95,10 @@ pub struct ButtonState<V> {
     /// lower when positions overlap. Widgets with equal z draw in creation
     /// order (later created = on top).
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -105,6 +109,10 @@ pub struct LabelState {
     pub y: f32,
     pub visible: bool,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -117,6 +125,10 @@ pub struct CheckboxState<V> {
     pub checked: bool,
     pub on_change: Option<V>,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -140,6 +152,10 @@ pub struct TextboxState<V> {
     /// single-line textboxes use a fixed row height instead.
     pub height: f32,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -153,6 +169,10 @@ pub struct SelectState<V> {
     pub visible: bool,
     pub on_change: Option<V>,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -172,6 +192,10 @@ pub struct SliderState<V> {
     /// on_change function.
     pub drag_only: bool,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -183,6 +207,10 @@ pub struct ProgressState {
     pub width: f32,
     pub visible: bool,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -193,6 +221,10 @@ pub struct SeparatorState {
     pub width: f32,
     pub visible: bool,
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 #[cfg(feature = "impls")]
@@ -209,6 +241,10 @@ pub struct ImageState {
     /// gets cloned every frame while rendering.
     pub rgba: (u32, u32, std::sync::Arc<Vec<u8>>),
     pub z: i32,
+    pub font_size: Option<f32>,
+    pub color: Option<(u8, u8, u8)>,
+    pub bg_color: Option<(u8, u8, u8)>,
+    pub tooltip: Option<String>,
 }
 
 // ============================================================================
@@ -437,6 +473,10 @@ pub fn gui_button<R: GuiStore>(
             visible: true,
             on_click: None,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
 
@@ -484,6 +524,10 @@ pub fn gui_label<R: GuiStore>(
             y: y as f32,
             visible: true,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
 
@@ -524,6 +568,10 @@ pub fn gui_checkbox<R: GuiStore>(
             checked: false,
             on_change: None,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
 
@@ -565,6 +613,10 @@ pub fn gui_textbox<R: GuiStore>(
             multiline: false,
             height: 20.0,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
 
@@ -613,6 +665,10 @@ pub fn gui_textarea<R: GuiStore>(
             multiline: true,
             height: height.max(1) as f32,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
 
@@ -660,6 +716,10 @@ pub fn gui_dropdown<R: GuiStore>(
             visible: true,
             on_change: None,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -705,6 +765,10 @@ pub fn gui_radio_group<R: GuiStore>(
             visible: true,
             on_change: None,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -752,6 +816,10 @@ pub fn gui_slider<R: GuiStore>(
             on_change: None,
             drag_only: false,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -804,6 +872,10 @@ pub fn gui_number_input<R: GuiStore>(
             on_change: None,
             drag_only: true,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -838,6 +910,10 @@ pub fn gui_progress_bar<R: GuiStore>(
             width: width.max(1) as f32,
             visible: true,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -871,6 +947,10 @@ pub fn gui_separator<R: GuiStore>(
             width: width.max(1) as f32,
             visible: true,
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -932,6 +1012,10 @@ pub fn gui_image<R: GuiStore>(
             visible: true,
             rgba: (width as u32, height as u32, std::sync::Arc::new(rgba_bytes)),
             z: 0,
+            font_size: None,
+            color: None,
+            bg_color: None,
+            tooltip: None,
         }),
     );
     let id = R::as_handle(&handle, HandleKind::Gui).unwrap();
@@ -1881,6 +1965,10 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Label {
         id: u64,
@@ -1888,6 +1976,10 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Checkbox {
         id: u64,
@@ -1896,6 +1988,10 @@ enum WidgetSnapshot {
         y: f32,
         checked: bool,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Textbox {
         id: u64,
@@ -1906,6 +2002,10 @@ enum WidgetSnapshot {
         multiline: bool,
         height: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Dropdown {
         id: u64,
@@ -1915,6 +2015,10 @@ enum WidgetSnapshot {
         y: f32,
         width: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     RadioGroup {
         id: u64,
@@ -1923,6 +2027,10 @@ enum WidgetSnapshot {
         x: f32,
         y: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Slider {
         id: u64,
@@ -1934,6 +2042,10 @@ enum WidgetSnapshot {
         width: f32,
         drag_only: bool,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     ProgressBar {
         id: u64,
@@ -1942,6 +2054,10 @@ enum WidgetSnapshot {
         y: f32,
         width: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Separator {
         id: u64,
@@ -1949,6 +2065,10 @@ enum WidgetSnapshot {
         y: f32,
         width: f32,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
     Image {
         id: u64,
@@ -1960,6 +2080,10 @@ enum WidgetSnapshot {
         texture_height: u32,
         rgba: std::sync::Arc<Vec<u8>>,
         z: i32,
+        font_size: Option<f32>,
+        color: Option<(u8, u8, u8)>,
+        bg_color: Option<(u8, u8, u8)>,
+        tooltip: Option<String>,
     },
 }
 
@@ -2032,6 +2156,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x: b.x,
                 y: b.y,
                 z: b.z,
+                font_size: b.font_size,
+                color: b.color,
+                bg_color: b.bg_color,
+                tooltip: b.tooltip.clone(),
             }),
             Some(GuiHandle::Label(l)) if l.visible => Some(WidgetSnapshot::Label {
                 id: *id,
@@ -2039,6 +2167,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x: l.x,
                 y: l.y,
                 z: l.z,
+                font_size: l.font_size,
+                color: l.color,
+                bg_color: l.bg_color,
+                tooltip: l.tooltip.clone(),
             }),
             Some(GuiHandle::Checkbox(c)) if c.visible => Some(WidgetSnapshot::Checkbox {
                 id: *id,
@@ -2047,6 +2179,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: c.y,
                 checked: c.checked,
                 z: c.z,
+                font_size: c.font_size,
+                color: c.color,
+                bg_color: c.bg_color,
+                tooltip: c.tooltip.clone(),
             }),
             Some(GuiHandle::Textbox(t)) if t.visible => Some(WidgetSnapshot::Textbox {
                 id: *id,
@@ -2057,6 +2193,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 multiline: t.multiline,
                 height: t.height,
                 z: t.z,
+                font_size: t.font_size,
+                color: t.color,
+                bg_color: t.bg_color,
+                tooltip: t.tooltip.clone(),
             }),
             Some(GuiHandle::Dropdown(s)) if s.visible => Some(WidgetSnapshot::Dropdown {
                 id: *id,
@@ -2066,6 +2206,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: s.y,
                 width: s.width,
                 z: s.z,
+                font_size: s.font_size,
+                color: s.color,
+                bg_color: s.bg_color,
+                tooltip: s.tooltip.clone(),
             }),
             Some(GuiHandle::RadioGroup(s)) if s.visible => Some(WidgetSnapshot::RadioGroup {
                 id: *id,
@@ -2074,6 +2218,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 x: s.x,
                 y: s.y,
                 z: s.z,
+                font_size: s.font_size,
+                color: s.color,
+                bg_color: s.bg_color,
+                tooltip: s.tooltip.clone(),
             }),
             Some(GuiHandle::Slider(s)) if s.visible => Some(WidgetSnapshot::Slider {
                 id: *id,
@@ -2085,6 +2233,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 width: s.width,
                 drag_only: s.drag_only,
                 z: s.z,
+                font_size: s.font_size,
+                color: s.color,
+                bg_color: s.bg_color,
+                tooltip: s.tooltip.clone(),
             }),
             Some(GuiHandle::ProgressBar(p)) if p.visible => Some(WidgetSnapshot::ProgressBar {
                 id: *id,
@@ -2093,6 +2245,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: p.y,
                 width: p.width,
                 z: p.z,
+                font_size: p.font_size,
+                color: p.color,
+                bg_color: p.bg_color,
+                tooltip: p.tooltip.clone(),
             }),
             Some(GuiHandle::Separator(s)) if s.visible => Some(WidgetSnapshot::Separator {
                 id: *id,
@@ -2100,6 +2256,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 y: s.y,
                 width: s.width,
                 z: s.z,
+                font_size: s.font_size,
+                color: s.color,
+                bg_color: s.bg_color,
+                tooltip: s.tooltip.clone(),
             }),
             Some(GuiHandle::Image(img)) if img.visible => Some(WidgetSnapshot::Image {
                 id: *id,
@@ -2111,6 +2271,10 @@ fn render_window<R: GuiStore>(cx: &mut R::Cx, ctx: &egui::Context, window_id: u6
                 texture_height: img.rgba.1,
                 rgba: img.rgba.2.clone(),
                 z: img.z,
+                font_size: img.font_size,
+                color: img.color,
+                bg_color: img.bg_color,
+                tooltip: img.tooltip.clone(),
             }),
             _ => None,
         })
@@ -2678,6 +2842,200 @@ pub fn gui_quit<R: GuiStore>(cx: &mut R::Cx) -> R::Value {
     R::null()
 }
 
+// ---- style setters ----------------------------------------------------------
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui), float -> result[null]))]
+pub fn gui_set_font_size<R: GuiStore>(cx: &mut R::Cx, handle: R::Value, size: f64) -> R::Value {
+    let id = match extract_handle::<R>(&handle, "gui_set_font_size") {
+        Ok(id) => id,
+        Err(e) => return R::err(R::from_string(e)),
+    };
+
+    match R::gui_handles(cx).get_mut(&id) {
+        Some(GuiHandle::Button(b)) => { b.font_size = Some(size as f32); }
+        Some(GuiHandle::Label(l)) => { l.font_size = Some(size as f32); }
+        Some(GuiHandle::Checkbox(c)) => { c.font_size = Some(size as f32); }
+        Some(GuiHandle::Textbox(t)) => { t.font_size = Some(size as f32); }
+        Some(GuiHandle::Dropdown(s)) => { s.font_size = Some(size as f32); }
+        Some(GuiHandle::RadioGroup(s)) => { s.font_size = Some(size as f32); }
+        Some(GuiHandle::Slider(s)) => { s.font_size = Some(size as f32); }
+        Some(GuiHandle::ProgressBar(p)) => { p.font_size = Some(size as f32); }
+        Some(GuiHandle::Separator(s)) => { s.font_size = Some(size as f32); }
+        Some(GuiHandle::Image(i)) => { i.font_size = Some(size as f32); }
+        Some(GuiHandle::Window(_)) => {
+            return R::err(R::from_string(
+                "gui_set_font_size: cannot set font size on a window".into(),
+            ));
+        }
+        None => {
+            return R::err(R::from_string(format!(
+                "gui_set_font_size: unknown handle {}",
+                id
+            )));
+        }
+    }
+
+    R::ok(R::null())
+}
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui), byte, byte, byte -> result[null]))]
+pub fn gui_set_color<R: GuiStore>(
+    cx: &mut R::Cx,
+    handle: R::Value,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> R::Value {
+    let id = match extract_handle::<R>(&handle, "gui_set_color") {
+        Ok(id) => id,
+        Err(e) => return R::err(R::from_string(e)),
+    };
+
+    match R::gui_handles(cx).get_mut(&id) {
+        Some(GuiHandle::Button(bh)) => { bh.color = Some((r, g, b)); }
+        Some(GuiHandle::Label(l)) => { l.color = Some((r, g, b)); }
+        Some(GuiHandle::Checkbox(c)) => { c.color = Some((r, g, b)); }
+        Some(GuiHandle::Textbox(t)) => { t.color = Some((r, g, b)); }
+        Some(GuiHandle::Dropdown(s)) => { s.color = Some((r, g, b)); }
+        Some(GuiHandle::RadioGroup(s)) => { s.color = Some((r, g, b)); }
+        Some(GuiHandle::Slider(s)) => { s.color = Some((r, g, b)); }
+        Some(GuiHandle::ProgressBar(p)) => { p.color = Some((r, g, b)); }
+        Some(GuiHandle::Separator(s)) => { s.color = Some((r, g, b)); }
+        Some(GuiHandle::Image(i)) => { i.color = Some((r, g, b)); }
+        Some(GuiHandle::Window(_)) => {
+            return R::err(R::from_string(
+                "gui_set_color: cannot set color on a window".into(),
+            ));
+        }
+        None => {
+            return R::err(R::from_string(format!(
+                "gui_set_color: unknown handle {}",
+                id
+            )));
+        }
+    }
+
+    R::ok(R::null())
+}
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui), byte, byte, byte -> result[null]))]
+pub fn gui_set_bg_color<R: GuiStore>(
+    cx: &mut R::Cx,
+    handle: R::Value,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> R::Value {
+    let id = match extract_handle::<R>(&handle, "gui_set_bg_color") {
+        Ok(id) => id,
+        Err(e) => return R::err(R::from_string(e)),
+    };
+
+    match R::gui_handles(cx).get_mut(&id) {
+        Some(GuiHandle::Button(bh)) => { bh.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Label(l)) => { l.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Checkbox(c)) => { c.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Textbox(t)) => { t.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Dropdown(s)) => { s.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::RadioGroup(s)) => { s.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Slider(s)) => { s.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::ProgressBar(p)) => { p.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Separator(s)) => { s.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Image(i)) => { i.bg_color = Some((r, g, b)); }
+        Some(GuiHandle::Window(_)) => {
+            return R::err(R::from_string(
+                "gui_set_bg_color: cannot set background color on a window".into(),
+            ));
+        }
+        None => {
+            return R::err(R::from_string(format!(
+                "gui_set_bg_color: unknown handle {}",
+                id
+            )));
+        }
+    }
+
+    R::ok(R::null())
+}
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui), string -> result[null]))]
+pub fn gui_set_tooltip<R: GuiStore>(
+    cx: &mut R::Cx,
+    handle: R::Value,
+    text: String,
+) -> R::Value {
+    let id = match extract_handle::<R>(&handle, "gui_set_tooltip") {
+        Ok(id) => id,
+        Err(e) => return R::err(R::from_string(e)),
+    };
+
+    match R::gui_handles(cx).get_mut(&id) {
+        Some(GuiHandle::Button(bh)) => { bh.tooltip = Some(text); }
+        Some(GuiHandle::Label(l)) => { l.tooltip = Some(text); }
+        Some(GuiHandle::Checkbox(c)) => { c.tooltip = Some(text); }
+        Some(GuiHandle::Textbox(t)) => { t.tooltip = Some(text); }
+        Some(GuiHandle::Dropdown(s)) => { s.tooltip = Some(text); }
+        Some(GuiHandle::RadioGroup(s)) => { s.tooltip = Some(text); }
+        Some(GuiHandle::Slider(s)) => { s.tooltip = Some(text); }
+        Some(GuiHandle::ProgressBar(p)) => { p.tooltip = Some(text); }
+        Some(GuiHandle::Separator(s)) => { s.tooltip = Some(text); }
+        Some(GuiHandle::Image(i)) => { i.tooltip = Some(text); }
+        Some(GuiHandle::Window(_)) => {
+            return R::err(R::from_string(
+                "gui_set_tooltip: cannot set tooltip on a window".into(),
+            ));
+        }
+        None => {
+            return R::err(R::from_string(format!(
+                "gui_set_tooltip: unknown handle {}",
+                id
+            )));
+        }
+    }
+
+    R::ok(R::null())
+}
+
+// ---- window query -----------------------------------------------------------
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui) -> result[array[float]]))]
+pub fn gui_get_window_size<R: GuiStore>(
+    cx: &mut R::Cx,
+    window: R::Value,
+) -> Result<Vec<f64>, String> {
+    let id = extract_handle::<R>(&window, "gui_get_window_size")?;
+    match R::gui_handles_ref(cx).get(&id) {
+        Some(GuiHandle::Window(w)) => Ok(vec![w.width as f64, w.height as f64]),
+        Some(_) => Err(format!(
+            "gui_get_window_size: handle {} is not a window",
+            id
+        )),
+        None => Err(format!(
+            "gui_get_window_size: unknown handle {}",
+            id
+        )),
+    }
+}
+
+#[native_fn(module = "gui", bound = "GuiStore", sig(handle(Gui) -> result[array[float]]))]
+pub fn gui_get_window_pos<R: GuiStore>(
+    cx: &mut R::Cx,
+    window: R::Value,
+) -> Result<Vec<f64>, String> {
+    let id = extract_handle::<R>(&window, "gui_get_window_pos")?;
+    match R::gui_handles_ref(cx).get(&id) {
+        Some(GuiHandle::Window(_)) => Ok(vec![0.0, 0.0]),
+        Some(_) => Err(format!(
+            "gui_get_window_pos: handle {} is not a window",
+            id
+        )),
+        None => Err(format!(
+            "gui_get_window_pos: unknown handle {}",
+            id
+        )),
+    }
+}
+
 rl_std_core::native_module!("gui";
     bound: GuiStore;
     funcs: [
@@ -2726,5 +3084,13 @@ rl_std_core::native_module!("gui";
         gui_run,
         gui_close,
         gui_quit,
+        // style
+        gui_set_font_size,
+        gui_set_color,
+        gui_set_bg_color,
+        gui_set_tooltip,
+        // window query
+        gui_get_window_size,
+        gui_get_window_pos,
     ],
 );
