@@ -116,7 +116,7 @@ enum Commands {
     },
 
     /// Scaffold a new project directory, or create a standalone script
-    #[command(after_help = "EXAMPLES:\n    rl new my_project\n    rl new my_project --no-git\n    rl new --script hello")]
+    #[command(after_help = "EXAMPLES:\n    rl new my_project\n    rl new my_project --no-git\n    rl new my_project --lib\n    rl new --script hello")]
     New {
         /// Name for the new project directory or script
         #[arg(value_name = "NAME")]
@@ -129,6 +129,10 @@ enum Commands {
         /// Create a standalone .rl script instead of a project directory
         #[arg(long)]
         script: bool,
+
+        /// Create a library project (generates src/lib.rl instead of src/main.rl)
+        #[arg(long)]
+        lib: bool,
     },
 
     /// Type-check a .rl file and report errors without running it
@@ -353,6 +357,63 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         cc_flags: Vec<String>,
     },
+
+    /// Package manager for rl dependencies
+    #[command(
+        long_about = "Manage project dependencies.\n\n\
+                       Downloads tarballs, verifies SHA256, and creates symlinks in deps/.",
+        after_help = "EXAMPLES:\n    \
+                       rl pm install\n    \
+                       rl pm add csv https://example.com/csv-0.1.0.tar.gz\n    \
+                       rl pm add csv https://example.com/csv-0.1.0.tar.gz --sha256 abc123\n    \
+                       rl pm remove csv\n    \
+                       rl pm list\n    \
+                       rl pm update\n    \
+                       rl pm cache clean"
+    )]
+    Pm {
+        #[command(subcommand)]
+        command: PmCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum PmCommands {
+    /// Install all dependencies from rl.toml
+    Install,
+    /// Add a dependency to rl.toml and download it
+    Add {
+        /// Package name
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Tarball URL
+        #[arg(value_name = "URL")]
+        url: String,
+        /// Expected SHA256 hash (optional)
+        #[arg(long, value_name = "HASH")]
+        sha256: Option<String>,
+    },
+    /// Remove a dependency from rl.toml and delete its symlink
+    Remove {
+        /// Package name
+        #[arg(value_name = "NAME")]
+        name: String,
+    },
+    /// List installed dependencies
+    List,
+    /// Re-download all dependencies and verify hashes
+    Update,
+    /// Manage the download cache
+    Cache {
+        #[command(subcommand)]
+        command: CacheCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum CacheCommands {
+    /// Clear the download cache
+    Clean,
 }
 
 fn main() {
@@ -548,6 +609,14 @@ fn main() {
 
         Commands::Dev { vm, cranelift } => {
             let config = read_rl_toml();
+
+            // warn if [dependencies] section is missing
+            let raw = std::fs::read_to_string("rl.toml").unwrap_or_default();
+            if !rl_tooling::dev::has_dependencies_section(&raw) {
+                eprintln!("warning: rl.toml is missing a [dependencies] section");
+                eprintln!("  add an empty [dependencies] section to silence this warning");
+            }
+
             let path = std::path::PathBuf::from(&config.project.entry);
             let source_text = std::fs::read_to_string(&path).unwrap_or_else(|_| {
                 eprintln!(
@@ -639,11 +708,11 @@ fn main() {
             generate(check, package);
         }
 
-        Commands::New { name, no_git, script } => {
+        Commands::New { name, no_git, script, lib } => {
             if script {
                 rl_tooling::new::create_script(&name);
             } else {
-                create_project(&name, no_git);
+                create_project(&name, no_git, lib);
             }
         }
 
@@ -1249,6 +1318,61 @@ fn main() {
             let _ = file;
             eprintln!("error: `transpile` requires the `cc` feature\n       rebuild with: cargo build --features cc");
             std::process::exit(1);
+        }
+        Commands::Pm { command } => {
+            let project_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            match command {
+                PmCommands::Install => {
+                    if let Err(e) = rl_pm::install_all(&project_root) {
+                        eprintln!("error: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+                PmCommands::Add { name, url, sha256 } => {
+                    if let Err(e) = rl_pm::add_dep(&project_root, &name, &url, sha256.as_deref()) {
+                        eprintln!("error: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+                PmCommands::Remove { name } => {
+                    if let Err(e) = rl_pm::remove_dep(&project_root, &name) {
+                        eprintln!("error: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+                PmCommands::List => {
+                    match rl_pm::list_deps(&project_root) {
+                        Ok(deps) => {
+                            if deps.is_empty() {
+                                eprintln!("no dependencies");
+                            } else {
+                                for dep in &deps {
+                                    let status = if dep.installed { "installed" } else { "missing" };
+                                    eprintln!("{} {} [{}]", dep.name, dep.url, status);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("error: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                PmCommands::Update => {
+                    if let Err(e) = rl_pm::update_deps(&project_root) {
+                        eprintln!("error: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+                PmCommands::Cache { command } => match command {
+                    CacheCommands::Clean => {
+                        if let Err(e) = rl_pm::cache_clean() {
+                            eprintln!("error: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                },
+            }
         }
     }
 }
