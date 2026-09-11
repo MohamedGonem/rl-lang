@@ -815,10 +815,34 @@ impl TypeChecker {
 
     fn import_module(&mut self, path: &[String], names: Option<&[String]>, span: Span) {
         let import_name = format!("{}.rl", path.join("/"));
-        let import_path = match &self.base_dir {
+        let mut import_path = match &self.base_dir {
             Some(dir) => dir.join(&import_name),
             None => PathBuf::from(&import_name),
         };
+
+        // try direct file first, then deps/
+        if !import_path.exists() {
+            if let Some(first) = path.first() {
+                let dep_path = self.base_dir.as_ref()
+                    .map(|d| d.join("deps").join(first).join("lib.rl"))
+                    .unwrap_or_default();
+                if dep_path.exists() {
+                    import_path = dep_path;
+                } else {
+                    self.error(
+                        format!("could not import '{}': file not found", path.join("::")),
+                        span,
+                    );
+                    return;
+                }
+            } else {
+                self.error(
+                    format!("could not import '{}': file not found", path.join("::")),
+                    span,
+                );
+                return;
+            }
+        }
 
         let canonical = import_path
             .canonicalize()
