@@ -36,10 +36,25 @@ use rl_utils::{errors::Error, source::SourceFile, span::Span};
 impl Parser {
     fn get_imported_type_names(&mut self, path: &[String], only: Option<&[String]>) {
         let import_name = format!("{}.rl", path.join("/"));
-        let file_path = std::path::Path::new(self.source_file.name.as_ref())
+        let base_dir = std::path::Path::new(self.source_file.name.as_ref())
             .parent()
-            .unwrap_or_else(|| std::path::Path::new(""))
-            .join(&import_name);
+            .unwrap_or_else(|| std::path::Path::new(""));
+
+        // try direct file first
+        let mut file_path = base_dir.join(&import_name);
+        if !file_path.exists() {
+            // try deps/ directory
+            if let Some(first) = path.first() {
+                let dep_path = base_dir.join("deps").join(first).join("lib.rl");
+                if dep_path.exists() {
+                    file_path = dep_path;
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
 
         let Ok(source_text) = std::fs::read_to_string(&file_path) else {
             return;
